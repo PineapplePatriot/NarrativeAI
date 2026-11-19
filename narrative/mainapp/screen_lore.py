@@ -1,6 +1,7 @@
 """Lore owned by a messenger chat, shared with its in-person episodes."""
 import copy
 import json
+import hashlib
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -11,6 +12,12 @@ from mainapp.models import MessengerThread, Worldbook
 
 
 FIELDS = ("lorebook", "lore_mode", "lore_pending", "lore_draft")
+
+
+def version(thread):
+    raw = thread.data or {}
+    content = {k: raw.get(k) for k in ("lorebook", "lore_mode", "lore_pending")}
+    return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
 def mark_modernized(character):
@@ -68,11 +75,12 @@ def describe(thread):
     raw = thread.data or {}
     book = raw.get("lorebook") or {}
     return {"mode": raw.get("lore_mode", "inherit"), "pending": bool(raw.get("lore_pending")),
-            "title": book.get("title", ""), "entries": len(book.get("entries") or [])}
+            "title": book.get("title", ""), "entries": len(book.get("entries") or []), "version": version(thread)}
 
 
 def payload(thread):
     return {"summary": describe(thread), "book": copy.deepcopy((thread.data or {}).get("lorebook")),
+            "version": version(thread),
             "draft": copy.deepcopy((thread.data or {}).get("lore_draft")),
             "activation": activate_for(thread),
             "sources": list(Worldbook.objects.filter(author=thread.user).values("id", "title"))}
@@ -106,6 +114,8 @@ def api(request):
             source = Worldbook.objects.filter(author=request.user, id=body.get("source_id")).first()
             if source is None:
                 raise ValueError("Choose one of your lorebooks.")
+            if body.get("preview") is True:
+                return JsonResponse({**payload(thread), "preview_book": copy.deepcopy(lorebook.load_worldbook(source))})
             updates.update(lorebook=copy.deepcopy(lorebook.load_worldbook(source)), lore_mode="local", lore_pending=False)
         elif action == "mode":
             mode = body.get("mode")
@@ -130,6 +140,9 @@ def api(request):
         # Generation happens before locking; only lore fields are changed, preserving concurrent texts.
         with transaction.atomic():
             locked = MessengerThread.objects.select_for_update().get(pk=thread.pk, user=request.user)
+            if action != "draft" and body.get("version") and body["version"] != version(locked):
+                return JsonResponse({"error": "Saved lore changed in another request. Your local draft is preserved; review the saved version before applying it.",
+                                     "current": payload(locked)}, status=409)
             locked.data = {**(locked.data or {}), **updates}
             locked.save(update_fields=["data"])
         thread.refresh_from_db()

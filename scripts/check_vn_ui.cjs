@@ -15,6 +15,9 @@ const { chromium } = require('playwright');
       await page.route('http://vn.test/', route => route.fulfill({contentType: 'text/html', body:
         '<div class="screen-hub-shell"><section id="app-scenes" class="screen-app-view active"><div id="vnScenesRoot"></div><audio id="vnAudioPlayer"></audio></section></div>'}));
       await page.goto('http://vn.test/');
+      if (process.env.VN_TEST_BLOCK_STORAGE) await page.evaluate(() => {
+        for (const name of ['sessionStorage', 'localStorage']) Object.defineProperty(window, name, {get() {throw new DOMException('Storage disabled in test', 'SecurityError');}});
+      });
       const assets = path.join(__dirname, '../narrative/mainapp/static/mainapp');
       await page.addStyleTag({path: path.join(assets, 'css/messenger.css')});
       await page.addStyleTag({path: path.join(assets, 'css/vn_scenes.css')});
@@ -23,12 +26,13 @@ const { chromium } = require('playwright');
           beats: [{id: 'one', kind: 'narration', speaker: 'narrator', text: 'Rain hits the window.'}],
           choices: ['Tell me more.', '"For you," she says. <ordinary text>'], handoff: 'user_turn'};
         window.TG = {
-          state: {characters: [], active_thread: {id: 1, title: 'Mira'},
+          state: {account_id: 1, characters: [], active_thread: {id: 1, title: 'Mira'},
             vn_scenes: {active_scene: scene, gallery: [], music_tracks: [], backgrounds: []}},
           esc: s => {const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML;},
           switchApp() {}, toast() {}, renderSidebar() {}, renderMainChat() {},
         };
       });
+      await page.addScriptTag({path: path.join(assets, 'js/screen_drafts.js')});
       await page.addScriptTag({path: path.join(assets, 'js/vn_scenes.js')});
       await page.evaluate(() => VN_SCENES.init());
       const originalStep = await page.evaluate(() => {
@@ -54,21 +58,29 @@ const { chromium } = require('playwright');
         window.requests = [];
         window.fetch = async (_url, opts) => {
           const body = JSON.parse(opts.body); requests.push(body);
-          if (body.action === 'finish_scene') return {ok: true, json: async () => ({
-            vn_scenes: {active_scene: null, gallery: []}, gallery_entry: {title: 'Saved', summary: 'They met.'}})};
+          if (body.action === 'finish_scene') {
+            TG.state.active_thread = {id: 2, title: 'Another phone chat'};
+            return {ok: true, json: async () => ({thread: {id: 1, title: 'Mira'},
+              vn_scenes: {active_scene: null, gallery: []}, gallery_entry: {title: 'Saved', summary: 'They met.'}})};
+          }
           const scene = TG.state.vn_scenes.active_scene;
           const next = {id: 'three', kind: 'narration', speaker: 'narrator', text: 'The next turn.'};
           scene.beats.push(next);
           return {ok: true, json: async () => ({scene, new_beats: [next], vn_scenes: TG.state.vn_scenes})};
         };
       });
+      await page.locator('#vnShortInput').fill('Unsent draft');
+      await page.evaluate(() => {VN_SCENES.prevBeat(); VN_SCENES.nextBeat();});
+      assert.equal(await page.locator('#vnShortInput').inputValue(), 'Unsent draft');
       await page.locator('#vnShortInput').fill('A long reply.\n\nA second paragraph.');
       await page.getByRole('button', {name: 'Act / Speak'}).click();
       await page.waitForFunction(() => VN_SCENES.currentBeat().id === 'three');
       assert.equal(await page.evaluate(() => requests[0].user_input), 'A long reply.\n\nA second paragraph.');
+      await page.locator('.vn-end-options').evaluate(el => el.open = true);
       await page.getByRole('button', {name: 'Finish & Save', exact: true}).click();
       await page.waitForFunction(() => VN_SCENES.lastFinaleEntry);
       assert.equal(await page.evaluate(() => requests.at(-1).capture_image), false);
+      assert.equal(await page.evaluate(() => TG.state.active_thread.id), 2, 'finishing must not replace a newer phone selection');
       assert.deepEqual(errors, []);
       await page.close();
       console.log(`VN renderer: choices, paragraphs, resume, completion and layout pass at ${width}px.`);

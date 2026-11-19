@@ -146,3 +146,23 @@ class ChatLoreTests(TestCase):
         self.thread.refresh_from_db()
         self.assertEqual(self.thread.data["lore_mode"], "local")
         self.assertEqual(self.thread.data["messages"][-1]["text"], "A new message.")
+
+    def test_stale_lore_save_is_rejected_without_overwriting_newer_book(self):
+        initial = self.client.get(reverse("screen_lore_api"), {"thread_id": self.thread.pk}).json()
+        self.post("save", book=self.book)
+        response = self.post("save", book={"title": "Stale draft", "entries": []}, version=initial["version"])
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["current"]["book"]["title"], "Archive")
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["lorebook"]["title"], "Archive")
+
+    def test_copy_preview_requires_an_explicit_save_to_replace_chat_lore(self):
+        self.post("save", book=self.book)
+        source = Worldbook.objects.create(author=self.user, title="Other", slug="preview-source")
+        lorebook.save_worldbook(source, {"title": "Other world", "entries": []})
+        response = self.post("copy", source_id=source.pk, preview=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["preview_book"]["title"], "Other world")
+        self.assertEqual(response.json()["book"]["title"], "Archive")
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["lorebook"]["title"], "Archive")

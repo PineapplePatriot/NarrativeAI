@@ -565,6 +565,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
     scene["continuity"] = scene["current_stage"]["continuity"]
     scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
     if scene["interaction_mode"] == "write": scene["choices"] = []
+    scene["choice_cache"] = list(scene["choices"])
     save_vn_state(user, {"active_scene": scene}, expected=("", 0))
     return scene
 
@@ -596,14 +597,15 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
 
     history = list(scene.get("beats") or scene.get("history") or [])
     if user_input and user_input.strip():
+        directing = scene.get("authoring_mode") == "director"
         c0 = chars[0]
         last_beat = history[-1] if history else {}
         user_beat = {
             "id": "vnb_" + uuid.uuid4().hex[:8],
-            "kind": "dialogue",
-            "speaker": "user",
-            "speaker_slug": "user",
-            "speaker_name": u_name,
+            "kind": "direction" if directing else "dialogue",
+            "speaker": "director" if directing else "user",
+            "speaker_slug": "director" if directing else "user",
+            "speaker_name": "Director" if directing else u_name,
             "character_slug": last_beat.get("character_slug") or c0.slug,
             "character_name": last_beat.get("character_name") or c0.name,
             "emotion": last_beat.get("emotion") or "neutral",
@@ -626,7 +628,9 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
     step_dir = (
-        f"{u_name} just did/said: \"{user_input.strip()}\". Respond until the next natural opportunity for input."
+        (f"Director's instruction (not spoken dialogue): {user_input.strip()}. Follow this direction in the scene."
+         if scene.get("authoring_mode") == "director"
+         else f"{u_name} just did/said: \"{user_input.strip()}\". Respond until the next natural opportunity for input.")
         if (user_input and user_input.strip())
         else "Continue unfolding the scene until the next natural opportunity for input."
     )
@@ -671,8 +675,31 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
     scene["choices"] = [str(ch).strip()[:120] for ch in (parsed.get("choices") or []) if str(ch or "").strip()][:3]
 
     if scene.get("interaction_mode") == "write": scene["choices"] = []
+    scene["choice_cache"] = list(scene["choices"])
     save_vn_state(user, {**(save_updates or {}), "active_scene": scene}, expected=expected)
     return scene, new_beats
+
+
+def suggest_choices(user):
+    """Offer options at the current endpoint without advancing the story or generating images."""
+    from mainapp import vn_history
+    _, scene = vn_history.current(user)
+    if scene.get("interaction_mode") == "write":
+        raise ai_client.AIError("Switch to choices or mixed mode before requesting options.")
+    expected = (scene["id"], scene.get("revision", 0))
+    prompt = ("Suggest up to three distinct, scene-specific actions or lines of dialogue the user could choose "
+              "at the current moment. Preserve character, knowledge and authorship mode. Do not advance the scene, "
+              "invent an event, change continuity or write a continuation. Return ONLY JSON {\"choices\": [\"option\"]}.")
+    result = _call_vn_json(user, prompt, scene)
+    choices = result.get("choices")
+    if not isinstance(choices, list) or not choices or any(not isinstance(c, str) or not c.strip() for c in choices):
+        raise ai_client.AIError("The model returned no usable options. The episode is unchanged.")
+    scene["choices"] = [c.strip()[:240] for c in choices[:3]]
+    scene["choice_cache"] = list(scene["choices"])
+    if scene.get("last_request"):
+        scene["last_request"]["operation"] = "suggest_choices"
+    save_vn_state(user, {"active_scene": scene}, expected=expected)
+    return scene
 
 
 def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
@@ -743,6 +770,8 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     transcript_lines = []
     transcript_lines.append("Cumulative continuity: " + json.dumps(scene.get("continuity") or {}, ensure_ascii=False))
     for b in (scene.get("beats") or scene.get("history") or [])[-40:]:
+        if b.get("kind") == "direction":
+            continue
         transcript_lines.append(f"{b.get('speaker_name') or b.get('speaker')}: {b.get('text')}")
 
     char_visuals = []

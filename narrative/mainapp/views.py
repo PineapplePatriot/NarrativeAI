@@ -4643,6 +4643,7 @@ def screen_hub(request):
         })
 
     initial_state = {
+        "account_id": request.user.pk,
         "threads": serialized_threads,
         "active_thread": serialized_active,
         "characters": char_catalog,
@@ -5502,7 +5503,7 @@ def subtext_api(request):
 
     if action == "generate_wave":
         slugs = body.get("character_slugs") or []
-        picked = [char_by_slug[s] for s in slugs if s in char_by_slug] or chars[:4]
+        picked = [char_by_slug[s] for s in slugs] or chars[:4]
         mode = body.get("mode") if body.get("mode") in ("mix", "burner", "aita", "subtweet") else "mix"
         topic = str(body.get("topic") or "").strip()
         try:
@@ -5718,6 +5719,14 @@ def vn_scenes_api(request):
     except ValueError:
         return JsonResponse({"error": "Invalid JSON."}, status=400)
 
+    if not isinstance(body, dict):
+        return JsonResponse({"error": "Expected a JSON object."}, status=400)
+    for field in ("auto_generate_sprites", "polish_enabled", "capture_image"):
+        if field in body and not isinstance(body[field], bool):
+            return JsonResponse({"error": f"{field} must be true or false."}, status=400)
+    if body.get("thread_id") is not None and (isinstance(body["thread_id"], bool) or not str(body["thread_id"]).isdigit() or len(str(body["thread_id"])) > 19 or not 0 < int(body["thread_id"]) <= 2**63 - 1):
+        return JsonResponse({"error": "Invalid chat ID."}, status=400)
+
     action = body.get("action") or ""
 
     if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
@@ -5726,13 +5735,18 @@ def vn_scenes_api(request):
                 ("revision" in body and body["revision"] != active.get("revision", 0))):
             return JsonResponse({"error": "This episode changed in another tab. Reload it before continuing."}, status=409)
 
-    if action in ("edit_passage", "regenerate_passage", "branch_passage", "resume_draft", "reopen_completed", "episode_preferences", "inspect_request"):
+    if action in ("edit_passage", "regenerate_passage", "branch_passage", "resume_draft", "reopen_completed", "episode_preferences", "suggest_choices", "park_scene", "inspect_request"):
         from . import vn_history, vn_story
         try:
+            if action == "park_scene":
+                vn_history.park(request.user)
+                return JsonResponse({"scene": None, "vn_scenes": _full_vn_payload()})
             if action == "inspect_request":
                 _, scene = vn_history.current(request.user)
                 return JsonResponse({"request": scene.get("last_request")})
-            if action == "edit_passage":
+            if action == "suggest_choices":
+                scene = vn_scenes.suggest_choices(request.user)
+            elif action == "edit_passage":
                 scene = vn_history.edit(request.user, str(body.get("beat_id") or ""), str(body.get("text") or ""))
             elif action == "regenerate_passage":
                 scene = vn_history.regenerate(request.user, str(body.get("beat_id") or ""), str(body.get("direction") or ""))
@@ -5745,6 +5759,7 @@ def vn_scenes_api(request):
             else:
                 _, scene = vn_history.current(request.user)
                 expected = (scene["id"], scene.get("revision", 0))
+                previous_mode = scene.get("interaction_mode", "mixed")
                 if body.get("interaction_mode") in vn_story.INTERACTIONS:
                     scene["interaction_mode"] = body["interaction_mode"]
                 if body.get("authoring_mode") in vn_story.AUTHORING:
@@ -5753,8 +5768,14 @@ def vn_scenes_api(request):
                     scene["direction"] = str(body["direction"])[:4000]
                 if "polish_enabled" in body:
                     scene["polish_enabled"] = bool(body["polish_enabled"])
+                if "auto_generate_sprites" in body:
+                    scene["auto_generate_sprites"] = body["auto_generate_sprites"]
                 if scene.get("interaction_mode") == "write":
+                    if previous_mode != "write":
+                        scene["choice_cache"] = list(scene.get("choices") or [])
                     scene["choices"] = []
+                elif previous_mode == "write":
+                    scene["choices"] = list(scene.get("choice_cache") or [])
                 vn_scenes.save_vn_state(request.user, {"active_scene": scene}, expected=expected)
         except ai_client.AIError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
@@ -5771,12 +5792,14 @@ def vn_scenes_api(request):
     if action == "start_scene":
         tid = body.get("thread_id")
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
+        if tid and t_obj is None:
+            return JsonResponse({"error": "That chat no longer exists or is not yours."}, status=404)
         slugs = body.get("character_slugs") or []
+        if not isinstance(slugs, list) or any(not isinstance(s, str) or s not in char_by_slug for s in slugs):
+            return JsonResponse({"error": "Choose available scene characters."}, status=400)
         picked = [char_by_slug[s] for s in slugs if s in char_by_slug]
         if not picked and t_obj:
             picked = list(t_obj.characters.all())
-        if not picked and chars:
-            picked = [chars[0]]
         if not picked:
             return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
         hint = str(body.get("location_hint") or "").strip()
@@ -5804,7 +5827,7 @@ def vn_scenes_api(request):
 
     if action == "step_scene":
         user_input = str(body.get("user_input") or "").strip()
-        auto_sprites = bool(body.get("auto_generate_sprites", False))
+        auto_sprites = body.get("auto_generate_sprites")
         try:
             scene, new_beats = vn_scenes.step_scene(
                 request.user,

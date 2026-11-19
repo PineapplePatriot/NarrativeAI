@@ -37,7 +37,7 @@ def prepare(user, scene, prompt, generation="normal"):
     chars = vn_support.scene_characters(user, scene.get("character_slugs") or [])
     context = scene["context"]
     thread = vn_support.linked_thread(user, scene)
-    history = [{"role": "user" if b.get("speaker_slug") == "user" and not b.get("generated") else "assistant",
+    history = [{"role": "user" if b.get("kind") == "direction" or b.get("speaker_slug") == "user" and not b.get("generated") else "assistant",
                 "content": f"{b.get('speaker_name') or b.get('speaker')}: {b['text']}"}
                for b in scene.get("beats", []) if b.get("text")]
     if not history and context.get("conversation"):

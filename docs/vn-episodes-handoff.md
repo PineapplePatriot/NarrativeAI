@@ -83,6 +83,26 @@ Full transcripts are retained, and the former silent 60-episode gallery limit is
 Completing an episode does not require an image. An image-provider error still saves the
 story and phone memory handoff, with a visible warning. Archive and handoff commit together.
 
+## UI recovery and interaction safeguards
+
+- Lore, launch settings, episode preferences, passage edits and unsent replies retain local
+  drafts across rerenders and navigation. Drafts are namespaced by account and context in
+  session storage, with an in-memory fallback when storage is blocked. Versions exposes
+  unsent reply recovery; copy drafts before reloading if persistent storage is unavailable.
+- Copying a lorebook previews it before applying it. Conflicting saves preserve local edits
+  and show the current saved book; replacing that version requires an explicit action.
+- Unfinished episodes can be saved without generation. Resuming restores their image setting;
+  fresh launches default automatic images off. Changing interaction modes preserves existing
+  options. Explicitly requesting missing options uses model tokens without advancing the story.
+- Late scene results preserve a newer phone selection and its composer. Out-of-order phone
+  loads cannot restore an older selection. Leaving Scenes stops music.
+- Directing input is a director command, not character dialogue. Editing your own command is
+  free (an exception to Bulba-assisted passage editing) and discards its old continuation.
+  Unperformed directions are excluded from the completion summary.
+- Appearance and finish controls are collapsed on mobile. A failed image shows a named
+  placeholder without automatically spending tokens on a replacement. Failed saves retain
+  drafts, and completing with an unsent reply requires resolving that draft first.
+
 ## Verification without model spending
 
 From `narrative`, run the affected backend tests:
@@ -111,10 +131,14 @@ Then, from the repository root in another terminal:
 
 ```sh
 VN_TEST_URL=http://127.0.0.1:8765 VN_TEST_SESSION_FILE=/tmp/narrative-screen-check/browser-session.json CHROMIUM_PATH=/usr/bin/chromium node scripts/check_screen_workflow.cjs
+VN_TEST_URL=http://127.0.0.1:8765 VN_TEST_SESSION_FILE=/tmp/narrative-screen-check/browser-session.json CHROMIUM_PATH=/usr/bin/chromium node scripts/check_screen_edges.cjs
+VN_TEST_BLOCK_STORAGE=1 CHROMIUM_PATH=/usr/bin/chromium node scripts/check_vn_ui.cjs
 ```
 
-The browser check exercises chat-lore editing, passage visuals, interaction modes and
-branching at 390px and 1280px. Model-generating actions are blocked by its request routes.
+The browser checks exercise chat-lore editing, passage visuals, interaction modes,
+branching, draft recovery, conflicting/failed saves, late responses and blocked storage
+at 390px and 1280px. The affected backend suite passes 106 tests.
+Model-generating actions are mocked or blocked by the browser request routes.
 Backend model/image responses are mocked. These checks establish application behaviour,
 not live model writing quality, lore authoring accuracy or visual fidelity.
 

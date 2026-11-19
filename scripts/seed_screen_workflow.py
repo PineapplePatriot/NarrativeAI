@@ -18,6 +18,9 @@ user, _ = get_user_model().objects.get_or_create(username="screen-workflow-fixtu
 user.set_unusable_password(); user.save(update_fields=["password"])
 character, _ = Character.objects.get_or_create(author=user, slug="screen-workflow-mira",
     defaults={"name": "Mira", "description": "An archivist returning a borrowed map."})
+other = messenger.create_thread(user, [character], title="Other fixture chat")
+other_data = messenger.thread_data(other); other_data["started"] = True
+messenger.save_thread_data(other, other_data)
 thread = messenger.create_thread(user, [character])
 data = messenger.thread_data(thread)
 data.update(started=True, lore_pending=True, lore_mode="off")

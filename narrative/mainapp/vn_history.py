@@ -22,6 +22,14 @@ def backup(state, scene, label):
         "label": label, "title": scene.get("title", "Episode"), "scene": copy.deepcopy(scene)}]
 
 
+@transaction.atomic
+def park(user):
+    from mainapp import vn_scenes
+    state, scene = current(user)
+    vn_scenes.save_vn_state(user, {"active_scene": None, "drafts": backup(state, scene, "Unfinished episode")},
+                           expected=(scene["id"], scene.get("revision", 0)))
+
+
 def cut(scene, beat_id, include=False):
     beats = scene.get("beats") or []
     index = next((i for i, b in enumerate(beats) if b.get("id") == beat_id), None)
@@ -39,7 +47,7 @@ def cut(scene, beat_id, include=False):
         raise ai_client.AIError("This older passage has no historical checkpoint. Its text is intact; continue the episode to create new checkpoints.")
     stage = copy.deepcopy(stage)
     scene.update(beats=copy.deepcopy(beats[:end]), history=copy.deepcopy(beats[:end]), current_beats=[], current_stage=stage,
-                 continuity=copy.deepcopy(stage.get("continuity") or {}), choices=[], handoff="user_turn")
+                 continuity=copy.deepcopy(stage.get("continuity") or {}), choices=[], choice_cache=[], handoff="user_turn")
     scene.update({k: stage.get(k) for k in ("background", "music", "location")})
     return scene, passage, text
 
@@ -48,7 +56,7 @@ def regenerate(user, beat_id, direction=""):
     from mainapp import vn_scenes
     state, original = current(user)
     base, passage, _ = cut(copy.deepcopy(original), beat_id)
-    if passage.get("speaker_slug") == "user" and not passage.get("generated"):
+    if (passage.get("speaker_slug") == "user" or passage.get("kind") == "direction") and not passage.get("generated"):
         raise ai_client.AIError("Edit your own input, or regenerate a character passage.")
     drafts = backup(state, original, "Before regeneration")
     return vn_scenes.step_scene(user, base_scene=base, generation="regenerate", turn_direction=(
@@ -63,17 +71,20 @@ def edit(user, beat_id, text):
         raise ai_client.AIError("A passage cannot be empty.")
     chars = vn_support.scene_characters(user, base.get("character_slugs") or [])
     # Only the retained history and edited text are visible; discarded events cannot leak into the repair.
-    result = messenger.ask_json(user,
-        "Update a scene's continuity after a manual edit. Do not rewrite the edited text. Return JSON {stage: "
-        "{location, continuity: {summary, outfits, positions, time, open_threads}}}. Record only what the edited "
-        "text establishes and retain relevant earlier facts. Do not infer new motives, intimacy, consent or events.\n"
-        + json.dumps({"before": base.get("current_stage"), "edited_text": text,
-                      "speaker": passage.get("speaker_name"), "earlier_text": [f"{b.get('speaker_name')}: {b['text']}" for b in base["beats"][-12:]]}, ensure_ascii=False),
-        need=("stage",), max_tokens=1800)
+    if passage.get("kind") == "direction":
+        result = {"stage": {}}  # An author instruction is not a fictional event.
+    else:
+        result = messenger.ask_json(user,
+            "Update a scene's continuity after a manual edit. Do not rewrite the edited text. Return JSON {stage: "
+            "{location, continuity: {summary, outfits, positions, time, open_threads}}}. Record only what the edited "
+            "text establishes and retain relevant earlier facts. Do not infer new motives, intimacy, consent or events.\n"
+            + json.dumps({"before": base.get("current_stage"), "edited_text": text,
+                          "speaker": passage.get("speaker_name"), "earlier_text": [f"{b.get('speaker_name')}: {b['text']}" for b in base["beats"][-12:]]}, ensure_ascii=False),
+            need=("stage",), max_tokens=1800)
     if not isinstance(result.get("stage"), dict):
         raise ai_client.AIError("Bulba returned invalid continuity. Your original passage is still saved.")
     patch = result["stage"]
-    if passage.get("speaker_slug") == "user" and not passage.get("generated"):
+    if (passage.get("speaker_slug") == "user" or passage.get("kind") == "direction") and not passage.get("generated"):
         stage = vn_story.advance_stage(base["current_stage"], patch,
                                        vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars))
         replacement = [{**passage, "id": "vnb_" + uuid.uuid4().hex[:8], "text": text, "stage": stage}]
@@ -135,7 +146,7 @@ def resume(user, draft_id):
     drafts = backup(state, active, "Before switching versions") if active else state.get("drafts", [])
     scene = copy.deepcopy(draft["scene"])
     phone = clone_phone(user, scene)
-    scene.update(id="vns_" + uuid.uuid4().hex[:10], thread_id=phone.pk if phone else None)
+    scene.update(resumed_from=scene["id"], id="vns_" + uuid.uuid4().hex[:10], thread_id=phone.pk if phone else None)
     vn_scenes.save_vn_state(user, {"active_scene": scene, "drafts": drafts},
                            expected=(active.get("id", ""), active.get("revision", 0)))
     return scene

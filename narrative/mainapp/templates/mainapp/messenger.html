@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=22">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=4">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -448,10 +448,11 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=25"></script>
-  <script src="{% static 'mainapp/js/screen_lore.js' %}?v=1"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=26"></script>
+  <script src="{% static 'mainapp/js/screen_drafts.js' %}?v=1"></script>
+  <script src="{% static 'mainapp/js/screen_lore.js' %}?v=2"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
-  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=3"></script>
-  <script src="{% static 'mainapp/js/vn_editor.js' %}?v=1"></script>
+  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=4"></script>
+  <script src="{% static 'mainapp/js/vn_editor.js' %}?v=2"></script>
 </body>
 </html>

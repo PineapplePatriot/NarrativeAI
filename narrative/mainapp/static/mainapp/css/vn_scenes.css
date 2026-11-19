@@ -411,3 +411,22 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .screen-lore-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .screen-lore-editor { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
 .screen-lore-editor fieldset { min-width: 0; border: 1px solid #465063; border-radius: 8px; }
+
+.vn-stage-hud { gap: 8px; padding: 10px 14px; }
+.vn-stage-hud > .vn-hud-pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vn-visual-settings { width: 100%; color: #e2e8f0; background: rgba(11,17,30,.85); border-radius: 8px; padding: 6px 10px; }
+.vn-visual-settings .tg-select { width: 100%; max-width: 100%; }
+#vnScenesRoot[aria-busy="true"] { cursor: progress; }
+.vn-illustration-options { flex-basis: 100%; }
+.vn-passage-tools textarea { min-height: 120px; }
+@media (max-width: 700px) {
+  .vn-sprite-stage { min-height: 120px; padding: 0 12px; }
+  .vn-central-sprite-img { max-height: 30dvh; max-width: 65vw; }
+  .vn-empty-sprite { height: 130px !important; width: 150px !important; }
+  .vn-dialogue-dock { padding: 0 10px 14px; }
+  .vn-dialogue-box { padding: 18px 14px 12px; }
+  .vn-input-row > button { flex: 1 1 140px; }
+  .vn-beat-nav-row { flex-wrap: wrap; }
+}
+.vn-end-options { flex-basis: 100%; border-top: 1px solid #465063; padding-top: 8px; }
+.vn-unavailable-sprite { width: 180px; min-height: 130px; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; background: rgba(15,23,42,.85); border-radius: 16px; color: #e2e8f0; }

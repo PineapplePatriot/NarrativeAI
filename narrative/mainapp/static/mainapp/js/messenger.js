@@ -12,6 +12,7 @@
   var replyToMsg = null;
   var currentDrawerTab = "char";
   var selectedDrawerCharSlug = "";
+  var threadSelectionRequest = 0;
   window.selectedDrawerCharSlugSet = function (slug) { selectedDrawerCharSlug = slug; };  // (the card's Edit button)
   var activeAudio = null;
   var activeAudioMsgId = null;
@@ -1211,7 +1212,9 @@
     },
 
     selectThread: function (threadId) {
-      apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
+      var selection = ++threadSelectionRequest;
+      return apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
+        if (selection !== threadSelectionRequest) return false;
         STATE.active_thread = res.thread;
         STATE.threads = (STATE.threads || []).map(function (t) {
           return t.id === threadId ? Object.assign({}, t, { unread: 0 }) : t;
@@ -1224,7 +1227,8 @@
         document.getElementById("tgSidebar").classList.add("mobile-hidden");
         document.getElementById("tgMain").classList.remove("mobile-hidden");
         if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
-      });
+        return true;
+      }).catch(function (error) { if (selection === threadSelectionRequest) alert(error.message); return false; });
     },
 
     showMobileSidebar: function () {

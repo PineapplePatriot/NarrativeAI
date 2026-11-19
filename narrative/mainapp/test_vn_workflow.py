@@ -229,3 +229,78 @@ class EpisodeWorkflowTests(TestCase):
         outgoing = json.dumps(model.call_args.args[2])
         self.assertIn("My chosen writing instructions", outgoing)
         self.assertNotIn("stock reactions (jaw clenching", outgoing)
+
+    def test_switching_to_writing_and_back_keeps_existing_options(self):
+        scene = self.start()
+        self.assertEqual(self.post("episode_preferences", interaction_mode="write").json()["scene"]["choices"], [])
+        restored = self.post("episode_preferences", interaction_mode="choices").json()["scene"]
+        self.assertEqual(restored["choices"], scene["choices"])
+
+    def test_options_can_be_requested_without_advancing_the_scene_or_drawing(self):
+        original = self.start(interaction_mode="write")
+        self.post("episode_preferences", interaction_mode="choices")
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"choices": ["Wait here.", "Ask about the key."]}), \
+             patch.object(messenger, "make_picture") as picture:
+            response = self.post("suggest_choices")
+        self.assertEqual(response.status_code, 200)
+        updated = response.json()["scene"]
+        self.assertEqual(updated["beats"], original["beats"])
+        self.assertEqual(updated["continuity"], original["continuity"])
+        self.assertEqual(updated["choices"], ["Wait here.", "Ask about the key."])
+        picture.assert_not_called()
+
+    def test_step_without_image_flag_preserves_the_saved_preference(self):
+        self.start()
+        self.post("episode_preferences", auto_generate_sprites=True)
+        with patch.object(vn_scenes, "_call_vn_json", return_value=self.response()), \
+             patch.object(messenger, "make_picture", return_value=(b"image", 0)):
+            response = self.post("step_scene", user_input="I bring the key.")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["scene"]["auto_generate_sprites"])
+
+    def test_unfinished_episode_can_be_parked_and_resumed_without_model_calls(self):
+        original = self.start()
+        self.post("episode_preferences", auto_generate_sprites=True)
+        with patch.object(vn_scenes, "_call_vn_json") as model:
+            parked = self.post("park_scene")
+            self.assertIsNone(parked.json()["scene"])
+            draft = parked.json()["vn_scenes"]["drafts"][-1]
+            resumed = self.post("resume_draft", draft_id=draft["id"])
+        self.assertEqual(resumed.status_code, 200)
+        self.assertEqual(resumed.json()["scene"]["resumed_from"], original["id"])
+        self.assertEqual(resumed.json()["scene"]["beats"], original["beats"])
+        self.assertTrue(resumed.json()["scene"]["auto_generate_sprites"])
+        model.assert_not_called()
+
+    def test_malformed_requests_do_not_start_a_generation(self):
+        bodies = [[], None, {"action": "start_scene", "thread_id": "not-a-chat"},
+                  {"action": "start_scene", "thread_id": 0}, {"action": "start_scene", "thread_id": 10**30},
+                  {"action": "start_scene", "thread_id": self.thread.pk, "auto_generate_sprites": "false"},
+                  {"action": "start_scene", "thread_id": self.thread.pk, "character_slugs": "mira"}]
+        with patch.object(vn_scenes, "_call_vn_json") as model:
+            for body in bodies:
+                response = self.client.post(reverse("vn_scenes_api"), data=json.dumps(body), content_type="application/json")
+                self.assertEqual(response.status_code, 400, body)
+        model.assert_not_called()
+
+    def test_missing_or_empty_chat_does_not_silently_choose_another_character(self):
+        with patch.object(vn_scenes, "_call_vn_json") as model:
+            self.assertEqual(self.post("start_scene", thread_id=999999).status_code, 404)
+            self.thread.characters.clear()
+            self.assertEqual(self.post("start_scene", thread_id=self.thread.pk).status_code, 400)
+        model.assert_not_called()
+
+    def test_director_input_is_an_instruction_not_character_dialogue(self):
+        self.start(authoring_mode="director")
+        with patch.object(vn_scenes, "_call_vn_json", return_value=self.response()) as model:
+            scene, _ = vn_scenes.step_scene(self.user, "DIRECTOR_COMMAND Make Mira leave the room.")
+        command = next(b for b in scene["beats"] if b.get("kind") == "direction")
+        self.assertEqual(command["speaker_slug"], "director")
+        self.assertIn("not spoken dialogue", model.call_args.args[1])
+        with patch.object(messenger, "ask_json") as repair:
+            updated = vn_history.edit(self.user, command["id"], "Have Mira stay instead.")
+        repair.assert_not_called()
+        self.assertEqual(updated["beats"][-1]["kind"], "direction")
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"summary": "They met."}) as summary:
+            vn_scenes.finish_scene_with_cg(self.user, capture_image=False)
+        self.assertNotIn("Have Mira stay instead", summary.call_args.args[1])

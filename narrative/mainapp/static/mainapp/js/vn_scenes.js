@@ -11,6 +11,46 @@
     lastFinaleEntry: null,
     busy: false,
 
+    attr(value) {return TG.esc(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');},
+
+    setBusy(value) {
+      this.busy = value;
+      const root = document.getElementById('vnScenesRoot');
+      if (root) root.setAttribute('aria-busy', String(value));
+      document.querySelectorAll('#vnScenesRoot button, #vnScenesRoot input, #vnScenesRoot textarea, #vnScenesRoot select, [data-vn-mutation]').forEach(control => {
+        if (value && !control.disabled) {control.dataset.vnBusyDisabled = 'true'; control.disabled = true;}
+        else if (!value && control.dataset.vnBusyDisabled) {delete control.dataset.vnBusyDisabled; control.disabled = false;}
+      });
+    },
+
+    bindDrafts(root, key) {
+      if (key.startsWith('vn:') && this.activeScene()) window.ScreenDrafts?.put(key, {...window.ScreenDrafts.get(key), title: this.activeScene().title});
+      window.ScreenDrafts?.bind(root, key);
+      this.setBusy(this.busy);
+    },
+
+    stopMusic() {
+      document.getElementById('vnAudioPlayer')?.pause();
+      this.musicPlaying = false;
+    },
+
+    async reloadScene() {
+      if (this.busy) {this.notify('Wait for the current request before reloading.'); return;}
+      const id = this.currentBeat()?.id;
+      this.setBusy(true);
+      try {
+        const response = await fetch(TG_CFG.vn_scenes_api);
+        const data = await response.json();
+        if (!response.ok) throw Error(data.error || 'Could not reload this episode.');
+        TG.state.vn_scenes = data.vn_scenes;
+        const scene = this.activeScene();
+        this.beatIndex = Math.max(0, scene?.beats?.findIndex(b => b.id === id) ?? 0);
+        this.autoGenSprites = !!scene?.auto_generate_sprites;
+        this.lastFinaleEntry = null; this.render();
+        this.notify('Episode reloaded. Unsent replies are available under Versions.');
+      } catch (error) {this.notify(error.message, true);} finally {this.setBusy(false);}
+    },
+
     init() {
       if (!window.TG || !TG.state) return;
       if (!TG.state.vn_scenes) {
@@ -18,21 +58,25 @@
       }
       const sc = TG.state.vn_scenes.active_scene;
       if (sc && Array.isArray(sc.beats) && sc.beats.length) {
-        const saved = localStorage.getItem("vn-cursor-" + sc.id);
+        let saved;
+        try {saved = localStorage.getItem("vn-cursor-" + sc.id);} catch (_) {saved = this.savedCursor?.[sc.id];}
         const index = sc.beats.findIndex((b) => b.id === saved);
         this.beatIndex = index >= 0 ? index : Math.max(0, sc.beats.length - ((sc.current_beats || []).length || 1));
         this.autoGenSprites = !!sc.auto_generate_sprites;
       }
 
+      if (!this.initialized) {
+      this.initialized = true;
       const origSwitchApp = TG.switchApp.bind(TG);
       TG.switchApp = (appName) => {
         origSwitchApp(appName);
         if (appName === "scenes") {
           this.render();
-        }
+        } else this.stopMusic();
       };
 
       window.addEventListener("telechat-rendered", () => this.checkAndRenderMeetupBanner());
+      }
 
       this.render();
       this.checkAndRenderMeetupBanner();
@@ -42,13 +86,14 @@
       const notice = document.getElementById("vnNotice");
       if (!notice) return;
       notice.textContent = message;
+      notice.setAttribute('role', isError ? 'alert' : 'status');
       notice.dataset.error = String(isError);
       notice.hidden = false;
     },
 
     async apiPost(payload) {
       if (this.busy) throw new Error("The episode is still working on your previous request.");
-      this.busy = true;
+      this.setBusy(true);
       try {
       const url = (window.TG_CFG && window.TG_CFG.vn_scenes_api) || "/main/screen/scenes/api/";
       const resp = await fetch(url, {
@@ -59,17 +104,20 @@
         },
         body: JSON.stringify({scene_id: this.activeScene()?.id, revision: this.activeScene()?.revision, ...payload}),
       });
-      const data = await resp.json();
+      let data;
+      try {data = await resp.json();} catch (_) {throw new Error(`The server returned an unreadable response (HTTP ${resp.status}). Your unsent text is preserved.`);}
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('The server returned an unexpected response. Your unsent text is preserved.');
       if (!resp.ok || data.error) {
-        throw new Error(data.error || `HTTP ${resp.status}`);
+        const error = new Error(data.error || `HTTP ${resp.status}`); error.status = resp.status; throw error;
       }
       return data;
       } finally {
-        this.busy = false;
+        this.setBusy(false);
       }
     },
 
     switchTab(tab) {
+      if (tab !== 'stage') this.stopMusic();
       this.tab = tab;
       document.querySelectorAll(".vn-tab-btn").forEach((b) => {
         b.classList.toggle("active", b.dataset.vnTab === tab);
@@ -102,7 +150,7 @@
         const who = hit.sender_name || "Chat";
         const snippet = (hit.text || "").slice(0, 85);
         if (textEl) {
-          textEl.innerHTML = `🎬 <strong>Meet-Up Cue Detected:</strong> ${TG.esc(who)}: <em>"${TG.esc(snippet)}"</em> — Ready to switch to Visual Novel scene mode?`;
+          textEl.innerHTML = `🎬 <strong>Meet-Up Cue Detected:</strong> ${this.attr(who)}: <em>"${this.attr(snippet)}"</em> — Ready to switch to Visual Novel scene mode?`;
         }
         banner.style.display = "flex";
       } else {
@@ -112,11 +160,12 @@
 
     openLaunchModalFromChat() {
       const t = TG.state.active_thread;
-      const hintInput = document.getElementById("vnLocationHintInput");
+      const existing = this.activeScene();
       TG.switchApp("scenes");
       this.switchTab("stage");
+      if (existing && t && existing.thread_id !== t.id) this.notify(`An episode with ${(existing.character_names || []).join(', ')} is already open. Save it as unfinished under Episode preferences before starting another chat's episode.`);
       if (!TG.state.vn_scenes.active_scene) {
-        if (hintInput) hintInput.focus();
+        document.getElementById("vnLocationHintInput")?.focus();
       }
     },
 
@@ -132,6 +181,7 @@
       const polishEnabled = !!(document.getElementById("vnPolishEnabled") || {}).checked;
       const interactionMode = (document.getElementById("vnInteractionMode") || {}).value || "mixed";
       const authoringMode = (document.getElementById("vnAuthoringMode") || {}).value || "roleplay";
+      const autoImages = !!document.getElementById('vnLaunchAutoSprites')?.checked;
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
@@ -144,21 +194,22 @@
           action: "start_scene",
           thread_id: t.id,
           location_hint: hint,
-          auto_generate_sprites: this.autoGenSprites,
+          auto_generate_sprites: autoImages,
           direction,
           polish_enabled: polishEnabled,
           interaction_mode: interactionMode, authoring_mode: authoringMode,
         });
         TG.state.vn_scenes = data.vn_scenes;
+        this.autoGenSprites = !!data.scene.auto_generate_sprites;
+        window.ScreenDrafts?.clear('launch:' + t.id);
         if (data.char_sprites) {
           this.mergeCharSprites(data.char_sprites);
         }
         this.beatIndex = 0;
         this.lastFinaleEntry = null;
         this.render();
-        if (data.scene.polish_error) this.notify(data.scene.polish_error, true);
-        this.syncAudioTrack(true);
-        this.notify(`🎬 Scene started: ${data.scene.title}`);
+        this.syncAudioTrack(!!document.getElementById('app-scenes')?.classList.contains('active'));
+        this.notify(data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!data.scene.polish_error);
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -249,6 +300,8 @@
           auto_generate_sprites: this.autoGenSprites,
         });
         TG.state.vn_scenes = data.vn_scenes;
+        this.autoGenSprites = !!data.scene.auto_generate_sprites;
+        window.ScreenDrafts?.clear('vn:' + sc.id, ['reply']);
         if (data.char_sprites) {
           this.mergeCharSprites(data.char_sprites);
         }
@@ -277,6 +330,24 @@
         return;
       }
       this.stepScene(val, btnEl);
+    },
+
+    async suggestChoices() {
+      try {
+        this.notify('Suggesting options without advancing the scene…');
+        const data = await this.apiPost({action: 'suggest_choices'});
+        TG.state.vn_scenes = data.vn_scenes;
+        this.renderStageOnly(); this.notify('Options ready.');
+      } catch (error) {this.notify(error.message, true);}
+    },
+
+    async setAutoSprites(enabled) {
+      try {
+        const data = await this.apiPost({action: 'episode_preferences', auto_generate_sprites: enabled});
+        TG.state.vn_scenes = data.vn_scenes;
+        this.autoGenSprites = !!data.scene.auto_generate_sprites;
+        this.renderStageOnly();
+      } catch (error) {this.renderStageOnly(); this.notify(error.message, true);}
     },
 
     async generateSpriteForCurrentBeat(customEmotion, btnEl) {
@@ -351,6 +422,7 @@
         audio.removeAttribute("src");
         audio.removeAttribute("data-src");
         this.musicPlaying = false;
+        this.updateMusicBtnLabel();
         return;
       }
       if (audio.getAttribute("data-src") !== url) {
@@ -392,7 +464,8 @@
       const sc = this.activeScene();
       const music = this.currentBeat()?.stage?.music || sc?.music;
       if (!btn || !music) return;
-      btn.textContent = `${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${music.name}`;
+      btn.disabled = this.busy || !music.url;
+      btn.textContent = music.url ? `${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${music.name}` : 'Silence';
     },
 
     /* ----------------------------------------------------------------------
@@ -401,12 +474,17 @@
     async finishScene(btnEl, captureImage = false) {
       const sc = this.activeScene();
       if (!sc) return;
-      const hintEl = document.getElementById("vnShortInput");
+      const previousPhone = TG.state.active_thread?.id;
+      if (document.getElementById('vnShortInput')?.value.trim() || String(window.ScreenDrafts?.get('vn:' + sc.id)?.reply || "").trim()) {
+        this.notify(sc.interaction_mode === 'choices' ? 'You have an unsent writing draft. Switch to writing mode to send or clear it before finishing.' : 'Your reply has not been sent. Send it before finishing, or clear the reply box to finish without it.', true);
+        return;
+      }
+      const hintEl = document.getElementById("vnIllustrationHint");
       const cgHint = hintEl ? hintEl.value.trim() : "";
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
-        btnEl.textContent = "🖼️ Painting Finale Event CG…";
+        btnEl.textContent = captureImage ? 'Creating illustration…' : 'Saving episode…';
       }
       try {
         const data = await this.apiPost({
@@ -418,12 +496,13 @@
         if (data.threads) {
           TG.state.threads = data.threads;
         }
-        if (data.thread) {
+        if (data.thread && TG.state.active_thread?.id === previousPhone) {
           TG.state.active_thread = data.thread;
           TG.renderSidebar();
           TG.renderMainChat();
         }
         this.lastFinaleEntry = data.gallery_entry;
+        this.stopMusic();
         this.render();
         this.notify(data.gallery_entry.image_error
           ? "Episode saved. The illustration failed: " + data.gallery_entry.image_error
@@ -439,12 +518,12 @@
     },
 
     returnToPhone() {
+      const tid = this.activeScene()?.thread_id || this.lastFinaleEntry?.thread_id;
       this.lastFinaleEntry = null;
-      const audio = document.getElementById("vnAudioPlayer");
-      if (audio) audio.pause();
-      this.musicPlaying = false;
+      this.stopMusic();
       TG.switchApp("messenger");
-      TG.renderMainChat();
+      if (tid && TG.selectThread) TG.selectThread(tid);
+      else TG.renderMainChat();
     },
 
     startAnotherScene() {
@@ -472,23 +551,23 @@
 
       const beatsHtml = (item.beats || []).map((b) => {
         if (b.kind === "narration" || b.speaker === "narrator") {
-          return `<div style="font-style:italic; color:#94a3b8; padding:6px 0;">${TG.esc(b.text)}</div>`;
+          return `<div style="font-style:italic; color:#94a3b8; padding:6px 0;">${this.attr(b.text)}</div>`;
         }
-        const emo = b.emotion ? ` <span style="font-size:11px; color:#f472b6;">(${TG.esc(b.emotion)})</span>` : "";
-        return `<div style="padding:6px 0;"><strong style="color:#f8fafc;">${TG.esc(b.speaker_name || b.speaker)}</strong>${emo}: <span style="color:#e2e8f0;">${TG.esc(b.text)}</span></div>`;
+        const emo = b.emotion ? ` <span style="font-size:11px; color:#f472b6;">(${this.attr(b.emotion)})</span>` : "";
+        return `<div style="padding:6px 0;"><strong style="color:#f8fafc;">${this.attr(b.speaker_name || b.speaker)}</strong>${emo}: <span style="color:#e2e8f0;">${this.attr(b.text)}</span></div>`;
       }).join("");
 
       body.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
           <div>
-            <h3 style="margin:0;">🎬 ${TG.esc(item.title)}</h3>
-            <div style="font-size:12px; color:var(--tg-muted);">📍 ${TG.esc(item.location)} · 🎵 ${TG.esc((item.music && item.music.name) || "BGM")} · ${TG.esc(item.finished_at || "")}</div>
+            <h3 style="margin:0;">🎬 ${this.attr(item.title)}</h3>
+            <div style="font-size:12px; color:var(--tg-muted);">📍 ${this.attr(item.location)} · 🎵 ${this.attr((item.music && item.music.name) || "BGM")} · ${this.attr(item.finished_at || "")}</div>
           </div>
           <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
         </div>
-        ${item.cg_url ? `<img src="${TG.esc(item.cg_url)}" alt="Finale CG" style="width:100%; max-height:320px; object-fit:cover; border-radius:12px; border:1px solid rgba(255,255,255,0.14);">` : ""}
+        ${item.cg_url ? `<img src="${this.attr(item.cg_url)}" alt="Finale CG" style="width:100%; max-height:320px; object-fit:cover; border-radius:12px; border:1px solid rgba(255,255,255,0.14);">` : ""}
         <div style="font-size:13px; color:#fbcfe8; background:rgba(219,39,119,0.12); padding:10px 12px; border-radius:10px;">
-          <strong>Summary:</strong> ${TG.esc(item.summary || "")}
+          <strong>Summary:</strong> ${this.attr(item.summary || "")}
         </div>
         <div style="max-height:280px; overflow-y:auto; padding:10px 12px; background:rgba(15,23,42,0.75); border-radius:10px; font-size:13px; border:1px solid rgba(255,255,255,0.08);">
           ${beatsHtml}
@@ -527,18 +606,18 @@
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div>
                   <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#f472b6;">Episode saved</span>
-                  <h2 style="margin:3px 0 0; font-size:21px;">${TG.esc(e.title)}</h2>
+                  <h2 style="margin:3px 0 0; font-size:21px;">${this.attr(e.title)}</h2>
                 </div>
-                <span style="font-size:12px; color:#94a3b8;">📍 ${TG.esc(e.location)}</span>
+                <span style="font-size:12px; color:#94a3b8;">📍 ${this.attr(e.location)}</span>
               </div>
               ${e.cg_url ? `
                 <div style="position:relative; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.16); background:#090d16;">
-                  <img src="${TG.esc(e.cg_url)}" alt="Finale Event CG" style="width:100%; max-height:420px; object-fit:contain; display:block;">
+                  <img src="${this.attr(e.cg_url)}" alt="Finale Event CG" style="width:100%; max-height:420px; object-fit:contain; display:block;">
                 </div>
               ` : ""}
-              ${e.quote ? `<div style="font-size:15px; font-style:italic; color:#fbcfe8; text-align:center;">"${TG.esc(e.quote)}"</div>` : ""}
+              ${e.quote ? `<div style="font-size:15px; font-style:italic; color:#fbcfe8; text-align:center;">"${this.attr(e.quote)}"</div>` : ""}
               <div style="font-size:13.5px; color:#e2e8f0; background:rgba(30,41,59,0.65); padding:11px 14px; border-radius:12px;">
-                ${TG.esc(e.summary || "")}
+                ${this.attr(e.summary || "")}
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:4px;">
                 <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.switchTab('gallery')">Saved episodes</button>
@@ -566,29 +645,29 @@
                 <span style="font-size:11.5px; font-weight:700; color:#f472b6; text-transform:uppercase; letter-spacing:0.05em;">In-person episode</span>
                 <h2 style="margin:4px 0 6px; font-size:22px;">Step Out of the Phone & Meet In Person</h2>
                 <p style="margin:0; font-size:13.5px; color:#94a3b8; line-height:1.55;">
-                  Continue your conversation in <strong>${TG.esc(threadTitle)}</strong> in person. Save the episode when you finish, with an illustration if you like.
+                  Continue your conversation in <strong>${this.attr(threadTitle)}</strong> in person. Save the episode when you finish, with an illustration if you like.
                 </p>
               </div>
               ${cue.ready ? `
                 <div style="padding:10px 13px; border-radius:12px; background:rgba(219,39,119,0.16); border:1px solid rgba(236,72,153,0.4); font-size:12.5px; color:#fbcfe8;">
-                  ✨ <strong>Recent chat cue:</strong> <em>"${TG.esc(cue.reason)}"</em>
+                  ✨ <strong>Recent chat cue:</strong> <em>"${this.attr(cue.reason)}"</em>
                 </div>
               ` : ""}
               <div class="tg-field-group">
                 <label>Where are you meeting up? (optional — leave blank for the model to pick from your chat)</label>
-                <input type="text" class="tg-input" id="vnLocationHintInput" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
+                <input type="text" class="tg-input" id="vnLocationHintInput" data-screen-field="location" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
               </div>
               <div class="tg-field-group">
                 <label for="vnInteractionMode">How you respond</label>
-                <select class="tg-select" id="vnInteractionMode"><option value="mixed">Choices and writing</option><option value="choices">Classic choices</option><option value="write">Write yourself</option></select>
+                <select class="tg-select" id="vnInteractionMode" data-screen-field="mode"><option value="mixed">Choices and writing</option><option value="choices">Classic choices</option><option value="write">Write yourself</option></select>
                 <label for="vnAuthoringMode">Who writes the cast</label>
-                <select class="tg-select" id="vnAuthoringMode"><option value="roleplay">Roleplay — I control my character</option><option value="director">Directing — the model may write my character too</option></select>
+                <select class="tg-select" id="vnAuthoringMode" data-screen-field="authoring"><option value="roleplay">Roleplay — I control my character</option><option value="director">Directing — the model may write my character too</option></select>
                 <label for="vnWritingDirection">Writing preferences (optional)</label>
-                <textarea class="tg-textarea" id="vnWritingDirection" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
+                <textarea class="tg-textarea" id="vnWritingDirection" data-screen-field="direction" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
               </div>
-              <label><input type="checkbox" id="vnPolishEnabled"> Let Bulba polish the habits I approved before displaying each turn</label>
+              <label><input type="checkbox" id="vnPolishEnabled" data-screen-field="polish"> Let Bulba polish the habits I approved before displaying each turn</label>
               <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#cbd5e1; cursor:pointer;">
-                <input type="checkbox" ${this.autoGenSprites ? "checked" : ""} onchange="VN_SCENES.autoGenSprites = this.checked">
+                <input type="checkbox" id="vnLaunchAutoSprites" data-screen-field="auto_images">
                 <span>🎨 Generate missing expressions automatically (uses your image provider; scene outfits are saved with this episode)</span>
               </label>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -598,6 +677,7 @@
             </div>
           </div>
         `;
+        this.bindDrafts(root, "launch:" + (t?.id || "none"));
         return;
       }
 
@@ -605,7 +685,10 @@
       const beats = sc.beats || [];
       const idx = Math.max(0, Math.min(this.beatIndex, Math.max(0, beats.length - 1)));
       const beat = beats[idx] || { speaker: "narrator", speaker_name: "Narrator", kind: "narration", text: "…" };
-      if (beat.id) localStorage.setItem("vn-cursor-" + sc.id, beat.id);
+      if (beat.id) {
+        this.savedCursor = {...this.savedCursor, [sc.id]: beat.id};
+        try {localStorage.setItem("vn-cursor-" + sc.id, beat.id);} catch (_) {}
+      }
       const spBeat = this.activeSpriteBeat();
       const isLastBeat = idx >= beats.length - 1;
       const visual = beat.stage || sc;
@@ -615,44 +698,35 @@
       const bgs = (TG.state.vn_scenes && TG.state.vn_scenes.backgrounds) || [];
 
       const musicOpts = [{id: "none", name: "Silence"}, ...tracks].map((t) =>
-        `<option value="${TG.esc(t.id)}" ${visual.music && visual.music.id === t.id ? "selected" : ""}>🎵 ${TG.esc(t.name)}</option>`
+        `<option value="${this.attr(t.id)}" ${visual.music && visual.music.id === t.id ? "selected" : ""}>🎵 ${this.attr(t.name)}</option>`
       ).join("");
 
       const bgOpts = [{id: "none", name: "No backdrop"}, ...bgs].map((b) =>
-        `<option value="${TG.esc(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>🖼️ ${TG.esc(b.name)}</option>`
+        `<option value="${this.attr(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>🖼️ ${this.attr(b.name)}</option>`
       ).join("");
 
+      const isDirection = beat.kind === "direction";
       const isNarrator = beat.kind === "narration" || beat.speaker === "narrator";
       const handoff = sc.handoff || "user_turn";
       const choices = sc.interaction_mode === "write" ? [] : Array.isArray(sc.choices) ? sc.choices : [];
 
       root.innerHTML = `
-        <div class="vn-stage-wrap" style="${bgUrl ? `background-image:url('${TG.esc(bgUrl)}');` : ""}">
+        <div class="vn-stage-wrap" >
           <div class="vn-stage-overlay"></div>
 
-          <!-- Top Stage HUD -->
           <div class="vn-stage-hud">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span class="vn-hud-pill">📍 ${TG.esc(visual.location || sc.title || "Meet-Up Scene")}</span>
-              <button type="button" class="vn-hud-pill" id="vnMusicToggleBtn" style="cursor:pointer;" onclick="VN_SCENES.toggleMusic()">
-                ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${TG.esc((visual.music && visual.music.name) || "BGM")}
-              </button>
-              <select class="tg-select" style="width:auto; padding:4px 9px; font-size:11.5px; background:rgba(11,17,30,0.82);" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">
-                ${musicOpts}
-              </select>
-              <select class="tg-select" style="width:auto; padding:4px 9px; font-size:11.5px; background:rgba(11,17,30,0.82);" onchange="VN_SCENES.changeStageSetting('bg', this.value)" title="Switch stage backdrop">
-                ${bgOpts}
-              </select>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <label class="vn-hud-pill" style="cursor:pointer; font-weight:500;">
-                <input type="checkbox" ${this.autoGenSprites ? "checked" : ""} onchange="VN_SCENES.autoGenSprites = this.checked">
-                <span>🎨 Auto-gen missing sprites</span>
-              </label>
-              <button type="button" class="vn-hud-pill" style="cursor:pointer;" onclick="VN_SCENES.returnToPhone()" title="Minimize scene and return to TeleChat">
-                📱 Phone
-              </button>
-            </div>
+            <span class="vn-hud-pill">📍 ${this.attr(visual.location || sc.title || "Episode")}</span>
+            <button type="button" class="vn-hud-pill" id="vnMusicToggleBtn" onclick="VN_SCENES.toggleMusic()" title="${this.attr(visual.music?.name || 'Silence')}">
+              ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${this.attr(visual.music?.name || "Silence")}
+            </button>
+            <details class="vn-visual-settings" data-screen-field="visuals_open">
+              <summary>Scene appearance</summary>
+              <div class="vn-editor-content">
+                <label>Music<select class="tg-select" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">${musicOpts}</select></label>
+                <label>Backdrop<select class="tg-select" onchange="VN_SCENES.changeStageSetting('bg', this.value)" title="Switch stage backdrop">${bgOpts}</select></label>
+                <label><input type="checkbox" ${this.autoGenSprites ? "checked" : ""} onchange="VN_SCENES.setAutoSprites(this.checked)"> Automatically draw missing expressions (uses image requests)</label>
+              </div>
+            </details>
           </div>
 
           <!-- Central Character Sprite Stage -->
@@ -660,21 +734,21 @@
             ${spBeat ? `
               <div class="vn-central-sprite-card">
                 ${spBeat.sprite_url ? `
-                  <img class="vn-central-sprite-img" src="${TG.esc(spBeat.sprite_url)}" alt="${TG.esc(spBeat.speaker_name)}">
+                  <img class="vn-central-sprite-img" src="${this.attr(spBeat.sprite_url)}" alt="${this.attr(spBeat.speaker_name)}">
                 ` : `
-                  <div style="width:220px; height:280px; border-radius:18px; background:rgba(15,23,42,0.85); border:1px dashed rgba(244,114,182,0.45); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#fbcfe8;">
+                  <div class="vn-empty-sprite" style="width:180px; height:180px; border-radius:18px; background:rgba(15,23,42,0.85); border:1px dashed rgba(244,114,182,0.45); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#fbcfe8;">
                     <span style="font-size:42px;">🎭</span>
-                    <strong>${TG.esc(spBeat.speaker_name)}</strong>
+                    <strong>${this.attr(spBeat.speaker_name)}</strong>
                   </div>
                 `}
                 <div class="vn-sprite-mood-bar">
-                  <span class="vn-mood-badge">🎭 ${TG.esc(spBeat.speaker_name)} · ${TG.esc(spBeat.emotion || "neutral")}</span>
+                  <span class="vn-mood-badge">🎭 ${this.attr(spBeat.speaker_name)} · ${this.attr(spBeat.emotion || "neutral")}</span>
                   ${spBeat.speaker === "user" ? "" : spBeat.needs_sprite_gen ? `
                     <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.generateSpriteForCurrentBeat(null, this)" title="Generate this expression for the current character">
                       Draw this expression
                     </button>
                   ` : `
-                    <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptCustomMoodSprite(this)" title="Dynamically generate & store a new expression sprite for ${TG.esc(spBeat.speaker_name)}">
+                    <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptCustomMoodSprite(this)" title="Dynamically generate & store a new expression sprite for ${this.attr(spBeat.speaker_name)}">
                       Draw another expression
                     </button>
                   `}
@@ -687,15 +761,15 @@
           <div class="vn-dialogue-dock">
             <div class="vn-dialogue-box">
               <div class="vn-speaker-plate ${isNarrator ? "narrator" : ""}">
-                <span>${isNarrator ? "📖 Narration" : `💬 ${TG.esc(beat.speaker_name || beat.speaker)}`}</span>
-                ${!isNarrator && beat.emotion ? `<span style="font-weight:500; opacity:0.88; font-size:11.5px;">· ${TG.esc(beat.emotion)}</span>` : ""}
+                <span>${isDirection ? "Direction" : isNarrator ? "📖 Narration" : `💬 ${this.attr(beat.speaker_name || beat.speaker)}`}</span>
+                ${!isNarrator && beat.emotion && (beat.speaker_slug || beat.speaker) === beat.character_slug ? `<span style="font-weight:500; opacity:0.88; font-size:11.5px;">· ${this.attr(beat.emotion)}</span>` : ""}
               </div>
-              <div class="vn-beat-counter">Page ${idx + 1} / ${beats.length}</div>
+              <div class="vn-beat-counter">${sc.authoring_mode === "director" ? "Directing · " : ""}Page ${idx + 1} / ${beats.length}</div>
 
               <div class="vn-beat-text ${isNarrator ? "narration-line" : ""}">
-                ${TG.formatText ? TG.formatText(beat.text || "") : TG.esc(beat.text || "")}
+                ${TG.formatText ? TG.formatText(beat.text || "") : this.attr(beat.text || "")}
               </div>
-              ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${TG.esc(beat.original_text)}</div></details>` : ""}
+              ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${this.attr(beat.original_text)}</div></details>` : ""}
 
               <div class="vn-beat-nav-row">
                 <div style="display:flex; gap:8px; align-items:center;">
@@ -708,7 +782,7 @@
                         ? "You can finish here, or keep going."
                         : handoff === "auto_continue"
                         ? "Continue, or respond when you’re ready."
-                        : "✍️ Characters paused for your action or dialogue:"}
+                        : sc.interaction_mode === "choices" ? "Choose an option" : sc.authoring_mode === "director" ? "Your direction" : "Your turn"}
                     </span>
                   `}
                 </div>
@@ -719,27 +793,31 @@
 
               ${isLastBeat ? `
                 <div class="vn-turn-director">
+                  ${!choices.length && sc.interaction_mode !== "write" ? `<button type="button" class="tg-fmt-btn" onclick="VN_SCENES.suggestChoices()">Suggest options (uses tokens)</button>` : ""}
                   ${choices.length ? `
                     <div class="vn-choices-row">
                       ${choices.map((c, i) => `
                         <button type="button" class="vn-choice-chip" data-choice-index="${i}">
-                          ✨ ${TG.esc(c)}
+                          ✨ ${this.attr(c)}
                         </button>
                       `).join("")}
                     </div>
                   ` : ""}
                   <div class="vn-input-row">
                     ${sc.interaction_mode !== "choices" ? `
-                    <textarea class="vn-short-input" id="vnShortInput" placeholder="Your action, dialogue or direction…" onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput();}"></textarea>
-                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.submitUserBeatInput(this)">Act / Speak ➤</button>
+                    <textarea class="vn-short-input" id="vnShortInput" data-screen-field="reply" placeholder="${sc.authoring_mode === 'director' ? 'Direct the cast, including your character…' : 'Your action or dialogue…'}" onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput();}"></textarea>
+                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.submitUserBeatInput(this)">${sc.authoring_mode === "director" ? "Send direction ➤" : "Act / Speak ➤"}</button>
                     ` : ""}
                     <button type="button" class="tg-bulba-btn" style="${handoff === "auto_continue" ? "box-shadow:0 0 14px rgba(168,85,247,0.65);" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the characters continue the scene without user input">
                       Continue Scene ▶▶
                     </button>
+                    <details class="vn-end-options" data-screen-field="finish_open"><summary>Finish this episode</summary><div class="vn-editor-content">
                     <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.finishScene(this)">Finish & Save</button>
+                    <details class="vn-illustration-options"><summary>Illustration hint (optional)</summary><textarea class="tg-textarea" id="vnIllustrationHint" data-screen-field="illustration_hint" placeholder="What should the illustration show?"></textarea></details>
                     <button type="button" class="vn-climax-btn ${handoff === "climax_ready" ? "pulse" : ""}" onclick="VN_SCENES.finishScene(this, true)" title="Finish the episode and request an optional illustration">
                       Finish & Illustrate
                     </button>
+                    </div></details>
                   </div>
                 </div>
               ` : ""}
@@ -747,6 +825,15 @@
           </div>
         </div>
       `;
+      if (bgUrl) root.querySelector(".vn-stage-wrap").style.backgroundImage = `url(${JSON.stringify(bgUrl)})`;
+      root.querySelector('.vn-central-sprite-img')?.addEventListener('error', event => {
+        if (!event.target.isConnected) return;
+        const fallback = document.createElement('div'); fallback.className = 'vn-empty-sprite vn-unavailable-sprite';
+        const name = document.createElement('strong'); name.textContent = spBeat?.speaker_name || 'Character';
+        const note = document.createElement('span'); note.textContent = 'Image unavailable';
+        fallback.append(name, note); event.target.replaceWith(fallback);
+      }, {once: true});
+      this.bindDrafts(root, "vn:" + sc.id);
       this.syncAudioTrack(this.musicPlaying);
       root.querySelectorAll("[data-choice-index]").forEach((button) => {
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
@@ -760,9 +847,9 @@
           <div class="vn-gallery-pane">
             <div style="max-width:560px; margin:40px auto; text-align:center; padding:28px; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.1); border-radius:18px;">
               <div style="font-size:40px; margin-bottom:8px;">🖼️</div>
-              <h3 style="margin:0 0 6px;">Your Event CG & Scene Gallery is Empty</h3>
+              <h3 style="margin:0 0 6px;">No completed episodes yet</h3>
               <p style="margin:0 0 16px; font-size:13px; color:#94a3b8;">
-                Launch a Meet-Up Scene from TeleChat and click <strong>"Finish & Illustrate"</strong> when the scene peaks to save widescreen Event CG artwork and replayable scene transcripts here.
+                Launch a scene from TeleChat and finish it to save a replayable transcript here. You can optionally generate an illustration when finishing.
               </p>
               <button type="button" class="tg-send-btn" onclick="VN_SCENES.switchTab('stage')">🎬 Go to Visual Novel Stage</button>
             </div>
@@ -774,23 +861,23 @@
       const cardsHtml = gallery.map((item) => `
         <article class="vn-cg-card">
           ${item.cg_url ? `
-            <img class="vn-cg-thumb" src="${TG.esc(item.cg_url)}" alt="${TG.esc(item.title)}" onclick="VN_SCENES.viewGalleryTranscript('${TG.esc(item.id)}')">
+            <img class="vn-cg-thumb" src="${this.attr(item.cg_url)}" alt="${this.attr(item.title)}" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">
           ` : `
-            <div class="vn-cg-thumb" style="display:flex; align-items:center; justify-content:center; font-size:32px;" onclick="VN_SCENES.viewGalleryTranscript('${TG.esc(item.id)}')">🎬</div>
+            <div class="vn-cg-thumb" style="display:flex; align-items:center; justify-content:center; font-size:32px;" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">🎬</div>
           `}
           <div class="vn-cg-body">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-              <strong style="font-size:14.5px; color:#f8fafc;">${TG.esc(item.title)}</strong>
-              <span style="font-size:11px; color:#94a3b8; white-space:nowrap;">${TG.esc(item.finished_at || "")}</span>
+              <strong style="font-size:14.5px; color:#f8fafc;">${this.attr(item.title)}</strong>
+              <span style="font-size:11px; color:#94a3b8; white-space:nowrap;">${this.attr(item.finished_at || "")}</span>
             </div>
             <div style="font-size:11.5px; color:#f472b6;">
-              📍 ${TG.esc(item.location || "Meet-Up")} · 🎵 ${TG.esc((item.music && item.music.name) || "BGM")}
+              📍 ${this.attr(item.location || "Meet-Up")} · 🎵 ${this.attr((item.music && item.music.name) || "BGM")}
             </div>
-            ${item.quote ? `<div style="font-size:12px; font-style:italic; color:#fbcfe8;">"${TG.esc(item.quote)}"</div>` : ""}
-            <p style="margin:0; font-size:12.5px; color:#cbd5e1; line-height:1.45;">${TG.esc(item.summary || "")}</p>
+            ${item.quote ? `<div style="font-size:12px; font-style:italic; color:#fbcfe8;">"${this.attr(item.quote)}"</div>` : ""}
+            <p style="margin:0; font-size:12.5px; color:#cbd5e1; line-height:1.45;">${this.attr(item.summary || "")}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px;">
-              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.viewGalleryTranscript('${TG.esc(item.id)}')">📖 Read episode (${(item.beats || []).length} pages)</button>
-              <button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="VN_SCENES.deleteGalleryItem('${TG.esc(item.id)}')" title="Remove from gallery">🗑</button>
+              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">📖 Read episode (${(item.beats || []).length} pages)</button>
+              <button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="VN_SCENES.deleteGalleryItem('${this.attr(item.id)}')" title="Remove from gallery">🗑</button>
             </div>
           </div>
         </article>
