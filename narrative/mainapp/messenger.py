@@ -123,6 +123,7 @@ def user_profile(user):
         "spontaneous_minutes": max(2, min(1440, int(raw.get("spontaneous_minutes") or 15))),
         "auto_photos": bool(raw.get("auto_photos", False)),
         "auto_voice": bool(raw.get("auto_voice", False)),
+        "auto_statuses": bool(raw.get("auto_statuses", True)),  # ✨ characters post statuses on their own now and then
         "default_bg": raw.get("default_bg") if raw.get("default_bg") in WALLPAPERS else "tg-night",
         "image_model": raw.get("image_model") if raw.get("image_model") in PICTURE_MODELS else "",
     }
@@ -139,7 +140,7 @@ def save_user_profile(user, updates):
             if str_key == "handle" and val and not val.startswith("@"):
                 val = "@" + re.sub(r"[^a-zA-Z0-9_.]", "_", val)
             current[str_key] = val
-    for bool_key in ("browser_notifications", "in_app_toasts", "spontaneous_texts", "auto_photos", "auto_voice"):
+    for bool_key in ("browser_notifications", "in_app_toasts", "spontaneous_texts", "auto_photos", "auto_voice", "auto_statuses"):
         if bool_key in updates:
             current[bool_key] = bool(updates[bool_key])
     if "spontaneous_minutes" in updates:
@@ -712,9 +713,9 @@ def real_time_context(thread, now=None):
     if msgs:
         last_msg = msgs[-1]
         last_sender = last_msg.get("sender_name") or last_msg.get("role")
-        ts = last_msg.get("ts")
-        if isinstance(ts, (int, float)) and ts > 0:
-            elapsed_sec = max(0, time.time() - float(ts))
+        ts = ts_of(last_msg)
+        if ts > 0:
+            elapsed_sec = max(0, time.time() - ts)
     tod = _time_of_day_label(local_now.hour)
     clock_str = local_now.strftime("%A, %d %B %Y, %H:%M") + f" ({tod})"
     elapsed_str = _human_elapsed(elapsed_sec) if elapsed_sec is not None else "start of conversation"
@@ -932,7 +933,7 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
    - Send a casual or tease photo: include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship). When they are NOT in the photo (their food, a view, their desk, a thing), begin the description with `No people:`. When {user} asks for a photo without them in it, it has no people.
    - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]` (a markdown table is fine for lists, schedules, results).
    - When {user} edited a message (marked "edited"), you may notice it if it matters (they softened something, took something back): real people do.
-   - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`.
+   - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`, with a picture if it fits: `[STATUS: 🧪 | short text | PHOTO: what the picture shows]`.
    - Schedule a real-time event/reminder: `[EVENT: Title at HH:MM | short note]`."""
 
 
@@ -1089,8 +1090,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         time_block += ("\n- LEAVING ON READ IS ALLOWED in this chat: a character may decide not to answer right away, when "
                        "it truly fits: they were busy doing something, or for an emotional reason (teasing, annoyed, "
                        "petty, needing a minute). Then still write their reply now, as they'll send it when they get "
-                       "back to the phone, and put `[LATER: N]` at its very start, N = minutes before they answer (1 to "
-                       "5). Most replies come at once; don't use it twice in a row.")
+                       "back to the phone, and put `[LATER: N, why]` at its very start, N = minutes before they answer (1 "
+                       "to 5), why = a word or two (busy at work, asleep, petty). Most replies come at once; don't use it "
+                       "twice in a row.")
 
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
@@ -1285,9 +1287,14 @@ def parse_ai_reply(raw_text, chars, is_group=False):
         # Extract status/story updates
         for m in RE_STATUS.finditer(chunk):
             st_emo = (m.group(1) or "💬").strip()[:12]
-            st_txt = m.group(2).strip()[:280]
-            if st_txt:
-                profile_updates.append({"char": current_char, "kind": "status", "emoji": st_emo, "text": st_txt})
+            st_txt = m.group(2).strip()[:600]
+            st_photo = ""
+            pm = re.search(r"\|\s*PHOTO\s*:\s*(.+)$", st_txt, re.I | re.S)  # a status with a picture
+            if pm:
+                st_photo, st_txt = pm.group(1).strip()[:500], st_txt[:pm.start()].strip()
+            if st_txt or st_photo:
+                profile_updates.append({"char": current_char, "kind": "status", "emoji": st_emo, "text": st_txt[:280],
+                                        "photo_prompt": st_photo})
         chunk = RE_STATUS.sub("", chunk)
 
         # Extract scheduled events
@@ -1852,6 +1859,87 @@ def see_photo(user, url, their_words=""):
     return text.strip()[:1200]
 
 
+STATUS_EVERY = 6 * 3600  # a character's own statuses: at most one per 6-12 hours (a fixed jitter per character and day)
+
+
+def status_due(character, now=None):
+    """Whether it's time for this character's own next status."""
+    import hashlib
+    now = now or time.time()
+    last = max([ts_of(s) for s in char_profile(character).get("stories") or []] or [0])
+    jitter = int(hashlib.md5(f"{character.slug}{int(now // 86400)}".encode()).hexdigest(), 16) % STATUS_EVERY
+    return now - last >= STATUS_EVERY + jitter
+
+
+def post_own_status(user, character, thread=None):
+    """✨ A status the character posts on their own: something from their day that fits the hour, who they are here
+    and what's been happening in your texts; sometimes with a picture (made when it's viewed). Returns the story."""
+    prof = char_profile(character)
+    recent = ""
+    if thread is not None:
+        msgs = delivered(thread_data(thread)["messages"])[-12:]
+        recent = "\n".join(f"{'them' if m.get('role') == 'assistant' else 'the user'}: {(m.get('text') or '')[:200]}"
+                           for m in msgs if m.get("text"))
+    rt = real_time_context(thread) if thread is not None else {"clock": timezone.localtime(timezone.now()).strftime("%A %H:%M")}
+    prompt = (f"{character.name} posts a messenger status (like a Telegram story) on their own. It's {rt['clock']}.\n"
+              f"Who they are here: {(prof['modern_persona'] or character.description or '')[:900]}\n"
+              f"How they text: {prof['texting_style'][:300]}\nTheir scenario: {prof['scenario'][:400]}\n"
+              + (f"Recent texts with the user:\n{recent}\n" if recent else "")
+              + "Write one status that fits the hour and their life: short, in their voice, not addressed to the user "
+                "directly (it's for everyone). Add a picture only when it makes the status (their coffee, the view, a "
+                "mess on their desk); describe it, with 'No people:' first when they're not in it.\n"
+                'Answer with JSON only: {"emoji": "one emoji", "text": "the status", "photo": "what the picture shows, or empty"}')
+    data = ask_json(user, prompt, need=("text",), max_tokens=400, task="summary", temperature=0.9)
+    story = {"id": uuid.uuid4().hex[:8], "emoji": str(data.get("emoji") or "💬")[:12], "text": str(data["text"])[:280],
+             "photo_prompt": str(data.get("photo") or "")[:500], "image_url": "",
+             "at": timezone.localtime(timezone.now()).strftime("%H:%M"), "ts": time.time(), "own": True}
+    save_char_profile(character, {"stories": [story, *(prof.get("stories") or [])][:30], "status_emoji": story["emoji"]})
+    return story
+
+
+def story_picture(user, character, story_id):
+    """🖼️ The picture of a status that has a description but no picture yet. Returns the story."""
+    prof = char_profile(character)
+    stories = list(prof.get("stories") or [])
+    story = next((s for s in stories if s.get("id") == story_id), None)
+    if story is None or not story.get("photo_prompt"):
+        raise ValueError("That status has no picture to make.")
+    if not story.get("image_url"):
+        url, _ = generate_messenger_photo(user, character, story["photo_prompt"], kind="casual")
+        story["image_url"] = url
+        save_char_profile(character, {"stories": stories})
+    return story
+
+
+def ts_of(m):
+    """A message's time as seconds (stored as a number, or as an ISO date by older code); 0 when unreadable."""
+    v = (m or {}).get("ts")
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        try:
+            when = datetime.fromisoformat(str(v))
+            return (timezone.make_aware(when) if timezone.is_naive(when) else when).timestamp()
+        except ValueError:
+            return 0.0
+
+
+def presence(data, now=None):
+    """🟢 How they look in the list: "away" (yellow) while a reply left on read waits, "busy" (red) when it waits
+    for a busy reason (work, sleep, class...), "online" (green) when they texted in the last 20 minutes, else
+    "last seen" (grey) with the time."""
+    now = now or time.time()
+    waiting = [m for m in data["messages"] if m.get("deliver_at") and m["deliver_at"] > now]
+    if waiting:
+        busy = any(re.search(r"busy|work|meeting|class|sleep|asleep|shift|lab|driving|зайнят|робот|сплю|зайня",
+                             str(m.get("late_reason") or ""), re.I) for m in waiting)
+        return {"state": "busy" if busy else "away", "label": "busy" if busy else "away"}
+    last = next((m for m in reversed(delivered(data["messages"], now)) if m.get("role") == "assistant"), None)
+    if last and now - ts_of(last) < 20 * 60:
+        return {"state": "online", "label": "online"}
+    return {"state": "seen", "label": f"last seen {last.get('time')}" if last and last.get("time") else "last seen recently"}
+
+
 def delivered(messages, now=None):
     """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
     now = now or time.time()
@@ -1884,7 +1972,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         rt = real_time_context(thread)
         extra_instruction = (
             f"{user.username} hasn't texted in {rt['elapsed_text']} (it is now {rt['clock']}) and is currently away/busy. "
-            f"Send ONE short, natural check-in or spontaneous text (or a status update) that fits your character and "
+            f"Send ONE short, natural check-in: a text, or a voice note ([VOICE: ...]) if that's how they'd do it, or "
+            f"a status update; whatever fits your character and "
             f"what was happening last. Do not be clingy if your character is aloof."
         )
 
@@ -1898,11 +1987,12 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
     if not raw_reply.strip():
         raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
-    later = 0
+    later, late_reason = 0, ""
     if data.get("leave_on_read"):  # 🙈 [LATER: N] at the start: the reply waits N real minutes (1-5)
-        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)[^\]]*\]", raw_reply, re.I)
+        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)\s*,?\s*([^\]]*)\]", raw_reply, re.I)
         if m_later:
             later = max(1, min(5, int(m_later.group(1)))) * 60
+            late_reason = m_later.group(2).strip()[:80]  # "busy at the lab", "petty": red or yellow dot meanwhile
     raw_reply = re.sub(r"\[\s*LATER\s*:[^\]]*\]", "", raw_reply, flags=re.I)
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
@@ -1942,6 +2032,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
                 "id": uuid.uuid4().hex[:8],
                 "emoji": upd.get("emoji") or "💬",
                 "text": upd["text"],
+                "photo_prompt": upd.get("photo_prompt") or "",  # 🖼️ made when it's viewed (or at once with auto photos)
+                "image_url": "",
                 "at": now_hm,
                 "ts": time.time(),
             })
@@ -1996,6 +2088,7 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         at = time.time() + later
         for i, b in enumerate(parsed["bubbles"]):
             b["deliver_at"] = b["ts"] = at + i * 2
+            b["late_reason"] = late_reason
             b["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=later)).strftime("%H:%M")
     data["messages"].extend(parsed["bubbles"])
     if auto_check_in:
@@ -2078,6 +2171,7 @@ def serialize_thread_summary(thread):
         "unread": data.get("unread", 0),
         "preview": preview,
         "last_time": last_time,
+        "presence": presence(data),
         "member_slugs": [c.slug for c in chars],
         "member_names": [c.name for c in chars],
         # 💬 chat files: this chat's own name (several chats with one character), a branch, when it was last used

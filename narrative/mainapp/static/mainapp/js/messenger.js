@@ -109,6 +109,12 @@
     return '<div class="' + (extraClass || "tg-avatar") + '">' + esc(initial) + "</div>";
   }
 
+  // ✨ Statuses seen (this browser), for the rings
+  function storySeen(id) { try { return (JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]")).indexOf(id) !== -1; } catch (e) { return false; } }
+  function markStorySeen(id) {
+    try { var a = JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]"); if (a.indexOf(id) === -1) { a.push(id); localStorage.setItem("na-tg-seen-stories", JSON.stringify(a.slice(-400))); } } catch (e) { /* no memory here */ }
+  }
+
   function renderStoriesStrip() {
     var strip = document.getElementById("tgStoriesStrip");
     if (!strip) return;
@@ -126,10 +132,10 @@
     );
 
     (STATE.characters || []).forEach(function (c) {
-      var hasStories = (c.stories || []).length > 0;
+      var hasStories = (c.stories || []).length > 0, unseen = (c.stories || []).some(function (s) { return !storySeen(s.id); });
       html.push(
-        '<div class="tg-story-item" onclick="TG.openStoryModal(\'' + esc(c.slug) + '\')" title="' + esc(c.display_name) + ': ' + esc(c.bio || "View status") + '">' +
-          '<div class="tg-story-ring ' + (hasStories ? "" : "empty") + '">' +
+        '<div class="tg-story-item" onclick="' + (hasStories ? "TG.viewStories(\'" + esc(c.slug) + "\')" : "") + '" title="' + esc(c.display_name) + ': ' + esc(c.bio || "No status yet") + '">' +
+          '<div class="tg-story-ring ' + (hasStories ? (unseen ? "unseen" : "seen") : "empty") + '">' +
             (c.avatar_url
               ? '<img src="' + esc(c.avatar_url) + '" alt="">'
               : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2a2f4a;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
@@ -187,7 +193,7 @@
           '<div class="tg-thread-item ' + (isAct ? "active" : "") + '" onclick="TG.selectThread(' + t.id + ')">' +
             '<div class="tg-avatar">' +
               (t.avatar_url ? '<img src="' + esc(t.avatar_url) + '" alt="">' : esc(((t.title || "?")[0] || "?").toUpperCase())) +
-              '<span class="tg-online-dot"></span>' +
+              (t.is_group ? "" : '<span class="tg-online-dot ' + esc((t.presence || {}).state || "online") + '"></span>') +
             "</div>" +
             '<div class="tg-thread-meta">' +
               '<div class="tg-thread-row1">' +
@@ -276,6 +282,7 @@
     if (hdrSub) {
       var rt = t.real_time || {};
       var subParts = [];
+      if (!t.is_group && t.presence) subParts.push((t.presence.state === "online" ? "🟢 " : t.presence.state === "away" ? "🟡 " : t.presence.state === "busy" ? "🔴 " : "") + t.presence.label);
       if (t.handle) subParts.push(t.handle);
       if (t.subtitle) subParts.push(t.subtitle);
       if (rt.elapsed_text) subParts.push("Last text: " + rt.elapsed_text);
@@ -861,6 +868,10 @@
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoPhoto" ' + (u.auto_photos ? "checked" : "") + ">" +
         "Automatically make the picture when characters send a photo" +
+      "</label>" +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
+        '<input type="checkbox" id="drwMeAutoStatuses" ' + (u.auto_statuses !== false ? "checked" : "") + ">" +
+        "Characters post statuses on their own now and then" +
       "</label>" +
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
@@ -1478,6 +1489,42 @@
         STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
       }).catch(function (e) { st.step = "split"; st.error = e.message; renderActiveThread(); });
     },
+    // ✨ A character's statuses, like Telegram stories: the picture (made on first view), the text over it; tap
+    // the right side for the next one, the left for the one before
+    viewStories: function (slug) {
+      var c = (STATE.characters || []).find(function (x) { return x.slug === slug; }); if (!c) return;
+      var stories = (c.stories || []).slice().reverse();  // oldest first, like a story
+      if (!stories.length) return;
+      var i = Math.max(0, stories.findIndex(function (s) { return !storySeen(s.id); }));
+      var box = document.getElementById("tgStories");
+      if (!box) { box = document.createElement("div"); box.id = "tgStories"; box.className = "tg-stories"; document.body.appendChild(box); }
+      var show = function () {
+        var s = stories[i]; markStorySeen(s.id);
+        box.innerHTML = '<div class="tg-stories-bars">' + stories.map(function (x, j) { return '<i class="' + (j < i ? "done" : j === i ? "now" : "") + '"></i>'; }).join("") + "</div>" +
+          '<div class="tg-stories-head"><img src="' + esc(c.avatar_url || "") + '" alt=""><b>' + esc(c.display_name || c.name) + "</b><small>" + esc(s.at || "") + "</small>" +
+          '<button type="button" aria-label="Close" data-x>✕</button></div>' +
+          '<div class="tg-stories-pic">' + (s.image_url ? '<img src="' + esc(s.image_url) + '" alt="">'
+            : s.photo_prompt ? '<button type="button" class="tg-setup-go" data-pic>🖼️ Show the picture</button>' : '<div class="tg-stories-emoji">' + esc(s.emoji || "✨") + "</div>") + "</div>" +
+          (s.text ? '<div class="tg-stories-text">' + esc(s.emoji || "") + " " + formatMessageHtml(s.text) + "</div>" : "") +
+          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>';
+        box.classList.add("open");
+        renderStoriesStrip();
+      };
+      box.onclick = function (e) {
+        if (e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-pic]")) {
+          var b = e.target.closest("[data-pic]"); b.disabled = true; b.textContent = "📸 Making the picture…";
+          apiPost({ action: "story_picture", owner: slug, story_id: stories[i].id }).then(function (res) {
+            stories[i].image_url = res.story.image_url; syncCharCatalog(slug, res.profile); show();
+          }).catch(function (err) { b.disabled = false; b.textContent = "🖼️ Show the picture"; alert(err.message); });
+          return;
+        }
+        if (e.target.closest("[data-next]")) { if (i < stories.length - 1) { i++; show(); } else box.classList.remove("open"); }
+        else if (e.target.closest("[data-prev]")) { if (i > 0) { i--; show(); } }
+      };
+      show();
+    },
+
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -2253,6 +2300,7 @@
         spontaneous_minutes: parseInt(document.getElementById("drwMeSpontMins").value || "15", 10),
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
+        auto_statuses: !!(document.getElementById("drwMeAutoStatuses") || {}).checked,
         image_model: (document.getElementById("drwMeImageModel") || {}).value || "",
       };
       return apiPost({
@@ -2448,7 +2496,9 @@
             '<input type="text" class="tg-input" id="storyModalEmoji" style="width:52px;text-align:center;" value="' + esc(target.status_emoji || "✨") + '">' +
             '<input type="text" class="tg-input" id="storyModalText" placeholder="What\'s happening right now?">' +
           "</div>" +
-          '<div style="display:flex;justify-content:flex-end;gap:8px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
+              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +
             '<button type="button" class="tg-send-btn" onclick="TG.submitStory(\'' + esc(owner) + '\')">Post Status</button>' +
           "</div>" +
         "</div>";
@@ -2458,8 +2508,14 @@
     submitStory: function (owner) {
       var emoji = document.getElementById("storyModalEmoji").value.trim() || "✨";
       var text = document.getElementById("storyModalText").value.trim();
-      if (!text) return;
-      apiPost({ action: "post_story", owner: owner, emoji: emoji, text: text }).then(function (res) {
+      var pic = document.getElementById("storyModalPic"), file = pic && pic.files && pic.files[0];
+      if (!text && !file) return;
+      var upload = file ? (function () {  // the picture first (as any upload), then the status with it
+        var fd = new FormData(); fd.append("kind", "image"); fd.append("file", file);
+        return fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+          .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return r.url; });
+      })() : Promise.resolve("");
+      upload.then(function (url) { return apiPost({ action: "post_story", owner: owner, emoji: emoji, text: text, image_url: url }); }).then(function (res) {
         if (owner === "user") {
           STATE.user_profile = res.user_profile;
         } else {

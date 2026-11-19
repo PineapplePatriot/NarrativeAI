@@ -533,3 +533,44 @@ class SmallThingsTests(MessengerActionTests):
         self.assertIn("| d79 | late |", prompt)  # the whole file, not its first 300 characters
         self.assertIn("my week", prompt)
         self.assertIn("A reaction ALONE", prompt)
+
+
+class StatusAndPresenceTests(MessengerActionTests):
+    """✨ Picture statuses, characters' own statuses; 🟢 presence."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_statuses_with_pictures_and_their_own(self):
+        from mainapp import ai_client, messenger
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "ok [STATUS: ☕ | third coffee | PHOTO: No people: a mug on a lab bench]"
+        self.post(action="send_user_message", thread_id=tid, text="hi", generate=True)
+        self.rose.refresh_from_db()
+        story = messenger.char_profile(self.rose)["stories"][0]
+        self.assertEqual((story["text"], story["photo_prompt"]), ("third coffee", "No people: a mug on a lab bench"))
+        out = self.post(action="story_picture", owner=self.rose.slug, story_id=story["id"]).json()
+        self.assertTrue(out["story"]["image_url"])
+        # her own status: due (6+ hours since the last), posted on a poll
+        self.rose.messenger_profile = {**self.rose.messenger_profile, "modern_persona": "A florist.", "stories": []}
+        self.rose.save()
+        ai_client.complete.side_effect = lambda *a, **k: json.dumps({"emoji": "🌷", "text": "tulips in. finally.", "photo": ""})
+        self.client.get(self.url + "?action=poll")
+        self.rose.refresh_from_db()
+        mine = messenger.char_profile(self.rose)["stories"]
+        self.assertEqual((mine[0]["text"], mine[0].get("own")), ("tulips in. finally.", True))
+        self.assertFalse(messenger.status_due(self.rose))
+        messenger.save_user_profile(self.user, {"auto_statuses": False})
+        self.assertFalse(messenger.user_profile(self.user)["auto_statuses"])
+
+    def test_presence(self):
+        import time as _time
+        from mainapp import messenger
+        now = _time.time()
+        data = {"messages": [{"role": "assistant", "ts": now - 60, "time": "10:00"}]}
+        self.assertEqual(messenger.presence(data, now)["state"], "online")
+        data["messages"][0]["ts"] = now - 3600
+        self.assertEqual(messenger.presence(data, now)["label"], "last seen 10:00")
+        data["messages"].append({"role": "assistant", "deliver_at": now + 120, "late_reason": "busy at the lab"})
+        self.assertEqual(messenger.presence(data, now)["state"], "busy")
+        data["messages"][-1]["late_reason"] = "petty"
+        self.assertEqual(messenger.presence(data, now)["state"], "away")

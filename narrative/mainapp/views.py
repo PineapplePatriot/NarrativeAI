@@ -4661,11 +4661,11 @@ def messenger_api(request):
                 for t in threads:
                     td = messenger.thread_data(t)
                     msgs = td.get("messages") or []
-                    last_ts = msgs[-1].get("ts") if msgs else 0
+                    last_ts = messenger.ts_of(msgs[-1]) if msgs else 0
                     last_auto = td.get("last_auto_at") or 0
                     # one check-in per silence: not again until the user has answered the last one
-                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= float(
-                        next((m.get("ts") or 0 for m in reversed(msgs) if m.get("role") == "user"), 0) or 0)
+                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= \
+                        next((messenger.ts_of(m) for m in reversed(msgs) if m.get("role") == "user"), 0)
                     if unanswered or messenger.waiting_reply(td):
                         continue
                     if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
@@ -4682,6 +4682,21 @@ def messenger_api(request):
                         except Exception:
                             pass
                         break
+
+            # ✨ now and then a character posts a status of their own (one per poll at most)
+            if u_prof.get("auto_statuses", True) and threads:
+                for t in threads:
+                    for c in t.characters.all():
+                        from django.core.cache import cache
+                        if messenger.is_set_up(c) and messenger.status_due(c) and cache.add(f"tg-status-try:{c.id}", 1, 3600):
+                            try:
+                                messenger.post_own_status(request.user, c, thread=t)
+                            except Exception as e:
+                                log.info("messenger: no status from %s: %s", c.name, e)
+                            break
+                    else:
+                        continue
+                    break
 
             total_unread = 0
             latest_unread = spawned
@@ -5266,6 +5281,16 @@ def messenger_api(request):
         stories = [story_item, *(c_prof.get("stories") or [])][:30]
         saved_c = messenger.save_char_profile(c_obj, {"stories": stories, "status_emoji": emoji})
         return JsonResponse({"story": story_item, "profile": saved_c, "char_slug": c_obj.slug})
+
+    if action == "story_picture":  # 🖼️ a status's picture, made when it's first viewed
+        c_obj = char_by_slug.get(body.get("owner") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            story = messenger.story_picture(request.user, c_obj, body.get("story_id"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"story": story, "char_slug": c_obj.slug, "profile": messenger.char_profile(c_obj)})
 
     if action == "voice_bubble":
         tid = body.get("thread_id")

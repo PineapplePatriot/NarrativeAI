@@ -1581,3 +1581,28 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
   color: #fecdd3; font-size: 13px; }
 .tg-failed button { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 5px 12px;
   font: inherit; font-weight: 600; cursor: pointer; }
+
+/* 🟢 Presence and ✨ statuses */
+.tg-online-dot.away { background: #f5c542; }
+.tg-online-dot.busy { background: #f43f5e; }
+.tg-online-dot.seen { background: #64748b; }
+.tg-story-ring.unseen { box-shadow: 0 0 0 2px var(--tg-panel), 0 0 0 4px #a78bfa; }
+.tg-story-ring.seen { box-shadow: 0 0 0 2px var(--tg-panel), 0 0 0 4px rgba(148, 163, 184, .45); }
+.tg-stories { position: fixed; inset: 0; z-index: 9450; display: none; flex-direction: column; background: #07080f; color: #fff; }
+.tg-stories.open { display: flex; }
+.tg-stories-bars { display: flex; gap: 4px; padding: 10px 12px 0; }
+.tg-stories-bars i { flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .25); }
+.tg-stories-bars i.done, .tg-stories-bars i.now { background: #fff; }
+.tg-stories-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; position: relative; z-index: 2; }
+.tg-stories-head img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.tg-stories-head small { color: rgba(255, 255, 255, .6); }
+.tg-stories-head button { margin-left: auto; background: rgba(0, 0, 0, .4); color: #fff; border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 99px; width: 34px; height: 34px; cursor: pointer; }
+.tg-stories-pic { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; position: relative; z-index: 2; }
+.tg-stories-pic img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; }
+.tg-stories-emoji { font-size: 96px; }
+.tg-stories-text { padding: 14px 18px 28px; font-size: 17px; line-height: 1.45; text-align: center; background: linear-gradient(0deg, rgba(0,0,0,.7), transparent);
+  position: relative; z-index: 2; pointer-events: none; }
+.tg-stories-tap { position: absolute; top: 60px; bottom: 0; width: 40%; z-index: 1; cursor: pointer; }
+.tg-stories-tap.prev { left: 0; } .tg-stories-tap.next { right: 0; }
+.tg-stories-pic { pointer-events: none; } .tg-stories-pic button { pointer-events: auto; }
