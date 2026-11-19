@@ -4776,7 +4776,7 @@ def messenger_api(request):
         text_preview = ""
         if kind == "file":
             try:
-                text_preview = raw_bytes.decode("utf-8", errors="replace")[:4000]
+                text_preview = raw_bytes.decode("utf-8", errors="replace")[:20000]
             except Exception:
                 text_preview = ""
         return JsonResponse({
@@ -5107,6 +5107,8 @@ def messenger_api(request):
         target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
         if not target_m:
             return JsonResponse({"error": "Message not found."}, status=404)
+        if target_m.get("role") == "user" and "edited_from" not in target_m:  # what they first said (the character may notice)
+            target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
         if target_m.get("voice"):

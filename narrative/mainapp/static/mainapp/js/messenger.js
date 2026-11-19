@@ -57,6 +57,30 @@
     return stripped.length === 0;
   }
 
+  // 📄 A text file as a document: markdown tables, headings, lists; the rest as chat formatting
+  function renderDoc(text) {
+    var lines = String(text || "").replace(/\r/g, "").split("\n"), out = [], i = 0;
+    var cells = function (row) { return row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); };
+    while (i < lines.length) {
+      var ln = lines[i];
+      if (/^\s*\|.*\|\s*$/.test(ln) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+        var head = cells(ln), rows = [];
+        i += 2;
+        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+        out.push('<table><thead><tr>' + head.map(function (h) { return "<th>" + formatMessageHtml(h) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+          rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + formatMessageHtml(c) + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table>");
+        continue;
+      }
+      var h = ln.match(/^(#{1,3})\s+(.*)$/);
+      if (h) out.push("<h" + (h[1].length + 2) + ">" + formatMessageHtml(h[2]) + "</h" + (h[1].length + 2) + ">");
+      else if (/^\s*[-*]\s+/.test(ln)) out.push('<div class="tg-doc-li">• ' + formatMessageHtml(ln.replace(/^\s*[-*]\s+/, "")) + "</div>");
+      else if (!ln.trim()) out.push('<div class="tg-doc-gap"></div>');
+      else out.push("<p>" + formatMessageHtml(ln) + "</p>");
+      i++;
+    }
+    return out.join("");
+  }
+
   function formatMessageHtml(raw) {
     if (!raw) return "";
     var s = esc(raw);
@@ -499,6 +523,12 @@
           "</div>" +
         "</div>"
       );
+    }
+
+    // ⚠️ Their reply didn't arrive (an error): say so here, with a way to try again
+    if (STATE.failed && STATE.failed.thread === t.id) {
+      out.push('<div class="tg-failed"><span>⚠️ Their reply didn\'t arrive: ' + esc(STATE.failed.error || "something went wrong") + "</span>" +
+        '<button type="button" onclick="TG.retryFailed()">↻ Try again</button></div>');
     }
 
     vp.innerHTML = out.join("");
@@ -1555,7 +1585,8 @@
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
           if (box) box.classList.remove("busy");
-          alert(err.message);
+          STATE.failed = { thread: t.id, error: err.message, regen: true };
+          renderActiveThread();
         });
     },
 
@@ -1616,12 +1647,22 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
+          STATE.failed = null;
           return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
-          alert(err.message);
+          STATE.failed = { thread: t.id, error: err.message, instruction: instruction || "" };
+          renderActiveThread();
         });
+    },
+
+    retryFailed: function () {
+      var f = STATE.failed; if (!f) return;
+      STATE.failed = null;
+      renderActiveThread();
+      if (f.regen) return TG.regenerate();
+      return TG.triggerAiTurn(f.instruction);
     },
 
     toggleStickerTray: function (force) {
@@ -1689,10 +1730,12 @@
             });
             document.getElementById("tgMessageInput").value = "";
           } else {
+            var said = document.getElementById("tgMessageInput").value.trim();  // what they typed goes with it
             TG.sendUserMessage({
-              text: "",
+              text: said,
               file: { name: res.name, size: res.size, content: res.content || "Uploaded file: " + res.url },
             });
+            document.getElementById("tgMessageInput").value = "";
           }
         })
         .catch(function (e) { alert(e.message); });
@@ -2330,6 +2373,8 @@
       document.getElementById("fileModalName").readOnly = false;
       document.getElementById("fileModalContent").value = "";
       document.getElementById("fileModalContent").readOnly = false;
+      document.getElementById("fileModalContent").hidden = false;
+      var doc = document.getElementById("fileModalRendered"); if (doc) doc.hidden = true;
       document.getElementById("fileModalSendBtn").style.display = "inline-flex";
       document.getElementById("modalFile").classList.add("open");
     },
@@ -2344,6 +2389,9 @@
       document.getElementById("fileModalName").readOnly = true;
       document.getElementById("fileModalContent").value = m.file.content || "";
       document.getElementById("fileModalContent").readOnly = true;
+      document.getElementById("fileModalContent").hidden = true;  // read as a document (tables and all)
+      var doc = document.getElementById("fileModalRendered");
+      if (doc) { doc.hidden = false; doc.innerHTML = renderDoc(m.file.content || ""); }
       document.getElementById("fileModalSendBtn").style.display = "none";
       document.getElementById("modalFile").classList.add("open");
     },

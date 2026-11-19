@@ -512,3 +512,24 @@ class PictureFixesTests(TestCase):
         with mock.patch("mainapp.ai_client.requests.post", return_value=resp) as post:
             ai_client.generate_image(self.user, "x", references=[(png(), "image/png")], model="microsoft/mai-image-2.7")
         self.assertEqual(post.call_args.kwargs["json"]["model"], "microsoft/mai-image-2.5/edit")
+
+
+class SmallThingsTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_edits_are_noticed_and_whole_files_read(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        sent = self.post(action="send_user_message", thread_id=tid, text="I hate you").json()
+        mid = (sent.get("user_message") or sent.get("message"))["id"]
+        self.post(action="edit_message", thread_id=tid, message_id=mid, text="I hate that I miss you")
+        self.post(action="edit_message", thread_id=tid, message_id=mid, text="I miss you")
+        table = "| day | shift |\n|---|---|\n" + "\n".join(f"| d{i} | late |" for i in range(80))
+        self.post(action="send_user_message", thread_id=tid, text="my week", file={"name": "rota.md", "content": table})
+        self.post(action="generate_reply", thread_id=tid)
+        prompt = json.dumps(ai_client.complete.call_args.args[2], ensure_ascii=False)
+        self.assertIn('it first said: \\"I hate you\\"', prompt)  # the first version, not the middle one
+        self.assertIn("| d79 | late |", prompt)  # the whole file, not its first 300 characters
+        self.assertIn("my week", prompt)
+        self.assertIn("A reaction ALONE", prompt)

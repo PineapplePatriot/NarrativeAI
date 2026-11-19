@@ -926,11 +926,12 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
 
 5. RICH TELEGRAM ACTIONS (OPTIONAL — USE WHEN NATURAL):
    - Multiple bubbles: put `|||BUBBLE|||` between separate text bubbles sent one after another.
-   - React to {user}'s message: include `[REACT: ❤️]` (or 🔥 👍 😂 😮 😢 👀 😡 🤔) at the start or end.
+   - React to {user}'s message: include `[REACT: ❤️]` (or 🔥 👍 😂 😮 😢 👀 😡 🤔) at the start or end. A reaction ALONE, with no text, is a complete answer when nothing needs saying (a 👍 to "ok see you tomorrow", a ❤️ to a goodnight): real people do that.
    - Send a character mood sticker: include `[STICKER: mood_name]` choosing from their available moods ({moods}).
    - Send a voice message: wrap spoken audio in `[VOICE: [sighs] what they say out loud into the mic]` (supports delivery tags like `[laughs]`, `[whispers]`, `[sighs]`, `[sarcastic]`, `[curious]`).
    - Send a casual or tease photo: include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship). When they are NOT in the photo (their food, a view, their desk, a thing), begin the description with `No people:`. When {user} asks for a photo without them in it, it has no people.
-   - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]`.
+   - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]` (a markdown table is fine for lists, schedules, results).
+   - When {user} edited a message (marked "edited"), you may notice it if it matters (they softened something, took something back): real people do.
    - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`.
    - Schedule a real-time event/reminder: `[EVENT: Title at HH:MM | short note]`."""
 
@@ -1132,8 +1133,10 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
                 parts.append(f"[Sent a photo. It shows: {seen}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
             else:
                 parts.append(f"[Sent photo: {ph.get('prompt') or ph.get('caption') or 'image'}]")
-        if m.get("file"):
-            parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}: {(m['file'].get('content') or '')[:300]}]")
+        if m.get("file"):  # the whole text (a long one cut at 6000 characters)
+            parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}:\n{(m['file'].get('content') or '')[:6000]}\n]")
+        if role == "user" and m.get("edited_from"):
+            parts.append(f"(edited; it first said: \"{str(m['edited_from'])[:300]}\")")
         if m.get("text") and not m.get("voice"):
             parts.append(m["text"])
         body = " ".join(parts).strip() or "..."

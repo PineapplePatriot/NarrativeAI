@@ -1566,3 +1566,18 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-start .tg-input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
 .tg-setup-sub { margin: 6px 0 2px !important; font-weight: 600; color: #c4b5fd; font-size: 13px; }
 .tg-setup-list { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; }
+
+/* 📄 A text file read as a document */
+.tg-doc { max-height: 60vh; overflow: auto; padding: 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, .2); border: 1px solid var(--tg-border);
+  font-size: 14px; line-height: 1.55; }
+.tg-doc p { margin: 0 0 6px; }
+.tg-doc h3, .tg-doc h4, .tg-doc h5 { margin: 10px 0 6px; color: #c4b5fd; }
+.tg-doc-gap { height: 8px; }
+.tg-doc table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 13px; }
+.tg-doc th, .tg-doc td { border: 1px solid var(--tg-border); padding: 6px 8px; text-align: left; vertical-align: top; }
+.tg-doc th { background: rgba(167, 139, 250, .14); }
+.tg-failed { align-self: center; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; margin: 8px auto;
+  max-width: min(560px, 90%); padding: 8px 12px; border-radius: 12px; background: rgba(244, 63, 94, .1); border: 1px solid rgba(244, 63, 94, .35);
+  color: #fecdd3; font-size: 13px; }
+.tg-failed button { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 5px 12px;
+  font: inherit; font-weight: 600; cursor: pointer; }

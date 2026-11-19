@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=15">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=16">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -317,6 +317,7 @@
       <div class="tg-field-group">
         <label>Contents</label>
         <textarea class="tg-textarea" id="fileModalContent" style="min-height:160px; font-family:monospace;"></textarea>
+        <div class="tg-doc" id="fileModalRendered" hidden></div>
       </div>
       <div style="display:flex; justify-content:flex-end; gap:8px;" id="fileModalFooter">
         <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Close</button>
@@ -339,6 +340,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=14"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=15"></script>
 </body>
 </html>
