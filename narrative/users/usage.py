@@ -91,10 +91,11 @@ def report(days=None, exclude=("demo",), include_staff=False):
     characters = dict(Character.objects.filter(author_id__in=ids).values_list("author_id")
                       .annotate(n=Count("id")).values_list("author_id", "n"))
 
-    rows, all_sessions = [], []
+    rows, all_sessions, sessions_by_user = [], [], {}
     for u in users:
         sess = sessions_of(times[u.id])
         all_sessions += sess
+        sessions_by_user[u.id] = sess
         sent, notes, chats_used = _messages_sent(u)
         days_active = len({t.date() for t in times[u.id]})
         rows.append({
@@ -134,10 +135,66 @@ def report(days=None, exclude=("demo",), include_staff=False):
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
             "filled_feedback_form": sum(1 for r in rows if r["feedback"]),
         },
+        "weekly": weekly(sessions_by_user, now),
+        "retention": retention(users, times, now),
         "signups_by_day": sorted(((d, n) for d, n in _by_day(r["joined"] for r in rows).items()), reverse=True),
         "active_by_day": sorted(((d, len(u)) for d, u in daily.items()), reverse=True),
         "users": rows,
     }
+
+
+def _week_start(t):
+    d = timezone.localtime(t).date()
+    return d - timedelta(days=(d.weekday() + 1) % 7)  # the Sunday (weeks run Sunday to Saturday)
+
+
+def weekly(sessions_by_user, now, weeks=12):
+    """Week by week (Sunday to Saturday, the last `weeks`, newest first), everyone added up: minutes on the site,
+    sessions, and people active. A session counts in the week it started."""
+    out = defaultdict(lambda: {"minutes": 0.0, "sessions": 0, "people": set()})
+    for user_id, sess in sessions_by_user.items():
+        for s in sess:
+            w = out[_week_start(s[0])]
+            w["minutes"] += length(s).total_seconds() / 60
+            w["sessions"] += 1
+            w["people"].add(user_id)
+    this = _week_start(now)
+    rows = []
+    for k in range(weeks):
+        start = this - timedelta(weeks=k)
+        w = out.get(start, {"minutes": 0, "sessions": 0, "people": set()})
+        rows.append({"week": start, "hours": round(w["minutes"] / 60, 1), "minutes": round(w["minutes"]),
+                     "sessions": w["sessions"], "people": len(w["people"]),
+                     "per_person": round(w["minutes"] / len(w["people"])) if w["people"] else 0})
+    return rows
+
+
+def retention(users, times, now):
+    """Who came back. Day N: of the people signed up at least N days ago, the share active again N or more days
+    after signing up. Cohorts: people by the week they signed up, and the share active in each of the 4 weeks
+    after (a week only counts once it's over)."""
+    days = {}
+    for n in (1, 7, 30):
+        eligible = [u for u in users if now - u.date_joined >= timedelta(days=n)]
+        back = [u for u in eligible if any(t - u.date_joined >= timedelta(days=n) for t in times[u.id])]
+        days[n] = {"eligible": len(eligible), "back": len(back),
+                   "share": round(100 * len(back) / len(eligible)) if eligible else None}
+    cohorts = defaultdict(list)
+    for u in users:
+        cohorts[_week_start(u.date_joined)].append(u)
+    rows = []
+    for start in sorted(cohorts, reverse=True)[:12]:
+        people = cohorts[start]
+        cells = []
+        for k in range(1, 5):
+            a, b = start + timedelta(weeks=k), start + timedelta(weeks=k + 1)
+            if timezone.localtime(now).date() < b:
+                cells.append(None)  # that week isn't over yet
+                continue
+            active = sum(1 for u in people if any(a <= timezone.localtime(t).date() < b for t in times[u.id]))
+            cells.append(round(100 * active / len(people)))
+        rows.append({"week": start, "people": len(people), "weeks": cells})
+    return {"days": days, "cohorts": rows}
 
 
 def _by_day(times):

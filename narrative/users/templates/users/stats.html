@@ -57,6 +57,24 @@
         {% endfor %}
     </div>
 
+    <h2>Week by week <small class="note">(everyone added up; a session counts in the week it started)</small></h2>
+    <div class="table-wrap"><table>
+        <tr><th>Week of</th><th>Time on the site</th><th>Sessions</th><th>People active</th><th>Minutes per person</th></tr>
+        {% for w in data.weekly %}<tr><td>{{ w.week }}</td><td>{{ w.hours }} h <span class="note">({{ w.minutes }} min)</span></td><td>{{ w.sessions }}</td><td>{{ w.people }}</td><td>{{ w.per_person }}</td></tr>{% endfor %}
+    </table></div>
+
+    <h2>Retention <small class="note">(who came back)</small></h2>
+    <div class="stats-grid">
+        {% for n, r in data.retention.days.items %}
+        <div class="stat"><b>{% if r.share is None %}–{% else %}{{ r.share }}%{% endif %}</b><span>Day {{ n }}: {{ r.back }} of {{ r.eligible }} came back {{ n }}+ day{{ n|pluralize }} after signing up</span></div>
+        {% endfor %}
+    </div>
+    <div class="table-wrap"><table>
+        <tr><th>Signed up the week of</th><th>People</th><th>Active in week 1</th><th>Week 2</th><th>Week 3</th><th>Week 4</th></tr>
+        {% for c in data.retention.cohorts %}<tr><td>{{ c.week }}</td><td>{{ c.people }}</td>{% for cell in c.weeks %}<td>{% if cell is None %}<span class="note">not over</span>{% else %}{{ cell }}%{% endif %}</td>{% endfor %}</tr>
+        {% empty %}<tr><td colspan="6" class="note">No accounts yet.</td></tr>{% endfor %}
+    </table></div>
+
     <div class="two">
         <div>
             <h2>Active users by day</h2>

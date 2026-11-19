@@ -10174,3 +10174,36 @@ class BulbaTextingTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaTextingTests, _name, None)
+
+
+class WeeklyAndRetentionTests(TestCase):
+    """📊 Week by week (Sunday to Saturday) and who came back."""
+    def test_weekly_totals_and_retention(self):
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from unittest import mock
+        from users import usage
+        from users.models import Activity
+        User = get_user_model()
+        now = timezone.make_aware(datetime(2026, 11, 19, 12, 0))  # a Thursday
+        ann = User.objects.create_user(username="ann", password="pw12345!")
+        bob = User.objects.create_user(username="bob", password="pw12345!")
+        User.objects.filter(id__in=(ann.id, bob.id)).update(date_joined=now - timedelta(days=40))
+        def act(user, when):
+            a = Activity.objects.create(user=user, kind="page", path="/")
+            Activity.objects.filter(id=a.id).update(at=when)
+        start = now - timedelta(days=40)
+        act(ann, start); act(ann, start + timedelta(minutes=20))       # a 20-minute session
+        act(ann, start + timedelta(days=8))                              # back on day 8
+        act(bob, start)                                                  # never back
+        act(ann, now - timedelta(hours=1)); act(bob, now - timedelta(hours=2))
+        with mock.patch("users.usage.timezone.now", return_value=now):
+            data = usage.report()
+        this_week = data["weekly"][0]
+        self.assertEqual(this_week["week"].weekday(), 6)  # Sunday
+        self.assertEqual((this_week["sessions"], this_week["people"]), (2, 2))
+        self.assertEqual(data["retention"]["days"][1], {"eligible": 2, "back": 2, "share": 100})
+        self.assertEqual(data["retention"]["days"][30]["share"], 100)  # both were active today, day 40
+        cohort = data["retention"]["cohorts"][0]
+        # signed up on a Saturday: day 8 falls in calendar week 2 after the signup week (ann, not bob)
+        self.assertEqual((cohort["people"], cohort["weeks"]), (2, [0, 50, 0, 0]))
