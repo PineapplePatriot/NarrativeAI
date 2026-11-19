@@ -826,6 +826,15 @@
             "<span>🧠 <b>Share story memory with the roleplay chats</b></span></label>" +
         "</div>" +
         '<div class="tg-field-group">' +
+          "<label>🧠 Memory of this chat <small style=\"font-weight:400;color:var(--tg-muted)\">(what happened before the recent messages; kept up to date as the chat grows; edit freely)</small></label>" +
+          '<textarea class="tg-textarea" id="drwThreadMemory" style="min-height:90px" placeholder="Nothing yet: it starts once older messages fall out of view.">' + esc(t.memory || "") + "</textarea>" +
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)">🧠 Update it now</button>' +
+            '<label style="font-size:12.5px;">Recent messages the model reads <select class="tg-select" id="drwThreadContext" style="width:auto;display:inline-block">' +
+              [20, 30, 60, 100].map(function (n) { return '<option value="' + n + '"' + ((t.context_size || 30) === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
+            "</select></label></div>" +
+        "</div>" +
+        '<div class="tg-field-group">' +
           "<label>🎭 Who you are in this chat (empty: your usual persona" + (t.usual_persona ? ", " + esc(t.usual_persona) : "") + ")</label>" +
           '<input type="text" class="tg-input" id="drwThreadPersonaName" placeholder="Name" value="' + esc((t.persona || {}).name || "") + '">' +
           '<textarea class="tg-textarea" id="drwThreadPersonaDesc" placeholder="Who you are here">' + esc((t.persona || {}).description || "") + "</textarea>" +
@@ -1664,6 +1673,15 @@
         .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
         .catch(function (e) { alert(e.message); });
     },
+    updateMemory: function (btn) {
+      var t = STATE.active_thread; if (!t) return;
+      if (btn) { btn.disabled = true; btn.textContent = "🧠 Updating…"; }
+      apiPost({ action: "update_memory", thread_id: t.id, now: true }).then(function (res) {
+        STATE.active_thread = res.thread;
+        var box = document.getElementById("drwThreadMemory"); if (box) box.value = res.memory || "";
+        if (btn) { btn.disabled = false; btn.textContent = "✓ Updated"; }
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = "🧠 Update it now"; } alert(e.message); });
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -1778,6 +1796,9 @@
 
     // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
     showTurn: function (res, oldIds) {
+      if (res.thread && res.thread.memory_due) {  // 🧠 quietly bring the chat's memory up to date
+        apiPost({ action: "update_memory", thread_id: res.thread.id }).catch(function () { /* next time */ });
+      }
       var full = res.thread, fresh = (full.messages || []).filter(function (m) { return m.role !== "user" && oldIds.indexOf(m.id) === -1; });
       if (res.threads) STATE.threads = res.threads;
       clearTimeout(TG._waitTimer);
@@ -2360,6 +2381,8 @@
         scenario_override: document.getElementById("drwThreadScenario").value,
         leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
         share_memory: !!(document.getElementById("drwThreadShare") || {}).checked,
+        memory: (document.getElementById("drwThreadMemory") || {}).value || "",
+        context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],

@@ -5174,6 +5174,10 @@ def messenger_api(request):
             td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
             td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
+        if "memory" in body:  # 🧠 the chat's memory, edited by hand
+            td["memory"] = str(body.get("memory") or "").strip()[:6000]
+        if body.get("context_size") in messenger.CONTEXT_SIZES:
+            td["context_size"] = body["context_size"]
         if body.get("started"):  # 🧭 the "Before you start" card was answered
             td["started"] = True
         if isinstance(body.get("events"), list):
@@ -5296,6 +5300,16 @@ def messenger_api(request):
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"title": title, "added": added, "skipped": skipped,
                              "user_profile": messenger.user_profile(request.user)})
+
+    if action == "update_memory":  # 🧠 the chat's memory brought up to date (quietly after a turn, or "now")
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"memory": memory, "thread": messenger.serialize_thread_full(thread, request.user)})
 
     if action == "one_reference":  # ✨/↻ one reference picture, just this one
         c_obj = char_by_slug.get(body.get("char_slug") or "")

@@ -664,3 +664,32 @@ class TextingWatchTests(TestCase):
         n = messenger.watch_notice([say(1, "*sighs and looks at the phone for a while* fine")])
         self.assertIn("stage directions", n["text"])
         self.assertIsNone(messenger.watch_notice([say(1, "fine. come over.")]))
+
+
+class ChatMemoryTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_older_messages_fold_into_the_memory_which_the_model_reads(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [{"id": f"m{i}", "role": "user" if i % 2 else "assistant", "text": f"line {i}",
+                                **({} if i % 2 else {"sender_slug": self.rose.slug})} for i in range(55)]}
+        t.save()
+        full = self.post(action="load_thread", thread_id=tid).json()["thread"]
+        self.assertTrue(full["memory_due"])  # 25 out of view (30 read)
+        ai_client.complete.side_effect = lambda *a, **k: json.dumps({"summary": "They met at the flower market; she owes him a coffee."})
+        out = self.post(action="update_memory", thread_id=tid).json()
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("line 0", sent)
+        self.assertIn("line 24", sent)
+        self.assertNotIn("line 25", sent)  # still in view: not folded yet
+        self.assertFalse(out["thread"]["memory_due"])
+        self.post(action="thread_settings", thread_id=tid, context_size=20)
+        ai_client.complete.side_effect = lambda *a, **k: "ok"
+        self.post(action="generate_reply", thread_id=tid)
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("she owes him a coffee", prompt)
+        self.assertNotIn("line 34", prompt)  # only the last 20 are read now
+        self.assertIn("line 54", prompt)

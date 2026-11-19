@@ -735,11 +735,15 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
-        "leave_on_read": bool(raw.get("leave_on_read", False)),
+        "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
         # 🧭 the "Before you start" card was answered; 🎭 who the user is in this chat only (else their usual persona)
         "started": bool(raw.get("started", False)),
         "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 3000}[k]]
-                    for k in ("name", "description")} if isinstance(raw.get("persona"), dict) else {},  # 🙈 per chat: they may answer up to 5 minutes later
+                    for k in ("name", "description")} if isinstance(raw.get("persona"), dict) else {},
+        # 🧠 the chat's memory: a running summary of what fell out of view, and how many recent messages are read
+        "memory": str(raw.get("memory") or "")[:6000],
+        "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
+        "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
@@ -1190,10 +1194,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         )
 
     sys_content = "\n\n".join(p for p in (safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    if data.get("memory"):  # 🧠 what happened before the messages below
+        sys_content += f"\n\nEARLIER IN THIS CHAT (a summary of what came before the messages below):\n{data['memory']}"
     messages = [{"role": "system", "content": sys_content}]
 
     # Recent conversation history (last 30 bubbles)
-    for m in data["messages"][-30:]:
+    for m in data["messages"][-data["context_size"]:]:
         role = m.get("role")
         if role == "system":
             messages.append({"role": "system", "content": f"[Messenger notice: {m.get('text', '')}]"})
@@ -2130,6 +2136,49 @@ def _watch_on(user):
         return False
 
 
+CONTEXT_SIZES = (20, 30, 60, 100)
+MEMORY_EVERY = 20  # messages out of view before the summary is brought up to date
+
+
+def memory_due(data):
+    """Whether enough messages have fallen out of view since the last summary."""
+    out_of_view = len(delivered(data["messages"])) - data["context_size"]
+    return out_of_view - data["memory_upto"] >= MEMORY_EVERY
+
+
+def update_memory(user, thread, force=False):
+    """🧠 The chat's memory brought up to date: the messages that fell out of view since the last time, folded into
+    the running summary (on the background model). Returns the summary."""
+    data = thread_data(thread)
+    msgs = delivered(data["messages"])
+    end = max(0, len(msgs) - data["context_size"])
+    if force:
+        end = max(end, len(msgs) - 6)  # "update it now": everything but the last few
+    new = msgs[data["memory_upto"]:end]
+    if not new:
+        return data["memory"]
+    from mainapp.cards import user_name
+    u_name = (data.get("persona") or {}).get("name") or user_name(user)
+    lines = []
+    for m in new:
+        who = u_name if m.get("role") == "user" else (m.get("sender_name") or "them")
+        what = m.get("text") or (m.get("voice") or {}).get("transcript") or ((m.get("photo") or {}).get("seen") or (m.get("photo") or {}).get("prompt") or "")
+        if what:
+            lines.append(f"{who}: {what[:400]}")
+    prompt = ("You keep the memory of a messenger chat. Fold the new messages into the summary so far: what happened, "
+              "facts that matter later (names, plans, places, what each one shared), promises and when they're due, "
+              "and how they feel about each other now. Keep what still matters, drop what doesn't; at most 300 words, "
+              "plain sentences, in the language of the chat.\n\n"
+              f"Summary so far:\n{data['memory'] or '(nothing yet)'}\n\nNew messages:\n" + "\n".join(lines) +
+              '\n\nAnswer with JSON only: {"summary": "..."}')
+    out = ask_json(user, prompt, need=("summary",), max_tokens=900, task="summary", temperature=0.3)
+    raw = dict(thread.data or {})
+    raw["memory"], raw["memory_upto"] = str(out["summary"]).strip()[:6000], end
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return raw["memory"]
+
+
 def delivered(messages, now=None):
     """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
     now = now or time.time()
@@ -2397,6 +2446,7 @@ def serialize_thread_full(thread, user):
         **serialize_thread_summary(thread),
         "messages": delivered(data["messages"]),
         "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
+        "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
