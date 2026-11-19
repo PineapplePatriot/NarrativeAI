@@ -115,7 +115,7 @@ def user_profile(user):
         "status_emoji": str(raw.get("status_emoji") or "✨").strip()[:12],
         "avatar_url": str(raw.get("avatar_url") or avatar),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
-        "custom_stickers": [s for s in (raw.get("custom_stickers") or []) if isinstance(s, dict) and s.get("url")][:60],
+        "custom_stickers": [s for s in (raw.get("custom_stickers") or []) if isinstance(s, dict) and s.get("url")][-200:],
         "notes": [n for n in (raw.get("notes") or []) if isinstance(n, dict)][:100],
         "browser_notifications": bool(raw.get("browser_notifications", False)),
         "in_app_toasts": bool(raw.get("in_app_toasts", True)),
@@ -154,7 +154,8 @@ def save_user_profile(user, updates):
         current["default_bg"] = updates["default_bg"]
     for list_key in ("stories", "custom_stickers", "notes"):
         if isinstance(updates.get(list_key), list):
-            current[list_key] = [x for x in updates[list_key] if isinstance(x, dict)][:100]
+            current[list_key] = [x for x in updates[list_key] if isinstance(x, dict)][-200:] if list_key == "custom_stickers" \
+                else [x for x in updates[list_key] if isinstance(x, dict)][:100]
 
     settings_obj, _ = ChatSettings.objects.get_or_create(author=user)
     app = dict(settings_obj.appearance or {})
@@ -232,6 +233,9 @@ def char_profile(character):
         "art_style_notes": str(raw.get("art_style_notes") or "").strip()[:600],
         "neutral_url": char_neutral_url(character),
         "extra_refs": extra_refs,
+        # 🎨 their own sticker pack in the texting look: [{"mood", "url"}] (else the roleplay moods are the stickers)
+        "sticker_pack": [{"mood": str(s.get("mood") or "")[:30], "url": str(s.get("url") or "")[:500]}
+                         for s in (raw.get("sticker_pack") or []) if isinstance(s, dict) and s.get("url")][:16],
         "voice_id": voice_id,
         "voice_model": voice_model,
         "share_memory": raw.get("share_memory", True) is not False,
@@ -360,6 +364,9 @@ def save_char_profile(character, updates):
         current["voice_model"] = voice.OPENROUTER_TTS_MODEL_DEFAULT
     if isinstance(updates.get("extra_refs"), list):
         current["extra_refs"] = [str(u).strip()[:500] for u in updates["extra_refs"] if str(u or "").strip()][:4]
+    if isinstance(updates.get("sticker_pack"), list):
+        current["sticker_pack"] = [{"mood": str(s.get("mood") or "")[:30], "url": str(s.get("url") or "")[:500]}
+                                   for s in updates["sticker_pack"] if isinstance(s, dict) and s.get("url")][:16]
     if "share_memory" in updates:
         current["share_memory"] = bool(updates["share_memory"])
     if isinstance(updates.get("stories"), list):
@@ -373,8 +380,79 @@ def save_char_profile(character, updates):
     return current
 
 
+STICKER_MOODS = ("happy", "smug", "angry", "sleepy", "shocked", "love", "crying", "thumbs up")
+
+
+def make_sticker(user, character, mood):
+    """🎨 One sticker of their pack, in their texting look: sticker style (bold white outline, plain background,
+    big expression), the face kept from their texting pictures. Replaces that mood's sticker. Returns the profile."""
+    mood = str(mood or "").strip().lower()[:30]
+    if not mood:
+        raise ValueError("Which mood?")
+    prof = char_profile(character)
+    refs = load_character_references(character)[:3]
+    style = prof.get("art_style_notes") or "clean cute illustration"
+    same = "The SAME person as in the reference pictures: same face, hair, eyes and outfit. " if refs else ""
+    prompt = (f"A messenger sticker of {character.name}, feeling {mood}. {same}Sticker style: one figure (head and "
+              f"shoulders or a small full body, slightly chibi), a big readable {mood} expression and pose, a thick white "
+              f"outline around the figure, a flat plain light background, no text, no frame. Art style: {style}.\n"
+              f"How they look: {(prof.get('appearance_notes') or character.description or '')[:600]}")
+    img, _ = make_picture(user, prompt, references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/stickers/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    pack = [s for s in prof.get("sticker_pack") or [] if s["mood"] != mood] + [{"mood": mood, "url": url}]
+    return save_char_profile(character, {"sticker_pack": pack})
+
+
+def telegram_pack(user, link):
+    """📥 A Telegram sticker pack by its link (t.me/addstickers/NAME) or name, into the user's own stickers, through
+    the bot token in settings (TELEGRAM_BOT_TOKEN). Still and video stickers; animated .tgs ones are skipped (they
+    need a special player). Returns (pack title, added, skipped)."""
+    import os
+    import requests
+    from django.conf import settings
+    token = getattr(settings, "TELEGRAM_BOT_TOKEN", "") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        raise ValueError("Telegram packs need a bot token in the server's settings (TELEGRAM_BOT_TOKEN).")
+    name = re.sub(r"^.*addstickers/", "", str(link or "").strip()).strip("/ ").split("?")[0]
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", name):
+        raise ValueError("That doesn't look like a sticker pack link (t.me/addstickers/…).")
+    api = f"https://api.telegram.org/bot{token}"
+    try:
+        data = requests.get(f"{api}/getStickerSet", params={"name": name}, timeout=20).json()
+    except (requests.RequestException, ValueError):
+        raise ValueError("Telegram didn't answer. Try again in a moment.")
+    if not data.get("ok"):
+        raise ValueError("Telegram doesn't know that pack (check the link).")
+    pack = data["result"]
+    title = str(pack.get("title") or name)[:60]
+    added, skipped = [], 0
+    for st in (pack.get("stickers") or [])[:60]:
+        if st.get("is_animated"):
+            skipped += 1
+            continue
+        try:
+            f = requests.get(f"{api}/getFile", params={"file_id": st["file_id"]}, timeout=20).json()
+            path = f["result"]["file_path"]
+            raw = requests.get(f"https://api.telegram.org/file/bot{token}/{path}", timeout=30).content
+        except (requests.RequestException, ValueError, KeyError):
+            skipped += 1
+            continue
+        ext = ".webm" if st.get("is_video") else ".webp"
+        url = default_storage.url(default_storage.save(f"messenger/stickers/tg-{user.id}-{uuid.uuid4().hex[:8]}{ext}", ContentFile(raw)))
+        added.append({"id": f"tg_{uuid.uuid4().hex[:8]}", "pack": title, "name": st.get("emoji") or "sticker",
+                      "url": url, "video": bool(st.get("is_video"))})
+    u_prof = user_profile(user)
+    save_user_profile(user, {"custom_stickers": [*(u_prof.get("custom_stickers") or []), *added][-200:]})
+    return title, len(added), skipped
+
+
 def character_stickers(character):
-    """All mood sprites of a character packaged as a Telegram Sticker Pack."""
+    """All mood sprites of a character packaged as a Telegram Sticker Pack: their texting sticker pack when they
+    have one (their texting look), else the roleplay card's mood pictures."""
+    own = char_profile(character).get("sticker_pack") or []
+    if own:
+        return [{"id": f"char_{character.slug}_{s['mood'].replace(' ', '_')}", "pack": character.name, "char_slug": character.slug,
+                 "mood": s["mood"], "name": f"{character.name} — {s['mood']}", "url": s["url"]} for s in own]
     pack = []
     for mood in sprites.BUILT_IN:
         field = getattr(character, f"photo_{mood}", None)

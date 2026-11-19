@@ -256,7 +256,16 @@ Batch B as planned:
   (their `supported_voices`); custom ids need the user's own ElevenLabs key (Extras → Voices). The drawer says so.
   Later, maybe: OpenRouter's voice cloning from a short recording (HeyGen Voice and others), no ElevenLabs account.
 
-Batch C, pictures:
+Batch C: done 19 November: 🎨 the user makes pictures to send (their persona picture, up to 5 references, make it
+again, a caption); one picture at a time (✨ Make this one / ↻ Redo this one for moods; ✨/↻ per messenger
+reference slot); 🎨 sticker packs in the texting look (one at a time) and 📥 Telegram packs by link
+(TELEGRAM_BOT_TOKEN); the picture model really used (MAI-Image), no-people photos. Uploading moods beyond neutral
+worked in tests: waiting for the user's details on what fails live.
+Also done 19 November, the user's small list: reactions as replies, failed replies retried, edits noticed, text
+files read whole with tables, text with attachments, presence dots, voice check-ins, statuses with pictures in a
+story viewer, characters' own statuses.
+
+Batch C as planned:
 - (21) The user sends generated pictures: a small window (prompt, up to 5 references, regenerate) for "proof" or
   what's going on in their life; more variety in the characters' photos.
 - ~~(3) Image model choice~~ done 18 November: MAI-Image-2.7 and 2.7 Flash take reference pictures

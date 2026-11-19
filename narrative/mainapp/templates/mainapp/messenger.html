@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=19">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=20">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -118,10 +118,13 @@
           <div class="tg-tray-header">
             <span>🎭 Stickers & Moods</span>
             <div style="display:flex; gap:6px;">
+              <button type="button" class="tg-fmt-btn" onclick="TG.makeStickerPack()" title="Draw a sticker pack in their texting look, one sticker at a time">🎨 Make a pack</button>
+              <button type="button" class="tg-fmt-btn" onclick="TG.importTelegramPack()" title="Add a Telegram sticker pack by its link">📥 Telegram pack</button>
               <button type="button" class="tg-fmt-btn" onclick="document.getElementById('customStickerUpload').click()">+ Upload Sticker</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerTray(false)">✕</button>
             </div>
           </div>
+          <div class="tg-tray-status" id="tgStickerStatus" hidden></div>
           <div class="tg-tray-grid" id="tgStickerGrid"></div>
           <input type="file" id="customStickerUpload" accept="image/*" style="display:none" onchange="TG.uploadCustomSticker(this)">
         </div>
@@ -341,6 +344,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=18"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=19"></script>
 </body>
 </html>

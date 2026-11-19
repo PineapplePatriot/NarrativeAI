@@ -5283,6 +5283,20 @@ def messenger_api(request):
         saved_c = messenger.save_char_profile(c_obj, {"stories": stories, "status_emoji": emoji})
         return JsonResponse({"story": story_item, "profile": saved_c, "char_slug": c_obj.slug})
 
+    if action in ("make_sticker", "telegram_pack"):  # 🎨 a sticker of their pack · 📥 a Telegram pack by link
+        try:
+            if action == "make_sticker":
+                c_obj = char_by_slug.get(body.get("char_slug") or "")
+                if not c_obj:
+                    return JsonResponse({"error": "Character not found."}, status=404)
+                prof = messenger.make_sticker(request.user, c_obj, body.get("mood"))
+                return JsonResponse({"profile": prof, "char_slug": c_obj.slug, "stickers": messenger.character_stickers(c_obj)})
+            title, added, skipped = messenger.telegram_pack(request.user, body.get("link"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"title": title, "added": added, "skipped": skipped,
+                             "user_profile": messenger.user_profile(request.user)})
+
     if action == "one_reference":  # ✨/↻ one reference picture, just this one
         c_obj = char_by_slug.get(body.get("char_slug") or "")
         if not c_obj:

@@ -617,3 +617,35 @@ class OneReferenceTests(MessengerActionTests):
         self.assertEqual(len(prof["extra_refs"]), 1)  # redone in place
         self.assertNotEqual(prof["extra_refs"][0], first)
         self.assertTrue(messenger.char_profile(Character.objects.get(id=self.rose.id))["neutral_url"])
+
+
+class StickerPackTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_their_own_pack_replaces_the_roleplay_moods(self):
+        out = self.post(action="make_sticker", char_slug=self.rose.slug, mood="smug").json()
+        self.assertEqual([s["mood"] for s in out["profile"]["sticker_pack"]], ["smug"])
+        self.assertEqual([s["mood"] for s in out["stickers"]], ["smug"])
+        again = self.post(action="make_sticker", char_slug=self.rose.slug, mood="smug").json()
+        self.assertEqual(len(again["profile"]["sticker_pack"]), 1)  # redone in place
+
+    def test_a_telegram_pack_by_link(self):
+        def fake_get(url, params=None, timeout=None):
+            r = mock.Mock()
+            if url.endswith("getStickerSet"):
+                r.json.return_value = {"ok": True, "result": {"title": "Cats", "stickers": [
+                    {"file_id": "a", "emoji": "😼"}, {"file_id": "b", "emoji": "🙀", "is_video": True},
+                    {"file_id": "c", "emoji": "😹", "is_animated": True}]}}
+            elif url.endswith("getFile"):
+                r.json.return_value = {"result": {"file_path": f"stickers/{params['file_id']}"}}
+            else:
+                r.content = b"RIFFfake"
+            return r
+        with self.settings(TELEGRAM_BOT_TOKEN="123:abc"), mock.patch("requests.get", side_effect=fake_get):
+            out = self.post(action="telegram_pack", link="https://t.me/addstickers/CatsPack").json()
+        self.assertEqual((out["title"], out["added"], out["skipped"]), ("Cats", 2, 1))
+        mine = out["user_profile"]["custom_stickers"]
+        self.assertEqual([s["video"] for s in mine], [False, True])
+        with self.settings(TELEGRAM_BOT_TOKEN=""):
+            self.assertIn("TELEGRAM_BOT_TOKEN", self.post(action="telegram_pack", link="CatsPack").json()["error"])

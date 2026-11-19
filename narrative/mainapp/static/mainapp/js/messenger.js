@@ -367,7 +367,8 @@
         if (st.url) {
           inner.push(
             '<div class="tg-sticker-card">' +
-              '<img src="' + esc(st.url) + '" alt="' + esc(st.name || "Sticker") + '" title="' + esc(st.name || "") + '">' +
+              (st.video || /\.webm$/i.test(st.url) ? '<video src="' + esc(st.url) + '" autoplay loop muted playsinline title="' + esc(st.name || "") + '"></video>'
+                : '<img src="' + esc(st.url) + '" alt="' + esc(st.name || "Sticker") + '" title="' + esc(st.name || "") + '">') +
             "</div>"
           );
         } else {
@@ -553,7 +554,7 @@
         if (s.url) {
           return (
             '<div class="tg-tray-item" onclick="TG.sendStickerByIndex(' + idx + ')">' +
-              '<img src="' + esc(s.url) + '" alt="' + esc(s.name || "") + '">' +
+              (s.video || /\.webm$/i.test(s.url) ? '<video src="' + esc(s.url) + '" autoplay loop muted playsinline></video>' : '<img src="' + esc(s.url) + '" alt="' + esc(s.name || "") + '">') +
               '<span class="nm">' + esc(s.name || s.mood || "Sticker") + "</span>" +
             "</div>"
           );
@@ -1604,6 +1605,43 @@
       apiPost({ action: "one_reference", char_slug: slug, slot: slot }).then(function (res) {
         syncCharCatalog(res.char_slug, res.profile); renderSidebar(); renderActiveThread(); renderDrawer();
       }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = slot < 0 ? "✨" : "✨"; } alert(e.message); });
+    },
+    // 🎨 A sticker pack in their texting look, one sticker at a time (stoppable; a sticker can be redone)
+    makeStickerPack: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.members || [])[0]; if (!m) return;
+      if (TG._packBusy) { TG._packBusy = false; return; }  // a second press stops it
+      var moods = ["happy", "smug", "angry", "sleepy", "shocked", "love", "crying", "thumbs up"];
+      var have = (m.sticker_pack || []).map(function (s) { return s.mood; });
+      var todo = moods.filter(function (x) { return have.indexOf(x) === -1; });
+      if (!todo.length) {
+        var redo = prompt("Their pack is complete. Redo one? Type its mood (" + moods.join(", ") + "):", "");
+        if (!redo) return; todo = [redo.trim().toLowerCase()];
+      } else if (!confirm("Draw " + todo.length + " stickers of " + m.name + " in their texting look? About a few cents each. Press 🎨 again to stop.")) return;
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false;
+      TG._packBusy = true;
+      var i = 0;
+      (function next() {
+        if (!TG._packBusy || i >= todo.length) { TG._packBusy = false; st.textContent = "🎨 Done: " + i + " sticker" + (i === 1 ? "" : "s") + "."; return; }
+        st.textContent = "🎨 Drawing “" + todo[i] + "” (" + (i + 1) + " of " + todo.length + ")… press 🎨 to stop";
+        apiPost({ action: "make_sticker", char_slug: m.slug, mood: todo[i] }).then(function (res) {
+          syncCharCatalog(res.char_slug, res.profile);
+          t.stickers = (t.stickers || []).filter(function (s) { return s.char_slug !== res.char_slug; }).concat(res.stickers);
+          renderStickerTray(); i++; next();
+        }).catch(function (e) { TG._packBusy = false; st.textContent = "Stopped at “" + todo[i] + "”: " + e.message; });
+      })();
+    },
+    importTelegramPack: function () {
+      var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
+      if (!link || !link.trim()) return;
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false; st.textContent = "📥 Fetching the pack…";
+      apiPost({ action: "telegram_pack", link: link.trim() }).then(function (res) {
+        STATE.user_profile = res.user_profile;
+        var mine = res.user_profile.custom_stickers || [];
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).filter(function (s) { return !/^custom_|^tg_/.test(s.id || ""); }).concat(mine);
+        renderStickerTray();
+        st.textContent = "📥 “" + res.title + "”: " + res.added + " stickers added" + (res.skipped ? ", " + res.skipped + " animated ones skipped (they need a special player)" : "") + ".";
+      }).catch(function (e) { st.textContent = "📥 " + e.message; });
     },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
