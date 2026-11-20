@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=32">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=33">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -122,11 +122,17 @@
           <div class="tg-tray-header">
             <span>🎭 Stickers & Moods</span>
             <div style="display:flex; gap:6px;">
+              <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerIdea()" title="A sticker from your own idea">✨ Make a sticker</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.makeStickerPack()" title="Draw a sticker pack in their texting look, one sticker at a time">🎨 Make a pack</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.importTelegramPack()" title="Add a Telegram sticker pack by its link">📥 Telegram pack</button>
               <button type="button" class="tg-fmt-btn" onclick="document.getElementById('customStickerUpload').click()">+ Upload Sticker</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerTray(false)">✕</button>
             </div>
+          </div>
+          <div class="tg-sticker-idea" id="tgStickerIdea" hidden>
+            <select class="tg-select" id="tgStickerWho"></select>
+            <input type="text" class="tg-input" id="tgStickerText" placeholder="What it shows: facepalming, sending a heart, asleep on the desk…">
+            <button type="button" class="tg-fmt-btn" onclick="TG.makeCustomSticker(this)">✨ Make it</button>
           </div>
           <div class="tg-tray-status" id="tgStickerStatus" hidden></div>
           <div class="tg-tray-grid" id="tgStickerGrid"></div>
@@ -158,6 +164,7 @@
             <button type="button" class="tg-icon-btn" onclick="document.getElementById('tgMediaUpload').click()" title="Attach photo or file">📎</button>
             <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
             <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
+            <button type="button" class="tg-icon-btn" onclick="TG.toggleEmoji()" title="Emoji">😀</button>
             <button type="button" class="tg-icon-btn" onclick="TG.openMakePicture()" title="Make a picture to send (a photo of you, or anything)">🎨</button>
             <button type="button" class="tg-icon-btn" onclick="TG.suggestReply(this)" title="Stuck? Bulba suggests what you could text">🥔</button>
             <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
@@ -364,6 +371,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=33"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=34"></script>
 </body>
 </html>

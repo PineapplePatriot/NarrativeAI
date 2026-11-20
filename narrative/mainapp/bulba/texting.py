@@ -67,7 +67,9 @@ they left open, and say what you filled in. When something they want is unclear,
 9. Each character has a worldbook for this setup (places, people, groups, terms; read when their words come up).
    Change it with propose_texting_profile's `worldbook` (the whole list as it should be). Their roleplay lorebook
    is never changed from here.
-10. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
+10. For a character from a known work, look_up their canon (looks, lore, relationships) before you modernize or
+   answer about them, rather than guessing.
+11. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
    uses. If they want the roleplay card changed, tell them to open Bulba from the chat page.
 
 ## What the fields mean
@@ -316,7 +318,7 @@ def tool_defs():
 
 
 def tools():
-    keep = {"offer_choices", "record_preference"}
+    keep = {"offer_choices", "record_preference", "look_up"}  # 🔎 web search for canon details (modernizing a known character)
     return [t for t in agent_mod.TOOLS if t["function"]["name"] in keep] + tool_defs()
 
 

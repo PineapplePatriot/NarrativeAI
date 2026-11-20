@@ -263,6 +263,23 @@
     return bars.join("");
   }
 
+  // ⬇ a "back to the latest" button when they've scrolled up, like in Telegram
+  function updateDownBtn() {
+    var vp = document.getElementById("tgMessagesViewport"), btn = document.getElementById("tgDownBtn");
+    if (!vp || !btn) return;
+    var away = vp.scrollHeight - vp.scrollTop - vp.clientHeight > 300;
+    btn.classList.toggle("show", away);
+  }
+  (function () {
+    var vp = document.getElementById("tgMessagesViewport");
+    if (!vp) return;
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.id = "tgDownBtn"; btn.className = "tg-down-btn"; btn.title = "Latest messages"; btn.textContent = "⌄";
+    btn.onclick = function () { vp.scrollTo({ top: vp.scrollHeight, behavior: "smooth" }); };
+    vp.parentNode.insertBefore(btn, vp.nextSibling);
+    vp.addEventListener("scroll", updateDownBtn, { passive: true });
+  })();
+
   function renderActiveThread() {
     var t = STATE.active_thread;
     var hdrTitle = document.getElementById("hdrTitle");
@@ -568,8 +585,13 @@
         '<button type="button" onclick="TG.retryFailed()">↻ Try again</button></div>');
     }
 
+    // ⬇ stay where they were reading; follow new messages only when they were already at the bottom (or the chat changed)
+    var fromBottom = vp.scrollHeight - vp.scrollTop - vp.clientHeight;
+    var sameChat = vp.getAttribute("data-thread") === String(t.id), keep = vp.scrollTop;
     vp.innerHTML = out.join("");
-    vp.scrollTop = vp.scrollHeight;
+    vp.setAttribute("data-thread", String(t.id));
+    if (!sameChat || fromBottom < 160) vp.scrollTop = vp.scrollHeight; else vp.scrollTop = keep;
+    updateDownBtn();
     renderStickerTray();
   }
 
@@ -871,11 +893,15 @@
           (Object.keys(t.scene || {}).length ? Object.keys(t.scene).map(function (name, i) {
             var s = t.scene[name] || {};
             return '<div class="tg-scene" data-scene-name="' + esc(name) + '"><b>' + esc(name) + "</b>" +
-              ["where", "around", "wearing"].map(function (k) {
+              ["where", "doing", "around", "wearing"].map(function (k) {
                 return '<input type="text" class="tg-input" data-scene-k="' + k + '" value="' + esc(s[k] || "") + '" placeholder="' +
-                  { where: "where (e.g. their flat, the lab)", around: "what's around them", wearing: "what they're wearing" }[k] + '">';
+                  { where: "where (e.g. their flat, the lab)", doing: "what they're doing", around: "what's around them", wearing: "what they're wearing" }[k] + '">';
               }).join("") + "</div>";
-          }).join("") : '<div style="font-size:12px;color:var(--tg-muted)">Filled in after the first few messages.</div>') +
+          }).join("") : '<div style="font-size:12px;color:var(--tg-muted)">Filled in after the first message.</div>') +
+          (Object.keys(t.places || {}).length ? '<details class="tg-places"><summary>🏠 Places (how each one looks, the same in every photo)</summary>' +
+            Object.keys(t.places).map(function (p) {
+              return '<label class="tg-place"><b>' + esc(p) + '</b><textarea class="tg-textarea" rows="2" data-place="' + esc(p) + '">' + esc(t.places[p]) + "</textarea></label>";
+            }).join("") + "</details>" : "") +
         "</div>" +
         '<div class="tg-field-group"><label>📸 Tease photos go this far <small style="font-weight:400;color:var(--tg-muted)">(Bulba can set it too)</small></label><select class="tg-select" id="drwThreadPhotoMood">' +
           (t.photo_moods || []).map(function (o) { return '<option value="' + o[0] + '"' + (t.photo_mood === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") +
@@ -967,6 +993,14 @@
         "</select><small style=\"color:var(--tg-muted);font-size:11.5px;\">All three keep faces from the reference pictures. Through your OpenRouter key.</small></div>" +
       '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
+
+  // 😀 the emoji panel: [label, "emoji emoji …"] (split on spaces, so ❤️ and 😮‍💨 stay whole)
+  var EMOJI_SETS = [
+    ["Faces", "😀 😁 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😜 🤪 🤨 🧐 😎 🥳 😏 😒 🙄 😬 😮‍💨 🤥 😌 😔 😪 😴 😷 🥵 🥶 🥴 😵 🤯 🤠 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 🤡 👻 🤖 🫠 🫡 🤫 🤭 🫢 🤔 🫣"],
+    ["Hands", "👍 👎 👌 🤌 ✌️ 🤞 🫶 🤟 🤘 👋 🙌 👏 🙏 🤝 💪 🫵 👉 👈 👆 👇 ✋ 🤚 🖐️ 🫰 ✍️ 💅"],
+    ["Hearts", "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❤️‍🔥 💕 💞 💓 💗 💖 💘 💝 💋 ✨ 🔥 💯 💢 💥 💫 💤 💬 👀"],
+    ["Things", "☕ 🍵 🍷 🍺 🍕 🍜 🍣 🍰 🍫 🍓 🌹 🌸 🌙 ☀️ 🌧️ ⛈️ ❄️ 🎉 🎁 🎮 🎧 📚 📝 💻 📱 🔬 🧪 💊 🚗 ✈️ 🏠 🐱 🐶 🦊 🐍 🥔"],
+  ];
 
   // 🎨 Picture styles to pick from (or write your own); empty = anime realism, matching their pictures
   var ART_STYLES = [
@@ -1787,6 +1821,49 @@
           renderStickerTray(); i++; next();
         }).catch(function (e) { TG._packBusy = false; st.textContent = "Stopped at “" + todo[i] + "”: " + e.message; });
       })();
+    },
+    toggleStickerIdea: function () {
+      var box = document.getElementById("tgStickerIdea"), who = document.getElementById("tgStickerWho");
+      box.hidden = !box.hidden;
+      if (box.hidden) return;
+      var t = STATE.active_thread, seen = {}, people = [];
+      ((t && t.members) || []).concat(STATE.characters || []).forEach(function (c) { if (c.slug && !seen[c.slug]) { seen[c.slug] = 1; people.push(c); } });
+      who.innerHTML = people.map(function (c) { return '<option value="' + esc(c.slug) + '">' + esc(c.display_name || c.name) + "</option>"; }).join("") +
+        '<option value="me">Me (my persona picture)</option><option value="">Anything (no one in particular)</option>';
+      document.getElementById("tgStickerText").focus();
+    },
+    makeCustomSticker: function (btn) {
+      var idea = document.getElementById("tgStickerText").value.trim();
+      if (!idea) return alert("What should the sticker show?");
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false; st.textContent = "✨ Drawing the sticker…";
+      btn.disabled = true;
+      apiPost({ action: "custom_sticker", idea: idea, who: document.getElementById("tgStickerWho").value }).then(function (res) {
+        btn.disabled = false; st.textContent = "✨ Added to My Stickers.";
+        document.getElementById("tgStickerText").value = "";
+        var u = STATE.user_profile || (STATE.user_profile = {});
+        u.custom_stickers = (u.custom_stickers || []).concat([res.sticker]);
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).concat([res.sticker]);
+        renderStickerTray();
+      }).catch(function (e) { btn.disabled = false; st.textContent = "✨ " + e.message; });
+    },
+    // 😀 Emoji, for keyboards that don't have them (most PCs): tap one to put it where the cursor is
+    toggleEmoji: function () {
+      var box = document.getElementById("tgEmojiPanel");
+      if (!box) {
+        box = document.createElement("div"); box.id = "tgEmojiPanel"; box.className = "tg-emoji-panel";
+        box.innerHTML = EMOJI_SETS.map(function (set) {
+          return '<div class="tg-emoji-set"><small>' + set[0] + "</small><div>" +
+            set[1].split(" ").filter(Boolean).map(function (e) { return '<button type="button">' + e + "</button>"; }).join("") + "</div></div>";
+        }).join("");
+        box.addEventListener("click", function (ev) {
+          var b = ev.target.closest("button"); if (!b) return;
+          var inp = document.getElementById("tgMessageInput"), at = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+          inp.value = inp.value.slice(0, at) + b.textContent + inp.value.slice(inp.selectionEnd != null ? inp.selectionEnd : at);
+          inp.focus(); inp.selectionStart = inp.selectionEnd = at + b.textContent.length;
+        });
+        var comp = document.querySelector(".tg-composer-row"); comp.parentNode.insertBefore(box, comp);
+      }
+      box.classList.toggle("open");
     },
     importTelegramPack: function () {
       var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
@@ -2699,6 +2776,10 @@
           var out = {};
           rows.forEach(function (r) { var o = {}; r.querySelectorAll("[data-scene-k]").forEach(function (i) { o[i.getAttribute("data-scene-k")] = i.value; }); out[r.getAttribute("data-scene-name")] = o; });
           return out;
+        })(),
+        places: (function () {
+          var rows = document.querySelectorAll("[data-place]"); if (!rows.length) return undefined;
+          var out = {}; rows.forEach(function (r) { out[r.getAttribute("data-place")] = r.value; }); return out;
         })(),
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },

@@ -491,6 +491,36 @@ def make_sticker(user, character, mood):
     return save_char_profile(character, {"sticker_pack": pack})
 
 
+def custom_sticker(user, idea, character=None, of_me=False):
+    """✨ A sticker from their own idea ("facepalming", "me with coffee", "a tired potato"), of a character (their
+    pictures as references), of them (their persona picture), or of anything; added to "My Stickers". Returns it."""
+    idea = str(idea or "").strip()[:300]
+    if not idea:
+        raise ValueError("What should the sticker show?")
+    refs, who, look = [], "", ""
+    if character is not None:
+        refs = load_character_references(character)[:3]
+        prof = char_profile(character)
+        who, look = character.name, (prof.get("appearance_notes") or character.description or "")[:500]
+    elif of_me and getattr(user, "persona_photo_neutral", None):
+        item = _read_storage_image(user.persona_photo_neutral)
+        if item:
+            refs = [item]
+        from mainapp.cards import user_name
+        who, look = user_name(user), (getattr(user, "persona_description", "") or "")[:500]
+    same = f"The SAME person as in the reference pictures ({who}): same face, hair and eyes. " if refs else ""
+    prompt = (f"A messenger sticker: {idea}." + (f" It shows {who}. " if who else " ") + same +
+              "Sticker style: one clear subject, slightly chibi, a big readable expression or pose, a thick white outline, "
+              "a flat plain light background, no frame; text only if the idea asks for words."
+              + (f"\nHow they look: {look}" if look else ""))
+    img, _ = make_picture(user, prompt, references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/stickers/user{user.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    item = {"id": f"custom_{uuid.uuid4().hex[:8]}", "pack": "My Stickers", "name": idea[:40], "url": url}
+    stickers = list(user_profile(user).get("custom_stickers") or []) + [item]
+    save_user_profile(user, {"custom_stickers": stickers})
+    return item
+
+
 def telegram_pack(user, link):
     """📥 A Telegram sticker pack by its link (t.me/addstickers/NAME) or name, into the user's own stickers, through
     the bot token in settings (TELEGRAM_BOT_TOKEN). Still and video stickers; animated .tgs ones are skipped (they
@@ -836,6 +866,7 @@ def thread_data(thread):
         "continuity_count": max(0, int(raw.get("continuity_count") or 0)),
         # 📍 right now, for everyone in the chat: {name: {"where", "around", "wearing"}}; scene_upto = messages read
         "scene": clean_scene(raw.get("scene")),
+        "places": clean_places(raw.get("places")),
         "scene_upto": max(0, int(raw.get("scene_upto") or 0)),
         "continuity_note": raw.get("continuity_note") if isinstance(raw.get("continuity_note"), dict) else None,
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
@@ -1413,6 +1444,16 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
                            "at work, or they're teasing, annoyed, sulking, being petty), they don't answer right away: "
                            "start with `[LATER: N, why]`. If nothing allows it, answer normally.")
 
+    # ⌨️ models almost never make typos unasked: now and then a fast texter is invited to (never a careful one)
+    import random as _r
+    hasty = [c.name for c in chars if not re.search(r"formal|careful|full punctuation|precise|deliberate|measured|proper",
+                                                   char_profile(c).get("texting_style") or "", re.I)]
+    if hasty and _r.random() < 0.2:
+        time_block += (f"\n- THIS REPLY: if {' or '.join(hasty[:3])} fires off quick texts here (excited, rattled, rushing, "
+                       "typing while walking), put ONE small natural typo in one bubble (a swapped, doubled or missing "
+                       "letter, or autocorrect gone wrong), and maybe fix it in the next bubble (\"*tomorrow\"). Never "
+                       "in a name. If they're writing slowly or carefully this time, no typo.")
+
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
         group_rule = (
@@ -1551,7 +1592,16 @@ def check_texting_slop(text):
 
 
 SCENE_EVERY = 4  # messages between two quiet updates of "📍 Right now"
-SCENE_FIELDS = ("where", "around", "wearing")
+SCENE_FIELDS = ("where", "doing", "around", "wearing")
+
+
+def clean_places(raw):
+    """📍 How each place looks, written once and reused, so "the lab" is the same lab in every photo."""
+    out = {}
+    for name, look in (raw.items() if isinstance(raw, dict) else []):
+        if str(name).strip() and str(look or "").strip():
+            out[str(name).strip().lower()[:80]] = str(look).strip()[:400]
+    return dict(list(out.items())[-24:])
 
 
 def clean_scene(raw):
@@ -1563,14 +1613,17 @@ def clean_scene(raw):
 
 
 def scene_due(data):
-    return len(delivered(data["messages"])) - data["scene_upto"] >= SCENE_EVERY
+    n = len(delivered(data["messages"]))
+    return n - data["scene_upto"] >= SCENE_EVERY or (not data["scene"] and n >= 1)  # (a new chat: from its first message)
 
 
 def scene_line(data, name):
     """"at the lab; around: …; wearing: …" for one person, or ""."""
     s = (data.get("scene") or {}).get(name) or {}
-    bits = [f"at/in {s['where']}" if s.get("where") else "", f"around them: {s['around']}" if s.get("around") else "",
-            f"wearing {s['wearing']}" if s.get("wearing") else ""]
+    look = (data.get("places") or {}).get((s.get("where") or "").strip().lower())
+    bits = [f"at/in {s['where']}" + (f" (it looks like this: {look})" if look else "") if s.get("where") else "",
+            f"{s['doing']}" if s.get("doing") else "",
+            f"around them: {s['around']}" if s.get("around") else "", f"wearing {s['wearing']}" if s.get("wearing") else ""]
     return "; ".join(b for b in bits if b)
 
 
@@ -1601,16 +1654,22 @@ def update_scene(user, thread):
               f"Clock: {real_time_context(thread).get('clock', '')}.\nPeople (their usual look): "
               + json.dumps(people, ensure_ascii=False) + "\nWhat we had so far: " + json.dumps(current, ensure_ascii=False)
               + "\n\nRecent messages:\n" + "\n".join(lines)
-              + "\n\nUpdate each person: `where` (the place, a few words), `around` (what's around them there: a few "
-              "concrete things), `wearing` (their clothes now). Change only what the texts say or clearly imply (they "
+              + "\nPlaces we know (keep using these exact names when someone is there): "
+              + json.dumps(data["places"], ensure_ascii=False)
+              + "\n\nUpdate each person: `where` (the place, a few words; reuse a known place's name), `doing` (what "
+              "they're doing, a few words), `around` (what's around them there: a few concrete things), `wearing` "
+              "(their clothes now). For a place that isn't known yet, add it to `places` with how it looks in one "
+              "sentence (light, size, materials, a few lasting details), so every photo there matches. Change only what the texts say or clearly imply (they "
               "went home, got changed, it's night now so they're likely in sleepwear only if they said they're in "
               "bed); keep the rest as it was; fill an empty field with a likely guess from their usual look and the "
               "time of day. Short phrases. Answer with JSON only: "
-              '{"scene": {"<name>": {"where": "...", "around": "...", "wearing": "..."}}}')
+              '{"scene": {"<name>": {"where": "...", "doing": "...", "around": "...", "wearing": "..."}}, '
+              '"places": {"<new place>": "how it looks"}}')
     out = ask_json(user, prompt, need=("scene",), max_tokens=900, task="summary", temperature=0.2)
     scene = clean_scene({**current, **{k: v for k, v in (out.get("scene") or {}).items() if k in people}})
     raw = dict(thread.data or {})
-    raw["scene"], raw["scene_upto"] = scene, len(msgs)
+    new_places = {k: v for k, v in clean_places(out.get("places")).items() if k not in data["places"]}
+    raw["scene"], raw["scene_upto"], raw["places"] = scene, len(msgs), {**data["places"], **new_places}
     thread.data = raw
     thread.save(update_fields=["data"])
     return scene
@@ -2211,6 +2270,9 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
         if txt:
             recent_lines.append(f"{sp}: {txt[:220]}")
     recent_chat = "\n".join(recent_lines) or "(Start of chat)"
+    here = scene_line(data, character.name) if thread else ""
+    if here:
+        recent_chat += f"\n[Where {character.name} is right now (the photo happens there): {here}]"
     if hint:
         recent_chat += f"\n[Specific photo direction: {hint}]"
 
@@ -2366,7 +2428,8 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"as the attached reference image(s).\n"
             f"Camera angle & composition (avoid stiff centered passport framing): {camera_angle}.\n"
             f"Character appearance: {card_appearance[:550]}\n"
-            + (f"RIGHT NOW (wins over the usual clothes above): {character.name} is {here}.\n" if here else "")
+            + (f"RIGHT NOW (wins over the usual clothes above; the photo is taken there, as described, unless the "
+               f"scene below clearly says they've moved): {character.name} is {here}.\n" if here else "")
             + f"Photo scene & moment: {desc_clean[:600]}\n"
             + (f"Their expression: {expression}\n" if expression else "")
             + EXPRESSION_LOCK
@@ -3129,7 +3192,7 @@ def serialize_thread_full(thread, user):
         "messages": delivered(data["messages"]),
         "watch": (continuity_shown(data) or watch_notice(delivered(data["messages"]))) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "continuity_due": _watch_on(user) and data["continuity_count"] >= CONTINUITY_EVERY,
-        "scene": data["scene"], "scene_due": scene_due(data),
+        "scene": data["scene"], "places": data["places"], "scene_due": scene_due(data),
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
         "photo_mood": photo_mood(user, data),

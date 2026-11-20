@@ -5208,6 +5208,8 @@ def messenger_api(request):
                 return JsonResponse({"error": "That isn't a date and time."}, status=400)
         if isinstance(body.get("scene"), dict):  # 📍 "Right now", edited by hand
             td["scene"] = messenger.clean_scene(body["scene"])
+        if isinstance(body.get("places"), dict):
+            td["places"] = messenger.clean_places(body["places"])
         if "photo_mood" in body and body["photo_mood"] in messenger.PHOTO_MOODS:  # 📸 how far tease photos go
             td["photo_mood"] = body["photo_mood"]
         if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
@@ -5327,6 +5329,14 @@ def messenger_api(request):
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"ideas": ideas})
+
+    if action == "custom_sticker":  # ✨ a sticker from their own idea
+        who = body.get("who") or ""
+        try:
+            item = messenger.custom_sticker(request.user, body.get("idea"), character=char_by_slug.get(who), of_me=(who == "me"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"sticker": item})
 
     if action in ("make_lore", "save_lore"):  # 📚 the texting worldbook: Bulba writes it, or edited by hand
         c_obj = char_by_slug.get(body.get("char_slug") or "")
