@@ -1,5 +1,7 @@
 /* Digital Screen Hub & Telegram Messenger Frontend (Phase F) */
 (function () {
+  // 🌍 the browser's time zone, so times in the chats are theirs (the server runs on UTC)
+  try { document.cookie = "na_tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone + ";path=/;max-age=31536000;samesite=lax"; } catch (e) { /* UTC then */ }
   var rawInit = document.getElementById("tgInitialData");
   var STATE = rawInit ? JSON.parse(rawInit.textContent) : {};
   STATE.threads = STATE.threads || [];
@@ -884,11 +886,16 @@
           '<div style="font-size:13px;margin-bottom:6px;">' + (t.clock_offset ? "Set: it's <b>" + esc((t.real_time || {}).clock || "") + "</b> in this chat (it runs on from there)."
             : "Real time: <b>" + esc((t.real_time || {}).clock || "") + "</b>.") + "</div>" +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
-            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The clock jumps back to just after the last message">🌙 Continue where we left off</button>' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The chat clock goes on from just after the last message, and stays locked to it: delete a message and it follows the one before">🌙 Continue where we left off</button>' +
             '<input type="datetime-local" class="tg-input" id="drwClockAt" style="width:auto">' +
             '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
             (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
           "</div></div>" +
+        '<div class="tg-field-group"><label>🔗 This chat remembers <small style="font-weight:400;color:var(--tg-muted)">(other chats: their memory and how they ended; up to 3. A new chat made from this one remembers it)</small></label>' +
+          '<div class="tg-linked">' + (STATE.threads || []).filter(function (x) { return x.id !== t.id; }).map(function (x) {
+            var on = (t.linked || []).indexOf(x.id) !== -1;
+            return '<label class="tg-start-opt' + (on ? " on" : "") + '"><input type="checkbox" data-linked="' + x.id + '"' + (on ? " checked" : "") + "> " + esc(x.title) + "</label>";
+          }).join("") + "</div></div>" +
         '<div class="tg-field-group"><label>📍 Right now <small style="font-weight:400;color:var(--tg-muted)">(where everyone is, what\'s around them, what they\'re wearing; kept up to date as you text, used by every photo; edit freely)</small></label>' +
           (Object.keys(t.scene || {}).length ? Object.keys(t.scene).map(function (name, i) {
             var s = t.scene[name] || {};
@@ -1237,6 +1244,10 @@
           '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
         "</div>" +
         '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
+        '<button type="button" class="tg-setup-ghost" style="align-self:flex-start" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
+        (st.ideas && st.ideas.length ? '<div class="tg-suggest">' + st.ideas.map(function (x, i) {
+          return '<button type="button" onclick="TG.setupUseIdea(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
+        }).join("") + "</div>" : "") +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupRun(\'' + slug + '\')">🥔 Set them up</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupSkip(\'' + slug + '\')">Not now</button></div>';
     } else if (st.step === "busy") {
@@ -1939,6 +1950,19 @@
       var frame = document.getElementById("tgBulbaFrame");
       var send = function () { try { frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin); } catch (e) { /* typed by hand */ } };
       setTimeout(send, 900); frame.addEventListener("load", function once() { frame.removeEventListener("load", once); setTimeout(send, 300); });
+    },
+    setupIdeas: function (slug, btn) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      btn.disabled = true; btn.textContent = "💡 Thinking…";
+      apiPost({ action: "setup_ideas", char_slug: slug, mode: st.mode, hint: st.hint }).then(function (res) {
+        st.ideas = res.ideas; renderActiveThread();
+      }).catch(function (e) { btn.disabled = false; btn.textContent = "💡 Give me ideas"; alert(e.message); });
+    },
+    setupUseIdea: function (slug, i) {  // the idea goes into the box, to keep or change before "Set them up"
+      var st = setupState[slug]; if (!st || !st.ideas) return;
+      st.hint = st.ideas[i]; st.ideas = null; renderActiveThread();
+      var h = document.getElementById("tgSetupHint"); if (h) h.focus();
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "lore"; renderActiveThread(); } },
     setupLore: function (slug) {
@@ -2771,6 +2795,10 @@
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
         theme: (document.getElementById("drwThreadTheme") || {}).value || "",
         photo_mood: (document.getElementById("drwThreadPhotoMood") || {}).value || undefined,
+        linked: (function () {
+          var boxes = document.querySelectorAll("[data-linked]"); if (!boxes.length) return undefined;
+          var out = []; boxes.forEach(function (b) { if (b.checked) out.push(parseInt(b.getAttribute("data-linked"), 10)); }); return out;
+        })(),
         scene: (function () {  // 📍 as edited in the panel (left out when the panel shows none)
           var rows = document.querySelectorAll(".tg-scene[data-scene-name]"); if (!rows.length) return undefined;
           var out = {};

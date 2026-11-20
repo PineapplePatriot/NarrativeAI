@@ -4599,6 +4599,7 @@ def screen_hub(request):
     """The Digital Screen Hub: launches with Telegram Messenger as the main app, plus Moments & Notes."""
     from . import messenger
     from .models import MessengerThread
+    messenger.use_browser_time_zone(request)
 
     chars = _user_characters(request.user)
     char_by_slug = {c.slug: c for c in chars}
@@ -4665,6 +4666,7 @@ def messenger_api(request):
     from django.utils import timezone
     from . import messenger
     from .models import MessengerThread
+    messenger.use_browser_time_zone(request)  # 🌍 the browser's time zone, not the server's UTC
 
     if request.method == "GET":
         action = request.GET.get("action") or "poll"
@@ -5170,6 +5172,7 @@ def messenger_api(request):
         if td.get("pinned_id") == mid:
             td["pinned_id"] = None
         messenger.save_thread_data(thread, td)
+        messenger.relock_clock(thread)  # 🕰️ a clock locked to the last message follows the new last one
         return JsonResponse({"deleted": mid, "pinned_id": td["pinned_id"]})
 
     if action == "pin_message":
@@ -5204,8 +5207,12 @@ def messenger_api(request):
         if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)
             try:
                 td["clock_offset"] = messenger.set_clock(thread, body["clock"])
+                td["clock_mode"] = messenger.thread_data(thread)["clock_mode"]
             except ValueError:
                 return JsonResponse({"error": "That isn't a date and time."}, status=400)
+        if isinstance(body.get("linked"), list):  # 🔗 other chats this one remembers (only their own)
+            mine = set(MessengerThread.objects.filter(user=request.user).values_list("id", flat=True))
+            td["linked"] = [int(x) for x in body["linked"] if str(x).isdigit() and int(x) in mine and int(x) != thread.id][:messenger.LINKED_MAX]
         if isinstance(body.get("scene"), dict):  # 📍 "Right now", edited by hand
             td["scene"] = messenger.clean_scene(body["scene"])
         if isinstance(body.get("places"), dict):
@@ -5329,6 +5336,15 @@ def messenger_api(request):
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"ideas": ideas})
+
+    if action == "setup_ideas":  # 🥔 directions for the first setup step
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            return JsonResponse({"ideas": messenger.setup_ideas(request.user, c_obj, body.get("mode") or "modern_au", body.get("hint") or "")})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
     if action == "custom_sticker":  # ✨ a sticker from their own idea
         who = body.get("who") or ""

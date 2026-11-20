@@ -1114,3 +1114,64 @@ class CustomStickerTests(MessengerActionTests):
         page = self.post(action="load_thread", thread_id=self.thread()).json()["thread"]
         self.assertIn(out["url"], [s.get("url") for s in page["stickers"]])
         self.assertEqual(self.post(action="custom_sticker", idea="").status_code, 400)
+
+
+class ClockAndZoneTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_the_browser_time_zone_and_a_clock_locked_to_the_last_message(self):
+        import time
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        self.client.cookies["na_tz"] = "Pacific/Auckland"
+        tid = self.thread()
+        page = self.post(action="load_thread", thread_id=tid).json()["thread"]
+        self.assertEqual(messenger.user_profile(self.user)["tz"], "Pacific/Auckland")
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        now = time.time()
+        data["messages"] = [{"id": "a", "role": "user", "text": "night", "ts": now - 86400},
+                            {"id": "b", "role": "user", "text": "later", "ts": now - 3600}]
+        messenger.save_thread_data(thread, data)
+        self.post(action="thread_settings", thread_id=tid, clock="resume")
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual(data["clock_mode"], "resume")
+        self.assertAlmostEqual(messenger.chat_now(data), now - 3600 + 60, delta=5)
+        self.post(action="delete_message", thread_id=tid, message_id="b")  # re-locks to the one before
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertAlmostEqual(messenger.chat_now(data), now - 86400 + 60, delta=5)
+
+
+class LinkedChatTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_chat_remembers_another(self):
+        from mainapp import ai_client
+        first = self.thread()
+        self.post(action="send_user_message", thread_id=first, text="the cat ate my homework")
+        new = self.post(action="new_chat", thread_id=first).json()["thread"]
+        self.assertEqual(new["linked"], [first])  # a new chat continues from the one it came from
+        self.post(action="send_user_message", thread_id=new["id"], text="hi again")
+        self.post(action="generate_reply", thread_id=new["id"])
+        sys = ai_client.complete.call_args.args[2][0]["content"]
+        self.assertIn("OTHER CHATS THIS ONE REMEMBERS", sys)
+        self.assertIn("the cat ate my homework", sys)
+        self.post(action="thread_settings", thread_id=new["id"], linked=[])
+        self.post(action="generate_reply", thread_id=new["id"])
+        self.assertNotIn("the cat ate my homework", ai_client.complete.call_args.args[2][0]["content"])
+        out = self.post(action="thread_settings", thread_id=new["id"], linked=[first, new["id"], 99999]).json()["thread"]
+        self.assertEqual(out["linked"], [first])  # not itself, not someone else's
+
+
+class SetupIdeasTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_ideas_for_the_first_step(self):
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["She runs a night florist.", "b", "c"]}) as ask:
+            out = self.post(action="setup_ideas", char_slug=self.rose.slug, mode="modern_au", hint="we're neighbours").json()
+        self.assertEqual(out["ideas"][0], "She runs a night florist.")
+        self.assertIn("A florist with a sharp tongue", ask.call_args.args[1])
+        self.assertIn("we're neighbours", ask.call_args.args[1])

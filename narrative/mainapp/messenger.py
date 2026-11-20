@@ -120,6 +120,7 @@ def user_profile(user):
         "avatar_url": str(raw.get("avatar_url") or avatar),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
         "custom_stickers": [s for s in (raw.get("custom_stickers") or []) if isinstance(s, dict) and s.get("url")][-200:],
+        "tz": str(raw.get("tz") or "")[:64],  # 🌍 the browser's time zone
         "notes": [n for n in (raw.get("notes") or []) if isinstance(n, dict)][:100],
         "browser_notifications": bool(raw.get("browser_notifications", False)),
         "in_app_toasts": bool(raw.get("in_app_toasts", True)),
@@ -138,7 +139,7 @@ def save_user_profile(user, updates):
     current = user_profile(user)
     if not isinstance(updates, dict):
         return current
-    for str_key, limit in (("display_name", 80), ("handle", 32), ("bio", 240), ("status_emoji", 12), ("avatar_url", 500)):
+    for str_key, limit in (("display_name", 80), ("handle", 32), ("bio", 240), ("status_emoji", 12), ("avatar_url", 500), ("tz", 64)):
         if str_key in updates and updates[str_key] is not None:
             val = str(updates[str_key]).strip()[:limit]
             if str_key == "handle" and val and not val.startswith("@"):
@@ -874,7 +875,10 @@ def thread_data(thread):
         "photo_mood": raw.get("photo_mood") if raw.get("photo_mood") in PHOTO_MOODS else "",  # 📸 how far tease photos go
         # 🕰️ the chat's own clock: seconds from real time (0 = real time), to pick up a night chat the next day
         "clock_offset": float(raw.get("clock_offset") or 0),
-        "branch_of": raw.get("branch_of") if isinstance(raw.get("branch_of"), dict) else None,  # ⑂ where it branched from
+        "clock_mode": raw.get("clock_mode") if raw.get("clock_mode") in ("real", "resume", "set") else "real",
+        "branch_of": raw.get("branch_of") if isinstance(raw.get("branch_of"), dict) else None,
+        # 🔗 other phone chats this one remembers (their memory and last messages)
+        "linked": [int(x) for x in (raw.get("linked") or []) if str(x).isdigit()][:LINKED_MAX],  # ⑂ where it branched from
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
@@ -974,10 +978,41 @@ def send_reminders(user, thread):
     return len(due)
 
 
+def use_browser_time_zone(request):
+    """🌍 Times follow the browser's time zone (the page puts it in the "na_tz" cookie); remembered on the account
+    for when there's no cookie. The server itself runs on UTC."""
+    import zoneinfo
+    from urllib.parse import unquote
+    name = unquote(request.COOKIES.get("na_tz") or "")[:64]
+    try:
+        zone = zoneinfo.ZoneInfo(name) if name else None
+    except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        zone = None
+    try:
+        if zone is not None:
+            if user_profile(request.user).get("tz") != name:
+                save_user_profile(request.user, {"tz": name})
+        else:
+            saved = user_profile(request.user).get("tz") or ""
+            zone = zoneinfo.ZoneInfo(saved) if saved else None
+    except Exception:
+        zone = None
+    if zone is not None:
+        timezone.activate(zone)
+
+
+def relock_clock(thread):
+    """🕰️ "Continue where we left off" stays locked to the last message: after a deletion it follows the new last
+    one. Nothing for other clocks."""
+    if thread_data(thread).get("clock_mode") == "resume":
+        set_clock(thread, "resume")
+
+
 def set_clock(thread, how):
-    """🕰️ The chat's clock: "real", "resume" (just after its last message: a night chat goes on the next day), or
-    an ISO date and time. Returns the offset in seconds."""
+    """🕰️ The chat's clock: "real", "resume" (just after its last message: a night chat goes on the next day; it
+    stays locked to the last message, see relock_clock), or an ISO date and time. Returns the offset in seconds."""
     raw = dict(thread.data or {})
+    raw["clock_mode"] = how if how in ("real", "resume") else "set"
     if how == "real":
         offset = 0.0
     elif how == "resume":
@@ -1147,8 +1182,44 @@ def new_chat_like(user, thread):
     same = [t for t in MessengerThread.objects.filter(user=user).prefetch_related("characters")
             if {c.id for c in t.characters.all()} == {c.id for c in chars}]
     base = ", ".join(c.name for c in chars[:4]) if thread.is_group else chars[0].name
-    return create_thread(user, chars, title=f"{base} · chat {len(same) + 1}", is_group=thread.is_group,
-                         scenario_override=thread_data(thread)["scenario_override"])
+    new = create_thread(user, chars, title=f"{base} · chat {len(same) + 1}", is_group=thread.is_group,
+                        scenario_override=thread_data(thread)["scenario_override"])
+    raw = dict(new.data or {})
+    raw["linked"] = [thread.id]  # 🔗 it continues from the chat it came from (a chain); unlinked in the settings
+    new.data = raw
+    new.save(update_fields=["data"])
+    return new
+
+
+LINKED_MAX = 3
+
+
+def linked_block(user, thread, data):
+    """🔗 What this chat remembers from the phone chats linked to it: each one's memory and its last messages."""
+    from mainapp.cards import user_name
+    from mainapp.models import MessengerThread
+    if not data["linked"]:
+        return ""
+    me = (data.get("persona") or {}).get("name") or user_name(user)
+    parts = []
+    for other in MessengerThread.objects.filter(user=user, id__in=data["linked"]).exclude(id=thread.id).prefetch_related("characters"):
+        od = thread_data(other)
+        msgs = [m for m in delivered(od["messages"]) if m.get("role") != "system"][-10:]
+        lines = []
+        for m in msgs:
+            who = me if m.get("role") == "user" else (m.get("sender_name") or other.title)
+            what = m.get("text") or (m.get("voice") or {}).get("transcript") or ("[a photo]" if m.get("photo") else "")
+            if what:
+                lines.append(f"  {who}: {what[:240]}")
+        when = _human_elapsed(max(0, chat_now(data) - ts_of(msgs[-1]))) + " ago" if msgs and ts_of(msgs[-1]) else ""
+        parts.append(f"From your other chat “{other.title}” (with {', '.join(c.name for c in other.characters.all())}"
+                     + (f"; last message {when}" if when else "") + "):"
+                     + (f"\n  What happened there: {od['memory'][:1200]}" if od["memory"] else "")
+                     + ("\n  How it ended:\n" + "\n".join(lines) if lines else ""))
+    if not parts:
+        return ""
+    return ("OTHER CHATS THIS ONE REMEMBERS (the same people, on the same phones: what was said there happened; "
+            "the characters only know what they themselves were part of):\n" + "\n\n".join(parts))
 
 
 def branch_chat(user, thread, message_id):
@@ -1475,6 +1546,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     now_lines = [f"- {n}: {scene_line(data, n)}" for n in data["scene"] if scene_line(data, n)]
     if now_lines:  # 📍 keeps places and clothes consistent
         sys_content += "\n\nRIGHT NOW (where everyone is and what they're wearing; it changes only when the texts say so):\n" + "\n".join(now_lines)
+    linked = linked_block(user, thread, data)
+    if linked:  # 🔗
+        sys_content += "\n\n" + linked
     lore = lore_block(chars, delivered(data["messages"]))
     if lore:  # 📚 this setup's worldbook, the entries that apply now
         sys_content += "\n\n" + lore
@@ -2673,6 +2747,29 @@ def style_from_pictures(user, character):
     return re.sub(r"\s+", " ", text).strip().strip('"')[:600]
 
 
+def setup_ideas(user, character, mode="modern_au", hint=""):
+    """🥔 Ideas for the first setup step: 3 different directions for bringing them onto a phone (who they are there,
+    how the user knows them, what's going on), written as directions the user can keep or change."""
+    from mainapp.cards import user_name
+    me = user_name(user)
+    card = card_sections.compose(character.sections) if character.sections else (character.description or "")
+    modern = mode == "modern_au"
+    prompt = (f"You are Bulba, helping {me} set up {character.name} for texting in a messenger app"
+              + (", in a Modern AU (today's world)" if modern else ", in their own world (with a phone or communicator there)")
+              + f".\n\n{character.name}'s card:\n{card[:3000]}\n\nSuggest 3 clearly different directions, each 1-2 "
+              "sentences written as {me}'s directions: who " + character.name + " is there" + (" (a modern job that "
+              "fits who they are)" if modern else "") + ", how they and " + me + " know each other and have each "
+              "other's number, and what's going on as the chat starts. Keep their personality and what's central to "
+              "them; vary the relationship and the situation (one close to canon, one with tension, one surprising)."
+              + (f"\n{me} already said: {hint[:500]}" if hint else "")
+              + '\n\nAnswer with JSON only: {"ideas": ["...", "...", "..."]}').replace("{me}", me)
+    out = ask_json(user, prompt, need=("ideas",), max_tokens=900, task="summary", temperature=0.9)
+    ideas = [str(x).strip()[:500] for x in (out.get("ideas") or []) if str(x).strip()]
+    if not ideas:
+        raise ai_client.AIError("Bulba came back with nothing. Try again.")
+    return ideas[:3]
+
+
 def suggest(user, thread, what, hint=""):
     """🥔 Bulba's ideas when they're stuck: what = "reply" (3 texts they could send), "my_picture" (3 photos they
     could send) or "their_picture" (a photo to ask a character for, read from the scene). Returns a list of strings."""
@@ -3193,6 +3290,7 @@ def serialize_thread_full(thread, user):
         "watch": (continuity_shown(data) or watch_notice(delivered(data["messages"]))) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "continuity_due": _watch_on(user) and data["continuity_count"] >= CONTINUITY_EVERY,
         "scene": data["scene"], "places": data["places"], "scene_due": scene_due(data),
+        "linked": data["linked"],
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
         "photo_mood": photo_mood(user, data),
