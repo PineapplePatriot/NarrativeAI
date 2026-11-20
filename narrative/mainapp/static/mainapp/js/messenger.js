@@ -854,6 +854,9 @@
             '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
             (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
           "</div></div>" +
+        '<div class="tg-field-group"><label>📸 Tease photos go this far <small style="font-weight:400;color:var(--tg-muted)">(Bulba can set it too)</small></label><select class="tg-select" id="drwThreadPhotoMood">' +
+          (t.photo_moods || []).map(function (o) { return '<option value="' + o[0] + '"' + (t.photo_mood === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") +
+        "</select></div>" +
         '<div class="tg-field-group"><label>🎨 Theme</label><select class="tg-select" id="drwThreadTheme">' +
           Object.keys(THEMES).map(function (k) { return '<option value="' + k + '"' + ((t.theme || "") === k ? " selected" : "") + ">" + esc(THEMES[k]) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1223,10 +1226,33 @@
       });
       if (appName === "moments") renderMomentsFeed();
       if (appName === "files") renderHubFilesAndNotes();
+      if (appName === "gallery") TG.renderGallery();
+    },
+
+    renderGallery: function () {
+      var box = document.getElementById("galleryGrid"); if (!box) return;
+      box.innerHTML = '<div style="color:var(--tg-muted)">Loading…</div>';
+      apiPost({ action: "gallery" }).then(function (res) {
+        var ph = res.photos || [];
+        if (!ph.length) { box.innerHTML = '<div style="color:var(--tg-muted);font-size:13.5px;">No photos yet. Ask them for a selfie, or send one with 🎨.</div>'; return; }
+        box.innerHTML = ph.map(function (p) {
+          return '<figure class="tg-gallery-item">' +
+            '<img src="' + esc(p.url) + '" alt="" loading="lazy" onclick="TG.viewImage(this.src)">' +
+            '<figcaption><b>' + esc(p.from) + '</b>' + (p.chat && p.chat !== p.from ? ' · ' + esc(p.chat) : "") +
+            (p.caption ? '<span>' + esc(p.caption) + "</span>" : "") +
+            '<button type="button" class="tg-fmt-btn" title="Open in the chat" onclick="TG.openFromGallery(' + p.thread_id + ', \'' + esc(p.message_id) + '\')">💬</button></figcaption></figure>';
+        }).join("");
+      }).catch(function (err) { box.innerHTML = '<div style="color:var(--tg-muted)">' + esc(err.message) + "</div>"; });
+    },
+    openFromGallery: function (threadId, msgId) {
+      TG.switchApp("messenger");
+      Promise.resolve(TG.selectThread(threadId)).then(function () {
+        setTimeout(function () { var el = document.getElementById("msg-" + msgId); if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("show-actions"); } }, 600);
+      });
     },
 
     selectThread: function (threadId) {
-      apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
+      return apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
         STATE.active_thread = res.thread;
         STATE.threads = (STATE.threads || []).map(function (t) {
           return t.id === threadId ? Object.assign({}, t, { unread: 0 }) : t;
@@ -2519,6 +2545,7 @@
         memory: (document.getElementById("drwThreadMemory") || {}).value || "",
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
         theme: (document.getElementById("drwThreadTheme") || {}).value || "",
+        photo_mood: (document.getElementById("drwThreadPhotoMood") || {}).value || undefined,
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],

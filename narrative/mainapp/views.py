@@ -5198,6 +5198,8 @@ def messenger_api(request):
                 td["clock_offset"] = messenger.set_clock(thread, body["clock"])
             except ValueError:
                 return JsonResponse({"error": "That isn't a date and time."}, status=400)
+        if "photo_mood" in body and body["photo_mood"] in messenger.PHOTO_MOODS:  # 📸 how far tease photos go
+            td["photo_mood"] = body["photo_mood"]
         if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
             td["theme"] = body["theme"] or ""
         if "memory" in body:  # 🧠 the chat's memory, edited by hand
@@ -5284,6 +5286,9 @@ def messenger_api(request):
                 })
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
+
+    if action == "gallery":  # 🖼️ the photos of every chat
+        return JsonResponse({"photos": messenger.gallery(request.user)})
 
     if action == "delete_story":  # ✨ a status taken down (the user's own or a character's)
         owner, sid = body.get("owner") or "user", str(body.get("story_id") or "")

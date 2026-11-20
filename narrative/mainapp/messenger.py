@@ -750,6 +750,7 @@ def thread_data(thread):
         "memory_stale": bool(raw.get("memory_stale", False)),  # a remembered message was deleted or changed
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
+        "photo_mood": raw.get("photo_mood") if raw.get("photo_mood") in PHOTO_MOODS else "",  # 📸 how far tease photos go
         # 🕰️ the chat's own clock: seconds from real time (0 = real time), to pick up a night chat the next day
         "clock_offset": float(raw.get("clock_offset") or 0),
         "branch_of": raw.get("branch_of") if isinstance(raw.get("branch_of"), dict) else None,  # ⑂ where it branched from
@@ -1178,6 +1179,8 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
 
     all_moods = sorted({m for c in chars for m in sprites.emotions(c)})
     safeguards = TEXTING_SAFEGUARDS.format(user=u_name, moods=", ".join(all_moods[:16]))
+    safeguards += (f"\n   - A [TEASE: …] photo in this chat goes this far and no further: "
+                   f"{PHOTO_MOODS[photo_mood(user, thread_data(thread))][1]}.")
     model_info = active_model_texting_rules(user)
     model_block = (
         f"ACTIVE MODEL TEXTING CALIBRATION ({model_info['label']}):\n{model_info['rules']}"
@@ -1764,6 +1767,40 @@ POV_CAMERA_ANGLES = (
     "rear-camera smartphone snapshot looking out through a window or across their current environment, candid framing",
 )
 
+# 📸 How far a tease photo goes, per chat (the user or Bulba sets it). "Bold" only with mature content switched on.
+PHOTO_MOODS = {
+    "sweet": ("💗 Sweet", "warm, affectionate and wholesome: a soft smile, cosy clothes, nothing suggestive at all"),
+    "playful": ("😏 Playful", "playful and cheeky: a wink, a smirk, a cute or teasing pose; fully and normally dressed; "
+                             "the flirt is in the expression and the framing, not in skin or posing"),
+    "flirty": ("🌹 Flirty", "flirty and alluring: a confident look, a nice outfit, maybe a little skin (an open collar, "
+                           "bare shoulders); suggestive at most, never explicit or lingerie"),
+    "bold": ("🔥 Bold", "openly seductive, as the relationship allows; still a tasteful photo, not explicit"),
+}
+DEFAULT_PHOTO_MOOD = "playful"
+
+
+def _mature_on(user):
+    from mainapp import mature
+    return mature.wanted(user)
+
+
+def photo_mood(user, data):
+    """The chat's photo mood (bold falls back to flirty without mature content)."""
+    mood = (data or {}).get("photo_mood") or DEFAULT_PHOTO_MOOD
+    if mood == "bold":
+        from mainapp import mature
+        if not mature.wanted(user):
+            mood = "flirty"
+    return mood if mood in PHOTO_MOODS else DEFAULT_PHOTO_MOOD
+
+
+# 🙂 Against "Botox faces" (plastic, frozen, airbrushed expressions, common in realistic anime styles)
+EXPRESSION_LOCK = ("EXPRESSION: a specific, readable emotion with real facial movement: muscles engaged around the eyes "
+                   "and mouth, a slightly uneven smile or frown, brows that move, eyes that crinkle or narrow; natural "
+                   "skin with texture and small imperfections. Avoid the plastic look: no frozen doll smile, no waxy or "
+                   "glossy airbrushed skin, no perfectly symmetrical mannequin face, no blank stare.")
+
+
 SCENE_ESSENCE_PROMPT = """You extract the visual essence of a live Telegram chat moment so Nano Banana can generate the exact photo {char} is snapping right now.
 
 Character: {char} ({mode_desc})
@@ -1790,6 +1827,7 @@ Answer with JSON only:
   "shot_type": "selfie" | "pov_object" | "candid_medium",
   "camera_angle": "specific camera angle and lens framing (1 short sentence)",
   "visual_prompt": "vivid 2-3 sentence visual description of the subject, lighting, setting, mood, and details of the photo",
+  "expression": "their exact facial expression and the feeling behind it, from the chat (e.g. 'a tired half-smile, eyes puffy, amused despite themselves'); empty for a photo without them",
   "caption": "optional short 2-8 word caption in {char}'s texting voice (or empty string)"
 }}"""
 
@@ -1814,10 +1852,11 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
     if hint:
         recent_chat += f"\n[Specific photo direction: {hint}]"
 
+    mood = photo_mood(user, data)
     kind_desc = (
         "Casual everyday smartphone photo (could be a varied-angle selfie, mirror shot, OR a POV photo of their food/coffee/desk/scenery depending on what they were just talking about)"
         if kind != "tease"
-        else "Tasteful, alluring, flirty/intimate candid smartphone selfie or mirror shot that fits their personality and current mood"
+        else f"A tease selfie or mirror shot that fits their personality and current mood. How far it goes: {PHOTO_MOODS[mood][1]}"
     )
     prompt = SCENE_ESSENCE_PROMPT.format(
         char=character.name,
@@ -1838,6 +1877,7 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
                     "camera_angle": str(parsed.get("camera_angle") or "").strip()[:240],
                     "visual_prompt": str(parsed.get("visual_prompt") or "").strip()[:700],
                     "caption": str(parsed.get("caption") or "").strip()[:160],
+                    "expression": str(parsed.get("expression") or "").strip()[:240],
                 }
     except Exception as e:
         log.info("Scene essence fallback used: %s", e)
@@ -1849,6 +1889,7 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
         "camera_angle": angle,
         "visual_prompt": hint or f"Candid smartphone photo of {character.name} during {rt.get('time_of_day', 'the day')}, {angle}.",
         "caption": "",
+        "expression": "",
     }
 
 
@@ -1893,9 +1934,11 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
     desc_clean = str(description or "").strip()
 
     # If no explicit description was supplied (or it's a generic placeholder), extract scene essence from the thread
+    expression = ""
     if not desc_clean or desc_clean in ("casual selfie", f"candid smartphone selfie of {character.name} in their current setting"):
         scene = describe_photo_scene(user, thread, character, kind=kind, hint=desc_clean)
         desc_clean = scene["visual_prompt"]
+        expression = scene.get("expression") or ""
         shot_type = shot_type or scene["shot_type"]
         camera_angle = camera_angle or scene["camera_angle"]
 
@@ -1925,10 +1968,11 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"Photo subject & scene: {subject[:600]}"
         )
     else:
+        mood = photo_mood(user, thread_data(thread) if thread else {})
         style_note = (
             "candid smartphone photo / selfie sent in a private chat app, natural atmospheric lighting, expressive and in-character"
             if kind != "tease"
-            else "intimate, alluring candid smartphone photo / mirror selfie sent in a private chat app, tasteful atmospheric lighting, in-character"
+            else "teasing candid smartphone photo / mirror selfie sent in a private chat app, atmospheric lighting, in-character"
         )
         prompt = (
             f"Create a {style_note} ({setting_note}) of {character.name}.\n"
@@ -1936,7 +1980,10 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"as the attached reference image(s).\n"
             f"Camera angle & composition (avoid stiff centered passport framing): {camera_angle}.\n"
             f"Character appearance: {card_appearance[:550]}\n"
-            f"Photo scene & moment: {desc_clean[:600]}"
+            f"Photo scene & moment: {desc_clean[:600]}\n"
+            + (f"Their expression: {expression}\n" if expression else "")
+            + EXPRESSION_LOCK
+            + (f"\nHOW FAR IT GOES (binding): {PHOTO_MOODS[mood][1]}." if kind == "tease" else "")
         )
 
     img_bytes, cost = make_picture(user, prompt, references=refs)
@@ -1984,8 +2031,18 @@ def redo_message(user, thread, message_id, note=""):
         raise ai_client.AIError("There's no text in that message to write again (for a photo, redo the picture).")
     sender = target.get("sender_name") or "the character"
     note = str(note or "").strip()[:600]
+    after = []  # the rest of the burst stays as it is: the new version has to lead into it
+    for m in data["messages"][idx + 1:]:
+        if m.get("role") != "assistant":
+            break
+        words = (m.get("voice") or {}).get("transcript") or m.get("text") or ("[a photo]" if m.get("photo") else "")
+        if words:
+            after.append(f"{m.get('sender_name') or sender}: {words[:300]}")
     instruction = (f"Rewrite only {sender}'s next text message, the one that comes right here. The old version was: "
-                   f"\"{old[:1500]}\". Write a different take of that one message, in {sender}'s voice and texting style"
+                   f"\"{old[:1500]}\". "
+                   + (("Right after it come these messages, which stay as they are, so the new version must still lead "
+                       "into them naturally:\n" + "\n".join(after[:6]) + "\n") if after else "")
+                   + f"Write a different take of that one message, in {sender}'s voice and texting style"
                    + (f", following the user's note: {note}" if note else "")
                    + ". Answer with that one message only: no name in front, no other messages, no tags"
                    + (", spoken words for a voice note (delivery tags like [sighs] allowed)" if target.get("voice") else "") + ".")
@@ -2257,6 +2314,24 @@ def update_memory(user, thread, force=False):
     thread.data = raw
     thread.save(update_fields=["data"])
     return raw["memory"]
+
+
+def gallery(user, limit=400):
+    """🖼️ Every photo sent in the user's chats, newest first: read from the chats themselves, so a photo whose
+    message was deleted is gone from here too."""
+    from mainapp.models import MessengerThread
+    out = []
+    for thread in MessengerThread.objects.filter(user=user).order_by("-updated"):
+        data = thread_data(thread)
+        for m in delivered(data["messages"]):
+            ph = m.get("photo") if isinstance(m.get("photo"), dict) else None
+            if not ph or not ph.get("url"):
+                continue
+            out.append({"url": ph["url"], "caption": str(ph.get("caption") or "")[:300], "thread_id": thread.id,
+                        "chat": thread.title or "Chat", "message_id": m.get("id"), "ts": ts_of(m),
+                        "from": "You" if m.get("role") == "user" else (m.get("sender_name") or thread.title or "")})
+    out.sort(key=lambda x: x["ts"], reverse=True)
+    return out[:limit]
 
 
 def translate_message(user, thread, message_id):
@@ -2560,6 +2635,8 @@ def serialize_thread_full(thread, user):
         "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
+        "photo_mood": photo_mood(user, data),
+        "photo_moods": [[k, v[0]] for k, v in PHOTO_MOODS.items() if k != "bold" or _mature_on(user)],
         "clock_offset": data["clock_offset"],
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],

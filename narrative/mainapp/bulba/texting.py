@@ -51,7 +51,16 @@ they left open, and say what you filled in. When something they want is unclear,
    propose it, in one short question; then put it in appearance_notes or modern_persona as they answered.
 4. When the problem is in the replies (out of character, too long, therapy-speak), look at the profile first:
    the texting style and persona are what the model reads every turn. Fix the cause, then offer a retry.
-5. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
+5. Who the user is in this chat (their persona for this chat only) and how far tease photos go are this
+   chat's setup: change them yourself with propose_texting_chat (persona, photo_mood). Never send them to a menu.
+   "Bold" photos exist only when mature content is on (photo_moods in read_texting_chat lists what's allowed).
+6. After a character is modernized (mode becomes modern_au, or the modern persona changes a lot), ask about
+   their look: their pictures still show the old one. Offer the choices (keep the pictures / new pictures in a
+   modern outfit, with what they'd wear), then propose_texting_look if they want it.
+7. Whenever you ask them something, give 2-4 likely answers with offer_choices (they can still type their own).
+   Help them through the setup: what's left open (how they met, where they are now, who they are here), one
+   question at a time, with choices.
+8. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
    uses. If they want the roleplay card changed, tell them to open Bulba from the chat page.
 
 ## What the fields mean
@@ -148,7 +157,11 @@ def tool_read_texting_chat(session, args):
         recent.append({"id": m.get("id"), "from": who, "text": " ".join(b for b in bits if b)[:600]})
     me = messenger.user_profile(session.user)
     return {"chat": {"title": thread.title, "group": thread.is_group, "scenario_override": data["scenario_override"],
-                     "events": data["events"], "messages_total": len(data["messages"])},
+                     "events": data["events"], "messages_total": len(data["messages"]),
+                     "persona_in_this_chat": data["persona"] or "(none: their usual persona)",
+                     "photo_mood": messenger.photo_mood(session.user, data),
+                     "photo_moods": {k: v[1] for k, v in messenger.PHOTO_MOODS.items()
+                                     if k != "bold" or messenger._mature_on(session.user)}},
             "characters": profiles,
             "user_profile": {k: me.get(k) for k in ("display_name", "handle", "bio", "status_emoji")},
             "recent_messages": recent}, []
@@ -188,8 +201,15 @@ def tool_propose_texting_chat(session, args):
         changes["events"] = [{"text": str(e.get("text") if isinstance(e, dict) else e)[:300],
                               **({"when": str(e.get("when"))[:80]} if isinstance(e, dict) and e.get("when") else {})}
                              for e in args["events"]][:20]
+    if isinstance(args.get("persona"), dict):
+        changes["persona"] = {"name": str(args["persona"].get("name") or "").strip()[:80],
+                              "description": str(args["persona"].get("description") or "").strip()[:3000]}
+    if args.get("photo_mood"):
+        if args["photo_mood"] not in messenger.PHOTO_MOODS:
+            return {"error": f"photo_mood is one of {', '.join(messenger.PHOTO_MOODS)}."}, []
+        changes["photo_mood"] = args["photo_mood"]
     if not changes:
-        return {"error": "Give scenario_override and/or events."}, []
+        return {"error": "Give scenario_override, events, persona and/or photo_mood."}, []
     data = messenger.thread_data(thread)
     summary = []
     if "scenario_override" in changes:
@@ -197,9 +217,18 @@ def tool_propose_texting_chat(session, args):
                     f"  after: {changes['scenario_override'] or '(none: the characters’ own)'}"]
     if "events" in changes:
         summary += ["Events:"] + [f"  • {e['text']}" + (f" ({e['when']})" if e.get("when") else "") for e in changes["events"]]
+    if "persona" in changes:
+        old = data["persona"] or {}
+        summary += ["Who you are in this chat:", f"  before: {old.get('name') or '(your usual persona)'}"
+                    + (f" — {old['description'][:300]}" if old.get("description") else ""),
+                    f"  after: {changes['persona']['name'] or '(your usual persona)'}"
+                    + (f" — {changes['persona']['description'][:600]}" if changes["persona"]["description"] else "")]
+    if "photo_mood" in changes:
+        summary += ["Tease photos go this far:", f"  before: {messenger.PHOTO_MOODS[messenger.photo_mood(session.user, data)][0]}",
+                    f"  after: {messenger.PHOTO_MOODS[changes['photo_mood']][0]}"]
     if args.get("why"):
         summary += ["Why:", str(args["why"])[:400]]
-    p = agent_mod._proposal(session, "texting_chat", f"“{thread.title}”: scenario and events", summary,
+    p = agent_mod._proposal(session, "texting_chat", f"“{thread.title}”: this chat's setup", summary,
                             {"thread_id": thread.id, "changes": changes})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
@@ -246,10 +275,13 @@ def tool_defs():
             "fields that change, written in full. What the user told you goes in as they said it.",
             {"character": {"type": "string", "description": "The character's name (leave out in a 1-on-1 chat)"},
              "changes": {"type": "object", "properties": props}, "why": STR}, ("changes",)),
-        _fn("propose_texting_chat", "Change this chat's own scenario override and/or its scheduled events (the "
-            "whole list as it should be).",
+        _fn("propose_texting_chat", "Change this chat's own setup: its scenario override, its scheduled events (the "
+            "whole list as it should be), who the user is in this chat (persona: name and description; empty = their "
+            "usual persona), and/or how far tease photos go (photo_mood). Give only what changes.",
             {"scenario_override": STR,
              "events": {"type": "array", "items": {"type": "object", "properties": {"text": STR, "when": STR}}},
+             "persona": {"type": "object", "properties": {"name": STR, "description": STR}},
+             "photo_mood": {"type": "string", "enum": ["sweet", "playful", "flirty", "bold"]},
              "why": STR}),
         _fn("propose_texting_look", "New pictures of a character for this setup (a portrait and an outfit shot), with "
             "an outfit note. Costs two pictures, so it's a card they Apply.",
@@ -303,7 +335,7 @@ def apply(session, p):
         raw.update(data["changes"])
         thread.data = raw
         thread.save(update_fields=["data"])
-        return "This chat's scenario and events changed."
+        return "This chat's setup changed. The next text uses it."
     raise ValueError("Unknown proposal.")
 
 

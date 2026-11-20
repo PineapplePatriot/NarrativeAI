@@ -264,7 +264,9 @@ class RedoOneMessageTests(MessengerActionTests):
         sent = json.dumps(ai_client.complete.call_args.args[2])
         self.assertIn("obviously", sent)  # the old version, in the instruction
         self.assertIn("warmer", sent)
-        self.assertNotIn("go to sleep", sent)  # the chat as it was before that message
+        history = ai_client.complete.call_args.args[2][1:-1]  # the chat as it was before that message…
+        self.assertNotIn("go to sleep", json.dumps(history))
+        self.assertIn("Rose: go to sleep", sent)  # …and the rest of the burst, only as what it must lead into
         msgs = MessengerThread.objects.get(id=tid).data["messages"]
         self.assertEqual([m.get("text") for m in msgs[:3]], ["are you up?", "never. come over", "go to sleep"])
         voice = self.post(action="redo_message", thread_id=tid, message_id="a3").json()["message"]["voice"]
@@ -810,3 +812,55 @@ class DeleteStoryTests(MessengerActionTests):
         mine = self.post(action="post_story", owner="user", text="tired").json()["story"]["id"]
         u = self.post(action="delete_story", owner="user", story_id=mine).json()["user_profile"]
         self.assertFalse([s for s in u.get("stories") or [] if s.get("id") == mine])
+
+
+class GalleryMoodRedoTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def seed(self, messages, **extra):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        data["messages"] = messages
+        data.update(extra)
+        messenger.save_thread_data(thread, data)
+        return tid
+
+    def test_the_gallery_follows_the_chat(self):
+        tid = self.seed([{"id": "p1", "role": "assistant", "sender_name": "Rose", "ts": 1,
+                          "photo": {"url": "/media/a.png", "caption": "lunch"}},
+                         {"id": "t1", "role": "user", "text": "nice", "ts": 2}])
+        photos = self.post(action="gallery").json()["photos"]
+        self.assertEqual([(p["url"], p["from"], p["caption"]) for p in photos], [("/media/a.png", "Rose", "lunch")])
+        self.post(action="delete_message", thread_id=tid, message_id="p1")
+        self.assertEqual(self.post(action="gallery").json()["photos"], [])
+
+    def test_photo_mood_reaches_the_prompts(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.seed([{"id": "t1", "role": "user", "text": "send a pic", "ts": 1}])
+        thread = self.post(action="thread_settings", thread_id=tid, photo_mood="sweet").json()["thread"]
+        self.assertEqual(thread["photo_mood"], "sweet")
+        self.assertNotIn("bold", [m[0] for m in thread["photo_moods"]])  # mature content is off
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("nothing suggestive at all", json.dumps(ai_client.complete.call_args.args[2]))
+        messenger.generate_messenger_photo(self.user, self.rose, "a mirror selfie", kind="tease",
+                                           thread=MessengerThread.objects.get(id=tid), shot_type="selfie")
+        prompt = ai_client.generate_image.call_args.args[1]
+        self.assertIn("HOW FAR IT GOES (binding): warm, affectionate", prompt)
+        self.assertIn("no frozen doll smile", prompt)  # against the plastic faces
+        self.post(action="thread_settings", thread_id=tid, photo_mood="bold")
+        self.assertEqual(messenger.photo_mood(self.user, messenger.thread_data(MessengerThread.objects.get(id=tid))), "flirty")
+
+    def test_rewriting_one_of_a_burst_sees_the_rest(self):
+        from mainapp import ai_client
+        tid = self.seed([{"id": "u", "role": "user", "text": "hey", "ts": 1},
+                         {"id": "a1", "role": "assistant", "sender_name": "Rose", "text": "oh hi", "ts": 2},
+                         {"id": "a2", "role": "assistant", "sender_name": "Rose", "text": "wait are you coming tonight", "ts": 3}])
+        self.post(action="redo_message", thread_id=tid, message_id="a1")
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("wait are you coming tonight", sent)
+        self.assertIn("must still lead", sent)

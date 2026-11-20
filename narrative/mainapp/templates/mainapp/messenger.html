@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=25">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=26">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -25,6 +25,10 @@
       <button type="button" class="dock-app-btn" data-app="moments" onclick="TG.switchApp('moments')" title="Moments & Profile Status Updates">
         <span class="dock-ico">✨</span>
         <span>Moments</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="gallery" onclick="TG.switchApp('gallery')" title="Every photo from your chats">
+        <span class="dock-ico">🖼️</span>
+        <span>Gallery</span>
       </button>
       <button type="button" class="dock-app-btn" data-app="files" onclick="TG.switchApp('files')" title="Shared Files & Personal Notes">
         <span class="dock-ico">🗂️</span>
@@ -193,6 +197,15 @@
       </div>
     </section>
 
+    <!-- GALLERY: every photo from the chats (a deleted message takes its photo with it) -->
+    <section class="screen-app-view" id="app-gallery">
+      <div class="hub-secondary-pane">
+        <h2 style="margin:0 0 4px;">🖼️ Gallery</h2>
+        <p style="margin:0; color:var(--tg-muted); font-size:13.5px;">Every photo from your chats, yours and theirs. Delete the message in the chat and the photo leaves here too.</p>
+        <div class="tg-gallery-grid" id="galleryGrid"></div>
+      </div>
+    </section>
+
     <!-- APP 3: SHARED FILES & PERSONAL NOTES -->
     <section class="screen-app-view" id="app-files">
       <div class="hub-secondary-pane">
@@ -344,6 +357,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=25"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=26"></script>
 </body>
 </html>

@@ -10170,6 +10170,20 @@ class BulbaTextingTests(BulbaTests):
         self.thread.refresh_from_db()
         self.assertNotIn("scenario_override", self.thread.data)
 
+    def test_the_chat_persona_and_photo_mood_card(self):
+        self.client.get(reverse("bulba_texting", args=[self.thread.id]))
+        self.script = [("Here.", [self.call("propose_texting_chat", persona={"name": "Mika", "description": "A night-shift nurse."},
+                                            photo_mood="sweet")])]
+        data = self.tapi(action="say", text="in this chat I'm Mika, a nurse; and keep the photos cute").json()
+        self.assertIn("offer_choices", {t["function"]["name"] for t in self.bulba_calls[0]["tools"]})
+        p = data["state"]["proposals"][-1]
+        self.tapi(action="apply", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["persona"]["name"], "Mika")
+        self.assertEqual(self.thread.data["photo_mood"], "sweet")
+        self.tapi(action="undo", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertNotIn("photo_mood", self.thread.data)
 
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
