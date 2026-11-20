@@ -222,3 +222,6 @@ textarea.cs-composed { opacity: .75; cursor: default; }
 .mm-add input[type=text] { flex: 1 1 200px; }
 .mm-upload { cursor: pointer; }
 #mmStatus.bad { color: #fda4af; }
+/* 🎯 a card's focus */
+.cs-focus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 10px; font-size: 13px; color: var(--text-secondary, #94a3b8); }
+.cs-chip.on { border-color: var(--accent-1, #8b5cf6); background: rgba(139, 92, 246, .25); color: #fff; }

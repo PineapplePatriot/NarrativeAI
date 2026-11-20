@@ -10210,6 +10210,38 @@ class BulbaTextingTests(BulbaTests):
         self.thread.refresh_from_db()
         self.assertNotIn("photo_mood", self.thread.data)
 
+class BulbaStoryPersonaTests(BulbaTests):
+    """🎭 A persona just for one character's story (their usual persona stays)."""
+    def test_story_persona_goes_to_that_characters_chats_only(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.user.persona_name, self.user.persona_description = "Anya", "Herself."
+        self.user.save()
+        self.script = [("Here.", [self.call("propose_character", name="Dottore", description="A scholar first. Tall, masked, pale hair.",
+                                            scenario="A lab.", greeting="Hello there.")])]
+        made = self.api(action="say", text="make Dottore").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=made["id"])
+        dottore = Character.objects.get(author=self.user, name="Dottore")
+        old_chat = chats.current(dottore)
+        self.script = [("Here.", [self.call("propose_persona", name="Mira", description="His lab assistant.", scope="story")])]
+        p = self.api(action="say", text="just for this story I'm his assistant Mira").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_name, "Anya")  # the usual one stays
+        self.assertEqual(chats.read(old_chat)["persona"]["name"], "Mira")
+        dottore.refresh_from_db()
+        self.assertEqual(dottore.theme["story_persona"]["name"], "Mira")  # new chats start with it
+        self.api(action="undo", id=p["id"])
+        dottore.refresh_from_db()
+        self.assertNotIn("story_persona", dottore.theme)
+        self.assertEqual(chats.read(old_chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaStoryPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaStoryPersonaTests, _name, None)
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaTextingTests, _name, None)
@@ -10279,3 +10311,19 @@ class LoreGlossaryTests(TestCase):
         self.assertEqual(len(g), 1)
         self.assertEqual(g[0]["keys"], ["Voynich Guild"])  # no regexes, nothing under 3 letters
         self.assertTrue(g[0]["text"].endswith("…"))
+
+
+class CardFocusTests(TestCase):
+    """🎯 What a card is mainly about: kept on its sections, and Bulba gives the words to it."""
+    def test_focus_is_kept_and_guides_filling(self):
+        from unittest import mock
+        from mainapp import card_sections
+        data = card_sections.clean({"kind": "character", "focus": ["plot", "relationship", "nonsense"],
+                                    "people": [{"name": "Ann", "sections": {"identity": "A spy."}}]})
+        self.assertEqual(data["focus"], ["plot", "relationship"])
+        self.assertIn("goals, conflicts, secrets", card_sections.focus_note(data))
+        user = get_user_model().objects.create_user(username="focus", password="pw12345!")
+        with mock.patch("mainapp.ai_client.complete", return_value='{"people": [{"name": "Ann", "sections": {}}]}') as c:
+            card_sections.fill_empty(user, data)
+        self.assertIn("This card's focus: Plot, Relationship", c.call_args.args[2][1]["content"])
+        self.assertEqual(card_sections.focus_note(card_sections.clean({"kind": "character"})), "")

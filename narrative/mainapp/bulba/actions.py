@@ -63,6 +63,22 @@ def apply(session, pid):
             p["undo"]["layout"] = _appearance(user)["layout"]
             set_layout(user, "book")
             note += " Chats now read as a book (Book/Chat switch in the pen menu)."
+    elif p["kind"] == "persona" and data.get("character_id"):  # 🎭 just for this story
+        from mainapp import chats
+        character = Character.objects.filter(author=user, id=data["character_id"]).first()
+        if character is None:
+            raise ValueError("That character is gone.")
+        persona = {"name": data["name"], "description": data["description"]}
+        p["undo"] = {"character_id": character.id, "theme_persona": (character.theme or {}).get("story_persona"),
+                     "chats": {}}
+        character.theme = {**(character.theme or {}), "story_persona": persona}  # new chats with them start with it
+        character.save(update_fields=["theme"])
+        for chat in character.chats.all():  # and the chats they already have
+            d = chats.read(chat)
+            p["undo"]["chats"][str(chat.id)] = d.get("persona") or {}
+            d["persona"] = persona
+            chats.write(chat, d)
+        note = f"Your persona for {character.name}'s story is saved (only there; your usual persona stays)."
     elif p["kind"] == "persona":
         p["undo"] = {"name": user.persona_name, "description": user.persona_description}
         user.persona_name, user.persona_description = data["name"], data["description"]
@@ -169,6 +185,21 @@ def undo(session, pid):
         if before.get("layout"):
             from mainapp.views import set_layout
             set_layout(user, before["layout"])
+    elif p["kind"] == "persona" and before.get("character_id"):
+        from mainapp import chats
+        character = Character.objects.filter(author=user, id=before["character_id"]).first()
+        if character:
+            theme = dict(character.theme or {})
+            if before.get("theme_persona"):
+                theme["story_persona"] = before["theme_persona"]
+            else:
+                theme.pop("story_persona", None)
+            character.theme = theme
+            character.save(update_fields=["theme"])
+            for chat in character.chats.filter(id__in=[int(i) for i in (before.get("chats") or {})]):
+                d = chats.read(chat)
+                d["persona"] = before["chats"][str(chat.id)]
+                chats.write(chat, d)
     elif p["kind"] == "persona":
         user.persona_name, user.persona_description = before.get("name"), before.get("description")
         user.save(update_fields=["persona_name", "persona_description"])

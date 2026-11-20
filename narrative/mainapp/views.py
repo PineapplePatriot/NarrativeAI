@@ -534,6 +534,8 @@ def chat(request, slug):
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+                if "persona" not in data and isinstance((character.theme or {}).get("story_persona"), dict):
+                    chat_state["persona"] = dict(character.theme["story_persona"])  # 🎭 a new chat: their story's persona
                 chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                 chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                 chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
