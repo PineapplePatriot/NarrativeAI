@@ -10282,6 +10282,16 @@ class WeeklyAndRetentionTests(TestCase):
             monday = usage.report(week_starts="monday")
         self.assertEqual(monday["weekly"][0]["week"].weekday(), 0)  # 📅 Monday weeks, when asked
 
+    def test_a_late_night_session_splits_its_minutes_at_midnight(self):
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from users import usage
+        late = timezone.make_aware(datetime(2026, 11, 21, 23, 0))  # a Saturday, 23:00, to Sunday 04:00
+        mins = usage.minutes_by_day((late, late + timedelta(hours=5)))
+        self.assertEqual(sorted(mins.values()), [60, 240])
+        rows = usage.weekly({1: [(late, late + timedelta(hours=5))]}, late + timedelta(days=1), weeks=2)
+        self.assertEqual([(r["minutes"], r["sessions"]) for r in rows], [(240, 0), (60, 1)])  # the session: once, where it began
+
 
 class PersonaMoodUploadTests(TestCase):
     def test_any_persona_mood_can_be_uploaded(self):

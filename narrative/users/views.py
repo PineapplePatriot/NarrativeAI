@@ -684,6 +684,8 @@ def stats(request):
     from users import usage
     if not can_see_stats(request.user):
         raise Http404()
+    from mainapp import messenger
+    messenger.use_browser_time_zone(request)  # 🌍 days and weeks in the viewer's time zone, not the server's UTC
     try:
         days = int(request.GET.get("days") or 0) or None
     except ValueError:

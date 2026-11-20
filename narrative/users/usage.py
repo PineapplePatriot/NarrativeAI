@@ -30,6 +30,21 @@ def length(session):
     return max(end - start, ONE_PAGE)
 
 
+def minutes_by_day(session):
+    """{local date: minutes} of one session, split at each midnight (in the active time zone): a session from 23:00
+    to 04:00 gives 60 minutes to the first day and 240 to the next. A one-page session is a minute on its day."""
+    start, end = timezone.localtime(session[0]), timezone.localtime(session[1])
+    if end - start < ONE_PAGE:
+        return {start.date(): ONE_PAGE.total_seconds() / 60}
+    out, at = defaultdict(float), start
+    while at < end:
+        midnight = (at + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        stop = min(end, midnight)
+        out[at.date()] += (stop - at).total_seconds() / 60
+        at = stop
+    return dict(out)
+
+
 def _messages_sent(user):
     """(story messages, director's notes, chats with any) they wrote, read from the chat files. A note is a message
     of its own now; before, it rode on the reply it steered ("directed"), so those count as notes too."""
@@ -97,7 +112,7 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
         all_sessions += sess
         sessions_by_user[u.id] = sess
         sent, notes, chats_used = _messages_sent(u)
-        days_active = len({t.date() for t in times[u.id]})
+        days_active = len({timezone.localtime(t).date() for t in times[u.id]})
         rows.append({
             "username": u.username, "joined": u.date_joined, "last_seen": times[u.id][-1] if times[u.id] else None,
             "active_days": days_active, "sessions": len(sess),
@@ -111,10 +126,13 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
     active = [r for r in rows if r["sessions"]]
     lengths = sorted(length(s).total_seconds() / 60 for s in all_sessions)
     week_ago, day_ago = now - timedelta(days=7), now - timedelta(days=1)
-    daily = defaultdict(set)
+    daily, daily_minutes = defaultdict(set), defaultdict(float)
     for user_id, ts in times.items():
         for t in ts:
-            daily[t.date()].add(user_id)
+            daily[timezone.localtime(t).date()].add(user_id)
+    for s in all_sessions:
+        for d, mins in minutes_by_day(s).items():
+            daily_minutes[d] += mins
     return {
         "generated": now, "days": days, "excluded": list(exclude),
         "summary": {
@@ -139,27 +157,35 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
         "retention": retention(users, times, now, starts=week_starts),
         "week_starts": week_starts,
         "signups_by_day": sorted(((d, n) for d, n in _by_day(r["joined"] for r in rows).items()), reverse=True),
-        "active_by_day": sorted(((d, len(u)) for d, u in daily.items()), reverse=True),
+        "active_by_day": sorted(((d, len(u), round(daily_minutes.get(d, 0))) for d, u in daily.items()), reverse=True),
+        "time_zone": timezone.get_current_timezone_name(),
         "users": rows,
     }
 
 
 def _week_start(t, starts="sunday"):
     """The first day of t's week: the Sunday (Sunday to Saturday) or, with starts="monday", the Monday."""
-    d = timezone.localtime(t).date()
+    return _week_start_of_date(timezone.localtime(t).date(), starts)
+
+
+def _week_start_of_date(d, starts="sunday"):
     return d - timedelta(days=d.weekday() if starts == "monday" else (d.weekday() + 1) % 7)
 
 
 def weekly(sessions_by_user, now, weeks=12, starts="sunday"):
-    """Week by week (Sunday to Saturday, the last `weeks`, newest first), everyone added up: minutes on the site,
-    sessions, and people active. A session counts in the week it started."""
+    """Week by week (Sunday to Saturday, or Monday to Sunday; the last `weeks`, newest first), everyone added up:
+    minutes on the site, sessions, and people active. A session counts once, in the week it started; its minutes
+    are split at midnight, so each week gets the time actually spent in it."""
     out = defaultdict(lambda: {"minutes": 0.0, "sessions": 0, "people": set()})
     for user_id, sess in sessions_by_user.items():
         for s in sess:
             w = out[_week_start(s[0], starts)]
-            w["minutes"] += length(s).total_seconds() / 60
             w["sessions"] += 1
             w["people"].add(user_id)
+            for day, mins in minutes_by_day(s).items():
+                wk = out[_week_start_of_date(day, starts)]
+                wk["minutes"] += mins
+                wk["people"].add(user_id)
     this = _week_start(now, starts)
     rows = []
     for k in range(weeks):
