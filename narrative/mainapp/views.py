@@ -4621,7 +4621,7 @@ def screen_hub(request):
 
     if active_thread is not None:
         t_data = messenger.thread_data(active_thread)
-        if t_data.get("unread"):
+        if t_data.get("unread") and (request.GET.get("app") == "messenger" or wanted_slug or wanted_thread_id):
             t_data["unread"] = 0
             messenger.save_thread_data(active_thread, t_data)
 

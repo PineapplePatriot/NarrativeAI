@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=22">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'mainapp/css/screen_home.css' %}?v=1">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -19,6 +20,7 @@
     </aside>
     <!-- Left Digital Screen App Dock -->
     <aside class="screen-dock" aria-label="Digital Screen Apps">
+      <button type="button" class="dock-app-btn" data-app="home" onclick="TG.switchApp('home')" title="Home screen"><span class="dock-ico">⌂</span><span>Home</span></button>
       <button type="button" class="dock-app-btn active" data-app="messenger" onclick="TG.switchApp('messenger')" title="Telegram Messenger (1-on-1 & Group Chats)">
         <span class="dock-ico">💬</span>
         <span>Chats</span>
@@ -38,8 +40,11 @@
       </button>
       <button type="button" class="dock-app-btn" data-app="files" onclick="TG.switchApp('files')" title="Shared Files & Personal Notes">
         <span class="dock-ico">🗂️</span>
-        <span>Files</span>
+        <span>Drive</span>
       </button>
+      <button type="button" class="dock-app-btn" data-app="mail" onclick="TG.switchApp('mail')" title="Mail"><span class="dock-ico">✉</span><span>Mail</span></button>
+      <button type="button" class="dock-app-btn" data-app="pulse" onclick="TG.switchApp('pulse')" title="Pulse calendar"><span class="dock-ico">▦</span><span>Pulse</span></button>
+      <button type="button" class="dock-app-btn" data-app="wave" onclick="TG.switchApp('wave')" title="Wave playlist and voice archive"><span class="dock-ico">♫</span><span>Wave</span></button>
       <div class="dock-spacer"></div>
       <button type="button" class="dock-app-btn" onclick="TG.openDrawer('me')" title="My Telegram Profile & Notification Settings">
         <span class="dock-ico">🔔</span>
@@ -47,6 +52,8 @@
       </button>
       <div class="dock-clock" id="dockClock">--:--</div>
     </aside>
+
+    {% include "mainapp/partials/screen_apps.html" %}
 
     <!-- APP 1: TELEGRAM MESSENGER -->
     <section class="screen-app-view active" id="app-messenger">
@@ -296,16 +303,7 @@
 
     <!-- APP 4: SHARED FILES & PERSONAL NOTES -->
     <section class="screen-app-view" id="app-files">
-      <div class="hub-secondary-pane">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-          <div>
-            <h2 style="margin:0 0 4px;">🗂️ Shared Files & Notes</h2>
-            <p style="margin:0; color:var(--tg-muted); font-size:13.5px;">Every in-world document, note, or photo sent in your chats, plus your personal scratchpad.</p>
-          </div>
-          <button type="button" class="tg-btn-GroupNew" onclick="TG.addPersonalNote()">+ New Note</button>
-        </div>
-        <div id="hubFilesContainer" style="margin-top:18px; display:flex; flex-direction:column; gap:16px;"></div>
-      </div>
+      <div id="screenDriveRoot" class="screen-mini-root"></div>
     </section>
   </div>
 
@@ -441,6 +439,7 @@
     window.TG_CFG = {
       api: "{% url 'messenger_api' %}",
       screen_lore_api: "{% url 'screen_lore_api' %}",
+      screen_apps_api: "{% url 'screen_apps_api' %}",
       subtext_api: "{% url 'subtext_api' %}",
       vn_scenes_api: "{% url 'vn_scenes_api' %}",
       bulba: "{% url 'bulba_texting' 0 %}",
@@ -454,5 +453,6 @@
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=4"></script>
   <script src="{% static 'mainapp/js/vn_editor.js' %}?v=2"></script>
+  <script src="{% static 'mainapp/js/screen_home.js' %}?v=1"></script>
 </body>
 </html>

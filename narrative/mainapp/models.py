@@ -307,3 +307,20 @@ class MessengerThread(models.Model):
 
     def __str__(self):
         return self.title or f"Messenger #{self.pk}"
+
+
+class ScreenEntry(models.Model):
+    """A persisted mini-app record, isolated to one user's one story/chat."""
+    owner = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="screen_entries")
+    thread = models.ForeignKey(MessengerThread, on_delete=models.CASCADE, related_name="screen_entries")
+    kind = models.CharField(max_length=16, choices=[(v, v) for v in ("document", "mail", "event", "track")])
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    revision = models.PositiveIntegerField(default=1)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated", "-pk")
+        indexes = [models.Index(fields=["owner", "thread", "kind"], name="screen_owner_thread_kind")]

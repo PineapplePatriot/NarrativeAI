@@ -45,7 +45,7 @@ const assert = require('node:assert/strict');
       });
       const {sessionid} = JSON.parse(fs.readFileSync(sessionFile));
       await page.context().addCookies([{name: 'sessionid', value: sessionid, url: base}]);
-      await page.goto(new URL('/main/screen/', base).href);
+      await page.goto(new URL('/main/screen/?app=messenger', base).href);
       await page.locator('.tg-thread-item.active').click();
       await page.locator('#screenLorePanel > details > summary').click();
       await page.getByLabel('Lorebook title').waitFor();

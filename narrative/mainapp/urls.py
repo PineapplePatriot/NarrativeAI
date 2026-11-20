@@ -1,6 +1,6 @@
 from django.urls import path, re_path, register_converter
 
-from . import views, screen_lore
+from . import views, screen_lore, screen_apps
 
 urlpatterns = [
 path('api/media-resources/', views.get_media_resources, name='media_resources'),
@@ -53,6 +53,7 @@ path('worldbook_export/<slug:slug>', views.worldbook_export, name='worldbook_exp
 path('worldbook_delete/<slug:slug>', views.worldbook_delete, name='worldbook_delete'),
     path('screen/', views.screen_hub, name='screen_hub'),
     path('screen/lore/api/', screen_lore.api, name='screen_lore_api'),
+    path('screen/apps/api/', screen_apps.api, name='screen_apps_api'),
     path('screen/api/', views.messenger_api, name='messenger_api'),
     path('screen/subtext/api/', views.subtext_api, name='subtext_api'),
     path('screen/scenes/api/', views.vn_scenes_api, name='vn_scenes_api'),

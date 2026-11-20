@@ -1255,9 +1255,10 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
             f"- Write as {chars[0].name}. Separate multiple short text bubbles in the same turn with `|||BUBBLE|||`."
         )
 
-    from mainapp import screen_lore
+    from mainapp import screen_lore, screen_apps
     chat_lore = screen_lore.activate_for(thread)
     sys_content = "\n\n".join(p for p in (chat_lore["text"], safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    sys_content += screen_apps.context_for(thread)
     if data.get("memory"):  # 🧠 what happened before the messages below
         sys_content += f"\n\nEARLIER IN THIS CHAT (a summary of what came before the messages below):\n{data['memory']}"
     messages = [{"role": "system", "content": sys_content}]
