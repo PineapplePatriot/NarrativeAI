@@ -472,6 +472,21 @@ def activate(book, messages, notes_text="", card_text=""):
     return {"entries": included, "report": report, "notes": notes, "tokens_used": used}
 
 
+def glossary(book, limit=150):
+    """📖 For highlighting lore in replies: each enabled entry's plain keys (no regexes, 3+ letters), its title and
+    the start of its text. [{"keys", "title", "text"}]"""
+    out = []
+    for e in book.get("entries") or []:
+        if not e.get("enabled", True) or not str(e.get("content") or "").strip():
+            continue
+        keys = [k.strip() for k in e.get("keys") or [] if isinstance(k, str) and len(k.strip()) >= 3
+                and not (k.strip().startswith("/") and k.strip().endswith("/"))][:6]
+        if keys:
+            text = " ".join(str(e["content"]).split())
+            out.append({"keys": keys, "title": entry_label(e)[:80], "text": text[:260] + ("…" if len(text) > 260 else "")})
+    return out[:limit]
+
+
 def format_for_prompt(entries):
     if not entries:
         return ""

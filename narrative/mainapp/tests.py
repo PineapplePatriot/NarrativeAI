@@ -10253,3 +10253,16 @@ class PersonaMoodUploadTests(TestCase):
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "sad", "file": bad}).status_code, 400)
         buf.seek(0)
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "hungry", "file": buf}).status_code, 400)
+
+
+class LoreGlossaryTests(TestCase):
+    """📖 Lore terms underlined in replies: the glossary the chat page gets."""
+    def test_glossary_keeps_plain_keys(self):
+        from mainapp import lorebook
+        book = lorebook.normalize_book({"entries": [
+            {"comment": "Voynich Guild", "keys": ["Voynich Guild", "/guild\\s+\\w+/", "VG"], "content": "The merchant guild. " * 30},
+            {"comment": "Off", "keys": ["Hidden"], "content": "x", "enabled": False}]})
+        g = lorebook.glossary(book)
+        self.assertEqual(len(g), 1)
+        self.assertEqual(g[0]["keys"], ["Voynich Guild"])  # no regexes, nothing under 3 letters
+        self.assertTrue(g[0]["text"].endswith("…"))

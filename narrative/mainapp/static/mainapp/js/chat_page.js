@@ -238,6 +238,75 @@ function speechTags(text) {
     return out;
 }
 
+// 📖 Lore in replies: the first mention of each lorebook entry's keyword is underlined; hover (or tap) shows what the
+// lorebook says about it. Off with the 📖 switch in ⚙ This chat (remembered in this browser).
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
+(function () {  // the 📖 switch: remembered in this browser; the page shows the change at once
+    const sw = document.getElementById('loreSwitch'); if (!sw) return;
+    sw.checked = loreOn();
+    sw.addEventListener('change', () => {
+        try { localStorage.setItem('loreHighlights', sw.checked ? '1' : '0'); } catch (e) { /* this visit */ }
+        document.querySelectorAll('.message-text .lore-term').forEach(el => el.replaceWith(document.createTextNode(el.textContent)));
+        if (sw.checked) document.querySelectorAll('.message:not(.user) .message-text').forEach(markLore);
+    });
+})();
+function loreOn() { try { return localStorage.getItem('loreHighlights') !== '0'; } catch (e) { return true; } }
+let LORE_RE = null;
+function loreRegex() {
+    if (LORE_RE !== null) return LORE_RE;
+    const terms = window.LORE_TERMS || [], keys = [];
+    terms.forEach((t, i) => (t.keys || []).forEach(k => keys.push([k, i])));
+    if (!keys.length) return (LORE_RE = false);
+    keys.sort((a, b) => b[0].length - a[0].length);  // the longest first: "Voynich Guild" before "Guild"
+    const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    LORE_RE = { re: new RegExp('(^|[^\\p{L}\\p{N}])(' + keys.map(k => escRe(k[0])).join('|') + ')(?=$|[^\\p{L}\\p{N}])', 'giu'),
+                index: Object.fromEntries(keys.map(k => [k[0].toLowerCase(), k[1]])) };
+    return LORE_RE;
+}
+function markLore(root) {
+    const lr = loreRegex();
+    if (!lr || !loreOn()) return;
+    const used = new Set();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: n => n.parentElement && n.parentElement.closest('a, code, pre, .lore-term, .object-slot, .extra-slot')
+            ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+        const text = node.nodeValue; let last = 0, m, frag = null;
+        lr.re.lastIndex = 0;
+        while ((m = lr.re.exec(text))) {
+            const i = lr.index[m[2].toLowerCase()];
+            if (i === undefined || used.has(i)) continue;
+            used.add(i);
+            frag = frag || document.createDocumentFragment();
+            const at = m.index + m[1].length;
+            frag.appendChild(document.createTextNode(text.slice(last, at)));
+            const span = document.createElement('span');
+            span.className = 'lore-term'; span.dataset.lore = String(i); span.tabIndex = 0; span.textContent = m[2];
+            frag.appendChild(span);
+            last = at + m[2].length;
+        }
+        if (frag) { frag.appendChild(document.createTextNode(text.slice(last))); node.replaceWith(frag); }
+    });
+}
+(function loreTips() {
+    const tip = document.createElement('div'); tip.className = 'lore-tip'; tip.hidden = true; document.body.appendChild(tip);
+    const show = el => {
+        const t = (window.LORE_TERMS || [])[Number(el.dataset.lore)]; if (!t) return;
+        tip.innerHTML = '<small>LORE · ' + escapeHtml(t.title) + '</small><div>' + escapeHtml(t.text) + '</div>';
+        tip.hidden = false;
+        const r = el.getBoundingClientRect(), w = Math.min(360, window.innerWidth - 24);
+        tip.style.width = w + 'px';
+        tip.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+        const below = r.bottom + 8 + tip.offsetHeight < window.innerHeight;
+        tip.style.top = (below ? r.bottom + 8 : r.top - tip.offsetHeight - 8) + 'px';
+    };
+    document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('.lore-term'); if (el) show(el); });
+    document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('.lore-term')) tip.hidden = true; });
+    document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.lore-term'); if (el) show(el); else tip.hidden = true; });
+    window.addEventListener('scroll', () => { tip.hidden = true; }, true);
+})();
+
 // Quoted speech gets a highlight; HTML tags (from text rules) and code are left alone
 function wrapQuoted(text) {
     const parts = text.split(/(<[^>]*>|`+[^`]*`+)/g);
@@ -338,6 +407,7 @@ function renderChatMessage(rawText, where) {
         a.setAttribute('rel', 'nofollow noopener noreferrer');
         a.setAttribute('target', '_blank');
     });
+    if (place.role === 'assistant') markLore(tmp);
     tmp.querySelectorAll('.object-slot').forEach(slot => {
         const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
         if (n !== undefined && objects[n] !== undefined) slot.replaceWith(objectFrame(objects[n]));

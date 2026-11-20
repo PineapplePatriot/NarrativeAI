@@ -2132,6 +2132,7 @@ def chat(request, slug):
         "appearance": _appearance(request.user, character),
         "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
+        "lore_terms": _lore_terms(character),  # 📖 lore terms highlighted in replies
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
@@ -3678,6 +3679,17 @@ def get_media_resources(request):
 # ---------------------------------------------------------------------------
 # Bulba, the setup assistant
 # ---------------------------------------------------------------------------
+
+def _lore_terms(character):
+    """📖 The character's lorebook as a glossary for the chat page ([] without one)."""
+    from . import lorebook
+    if not character.worldbook_id:
+        return []
+    try:
+        return lorebook.glossary(lorebook.load_worldbook(character.worldbook))
+    except Exception:
+        return []
+
 
 def _has_chatted(user):
     """They have a story chat or a messenger chat: set up, whichever way they got there."""
