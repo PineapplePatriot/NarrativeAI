@@ -718,6 +718,9 @@
             }).join("") + "</div>" +
           "</div>" +
           '<button type="button" class="tg-bulba-btn" onclick="TG.generateCharRefsFromDesc(this)">🍌 Generate Neutral + Reference Pics from Description</button>' +
+          '<div class="tg-field-group" style="margin-top:8px;"><label>📚 Worldbook for this setup <small style="font-weight:400;color:var(--tg-muted)">(read when its words come up; the roleplay lorebook stays as it is)</small></label>' +
+            ((cur.lore || []).length ? loreList(cur.lore, selectedDrawerCharSlug || cur.slug || "") : '<div style="font-size:12px;color:var(--tg-muted)">None yet.</div>') +
+            '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.loreFromDrawer(this)">📚 ' + ((cur.lore || []).length ? "Write it again with Bulba" : "Write it with Bulba") + "</button></div>" +
         "</div>" +
         '<div class="tg-bulba-box" style="background:rgba(167,139,250,0.06);border-color:rgba(167,139,250,0.25);">' +
           '<div style="font-weight:700;font-size:13px;">🎤 ElevenLabs Voice (on OpenRouter or Direct Key)</div>' +
@@ -1158,6 +1161,13 @@
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
   var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
   function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
+  function loreList(lore, slug) {  // 📚 the entries, short; with a slug, each can be removed
+    return '<ul class="tg-lore">' + lore.map(function (e, i) {
+      return "<li><b>" + (e.always ? "📌 " : "") + esc(e.title || (e.keys || []).join(", ")) + "</b>" +
+        (e.keys && e.keys.length ? ' <small>(' + esc(e.keys.join(", ")) + ")</small>" : "") + "<br>" + esc(e.content) +
+        (slug ? ' <button type="button" class="tg-fmt-btn" title="Remove" onclick="TG.dropLore(\'' + esc(slug) + '\', ' + i + ')">✕</button>' : "") + "</li>";
+    }).join("") + "</ul>";
+  }
   function bulbaSetupCard(t) {
     var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
             (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
@@ -1203,6 +1213,18 @@
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.talkSetup(\'' + slug + '\')">🥔 Talk it through</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
+    } else if (st.step === "lore" || st.step === "loring") {  // 📚 a worldbook for this setup
+      var lore = m.lore || [];
+      body = st.step === "loring" ? "<p>Writing the worldbook… 📚🥔</p>"
+        : lore.length
+        ? "<p>📚 " + n + "'s worldbook for this setup (the chat reads an entry when its words come up):</p>" + loreList(lore) +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 Keep it</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupLore(\'' + slug + '\')">↻ Another take</button></div>'
+        : "<p>📚 Want a worldbook for this setup? Places, people, groups and terms the texts keep coming back to, so " + n +
+          " stays consistent. " + (m.mode === "modern_au" ? "I'll bring their world into today's (a guild becomes a company, a kingdom a city)." : "") +
+          (m.has_lorebook ? " I'll start from their roleplay lorebook (it stays as it is)." : "") + "</p>" +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupLore(\'' + slug + '\')">📚 Write it</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'look\')">Skip</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
         ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
@@ -1831,7 +1853,35 @@
       var send = function () { try { frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin); } catch (e) { /* typed by hand */ } };
       setTimeout(send, 900); frame.addEventListener("load", function once() { frame.removeEventListener("load", once); setTimeout(send, 300); });
     },
-    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
+    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "lore"; renderActiveThread(); } },
+    setupLore: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      st.step = "loring"; st.error = ""; renderActiveThread();
+      TG.makeLore(slug).then(function () { st.step = "lore"; renderActiveThread(); })
+        .catch(function (e) { st.step = "lore"; st.error = e.message; renderActiveThread(); });
+    },
+    makeLore: function (slug) {
+      return apiPost({ action: "make_lore", char_slug: slug }).then(function (res) {
+        if (res.error) throw new Error(res.error);
+        syncCharCatalog(res.char_slug, res.profile);
+        var t = STATE.active_thread;
+        ((t && t.members) || []).forEach(function (x) { if (x.slug === res.char_slug) x.lore = res.profile.lore; });
+      });
+    },
+    dropLore: function (slug, i) {
+      var t = STATE.active_thread, m = ((t && t.members) || []).find(function (x) { return x.slug === slug; }); if (!m) return;
+      var lore = (m.lore || []).slice(); lore.splice(i, 1);
+      apiPost({ action: "save_lore", char_slug: slug, lore: lore }).then(function (res) {
+        m.lore = res.profile.lore; syncCharCatalog(slug, res.profile); renderDrawer(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    loreFromDrawer: function (btn) {
+      var slug = selectedDrawerCharSlug || ((STATE.active_thread && STATE.active_thread.members && STATE.active_thread.members[0]) || {}).slug;
+      if (!slug) return;
+      var label = btn.innerHTML; btn.disabled = true; btn.innerHTML = "📚 Writing…";
+      TG.makeLore(slug).then(function () { renderDrawer(); renderActiveThread(); })
+        .catch(function (e) { btn.disabled = false; btn.innerHTML = label; alert(e.message); });
+    },
     setupDraw: function (slug) {
       var st = setupState[slug]; if (!st) return;
       var o = document.getElementById("tgSetupOutfit"); if (o) st.outfit = o.value;

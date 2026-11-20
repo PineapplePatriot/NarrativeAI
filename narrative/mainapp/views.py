@@ -5317,6 +5317,19 @@ def messenger_api(request):
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"ideas": ideas})
 
+    if action in ("make_lore", "save_lore"):  # 📚 the texting worldbook: Bulba writes it, or edited by hand
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            if action == "make_lore":
+                messenger.make_texting_lore(request.user, c_obj)
+            else:
+                messenger.save_char_profile(c_obj, {"lore": body.get("lore") or []})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": messenger.char_profile(c_obj), "char_slug": c_obj.slug})
+
     if action == "style_from_pictures":  # 🥔🎨 the art style read from their pictures
         c_obj = char_by_slug.get(body.get("char_slug") or "")
         if not c_obj:

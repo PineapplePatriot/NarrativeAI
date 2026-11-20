@@ -1009,3 +1009,37 @@ class ContinuityTests(MessengerActionTests):
             self.assertIsNone(messenger.thread_data(MessengerThread.objects.get(id=tid))["continuity_note"])
         with mock.patch("mainapp.messenger.ask_json", return_value={"problem": {"message_id": "nope", "what": "x"}}):
             self.assertIsNone(self.post(action="continuity_check", thread_id=tid).json()["note"])  # not one of theirs
+
+
+class TextingLoreTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_worldbook_adapted_from_their_lorebook_and_read_when_it_matters(self):
+        from mainapp import ai_client, lorebook, messenger
+        from mainapp.models import Worldbook
+        wb = Worldbook.objects.create(title="Teyvat", slug="teyvat-msg", author=self.user)
+        lorebook.save_worldbook(wb, {"entries": [{"comment": "The Fatui", "keys": ["Fatui"], "content": "Snezhnaya's army of agents."}]})
+        self.rose.worldbook = wb
+        self.rose.messenger_profile = {"mode": "modern_au", "modern_persona": "Runs a flower shop."}
+        self.rose.save()
+        answer = {"lore": [{"title": "Fatui Holdings", "keys": ["Fatui"], "content": "A shady logistics company.", "always": False},
+                           {"title": "The shop", "keys": ["shop"], "content": "Rose's flower shop on Pier Street.", "always": True}]}
+        with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+            prof = self.post(action="make_lore", char_slug=self.rose.slug).json()["profile"]
+        sent = ask.call_args.args[1]
+        self.assertIn("Snezhnaya's army of agents", sent)  # their lorebook is the source
+        self.assertIn("Translate their world into today's", sent)
+        self.assertEqual([e["title"] for e in prof["lore"]], ["Fatui Holdings", "The shop"])
+        self.assertEqual(len(lorebook.load_worldbook(wb)["entries"]), 1)  # the roleplay lorebook stays as it is
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="how's work?")
+        self.post(action="generate_reply", thread_id=tid)
+        sys = ai_client.complete.call_args.args[2][0]["content"]
+        self.assertIn("Pier Street", sys)  # always on
+        self.assertNotIn("logistics company", sys)  # its word didn't come up
+        self.post(action="send_user_message", thread_id=tid, text="are the Fatui bothering you again?")
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("logistics company", ai_client.complete.call_args.args[2][0]["content"])
+        prof = self.post(action="save_lore", char_slug=self.rose.slug, lore=prof["lore"][1:]).json()["profile"]
+        self.assertEqual(len(prof["lore"]), 1)

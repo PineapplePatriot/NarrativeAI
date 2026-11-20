@@ -245,7 +245,89 @@ def char_profile(character):
         "share_memory": raw.get("share_memory", True) is not False,
         "avatar_url": char_avatar(character),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
+        "lore": clean_lore(raw.get("lore")),  # 📚 the worldbook of this setup (the roleplay lorebook stays as it is)
     }
+
+
+LORE_MAX = 24
+
+
+def clean_lore(items):
+    """📚 Texting worldbook entries: [{"title", "keys": [...], "content", "always"}]."""
+    out = []
+    for e in items if isinstance(items, list) else []:
+        if not isinstance(e, dict) or not str(e.get("content") or "").strip():
+            continue
+        keys = e.get("keys") if isinstance(e.get("keys"), list) else str(e.get("keys") or "").split(",")
+        out.append({"title": str(e.get("title") or "").strip()[:80],
+                    "keys": [str(k).strip()[:40] for k in keys if str(k).strip()][:8],
+                    "content": str(e["content"]).strip()[:800], "always": bool(e.get("always"))})
+    return out[:LORE_MAX]
+
+
+def lore_block(chars, messages):
+    """📚 The texting worldbook entries that apply now (always-on ones, and those whose keys the recent texts name),
+    read by the same engine as the roleplay lorebooks."""
+    from mainapp import lorebook
+    entries = [{"comment": e["title"], "keys": e["keys"], "content": e["content"], "constant": e["always"]}
+               for c in chars for e in char_profile(c)["lore"]]
+    if not entries:
+        return ""
+    book = lorebook.normalize_book({"entries": entries})
+    recent = [{"text": m.get("text") or (m.get("voice") or {}).get("transcript") or ""} for m in messages[-6:]]
+    return lorebook.format_for_prompt(lorebook.activate(book, recent)["entries"])
+
+
+LORE_PROMPT = """You are Bulba, writing the worldbook for {char}'s texting setup in a messenger app: short entries the
+chat model reads when they matter (its places, people, groups and recurring terms), so the texts stay consistent.
+
+The setup ({mode}):
+- Who {char} is here: {persona}
+- How they and {user} know each other: {scenario}
+{source}
+Rules:
+- {rule}
+- Names of people stay as they are. Keep it to what this setup needs: 4 to 12 entries.
+- Each entry: a title, 2-5 keys (words that appear in texts when it matters: names, nicknames, places), and the
+  content in 1-3 plain sentences (under 60 words). "always": true only for one or two facts every reply needs.
+- Never write about {user}'s feelings or decisions.
+
+Answer with JSON only: {{"lore": [{{"title": "...", "keys": ["..."], "content": "...", "always": false}}]}}"""
+
+
+def make_texting_lore(user, character, save=True):
+    """📚 A worldbook for the texting setup: their roleplay lorebook adapted to it (in a Modern AU, a guild becomes a
+    company, a kingdom a city), or a small new one from the card and the setup when they have none. Saved on the
+    texting profile. Returns the entries."""
+    from mainapp import lorebook
+    from mainapp.cards import user_name
+    prof = char_profile(character)
+    source = ""
+    if character.worldbook_id:
+        book = lorebook.load_worldbook(character.worldbook)
+        lines = [f"- {e.get('comment') or ', '.join(e.get('keys') or [])}: {str(e.get('content') or '')[:400]}"
+                 for e in book["entries"] if e.get("enabled", True) and e.get("content")][:40]
+        if lines:
+            source = "\nTheir roleplay lorebook (adapt it; drop what this setup doesn't need):\n" + "\n".join(lines) + "\n"
+    if not source:
+        card = card_sections.compose(character.sections) if character.sections else (character.description or "")
+        source = f"\nTheir roleplay card (they have no lorebook: draw the entries from it):\n{card[:3000]}\n"
+    modern = prof["mode"] == "modern_au"
+    prompt = LORE_PROMPT.format(
+        char=character.name, user=user_name(user), mode="Modern AU: today's world" if modern else "their own world",
+        persona=(prof.get("modern_persona") or "")[:1500] or "(as on the card)", scenario=(prof.get("scenario") or "")[:1000],
+        source=source,
+        rule=("Translate their world into today's: places become real-world kinds of places, groups become companies, "
+              "families, teams or institutions, titles become jobs, magic or tech of their world becomes what it "
+              "would be now; say what each one is NOW." if modern else
+              "Keep their world as it is; add how texting works there if the setup says."))
+    out = ask_json(user, prompt, need=("lore",), max_tokens=2500, task="summary", temperature=0.5)
+    lore = clean_lore(out.get("lore"))
+    if not lore:
+        raise ai_client.AIError("Bulba's worldbook came back empty. Try again.")
+    if save:
+        save_char_profile(character, {"lore": lore})
+    return lore
 
 
 def _read_json(text):
@@ -366,6 +448,8 @@ def save_char_profile(character, updates):
             current[key] = val
     if current.get("voice_model") not in voice.OPENROUTER_TTS_MODELS:
         current["voice_model"] = voice.OPENROUTER_TTS_MODEL_DEFAULT
+    if isinstance(updates.get("lore"), list):
+        current["lore"] = clean_lore(updates["lore"])
     if isinstance(updates.get("extra_refs"), list):
         current["extra_refs"] = [str(u).strip()[:500] for u in updates["extra_refs"] if str(u or "").strip()][:4]
     if isinstance(updates.get("sticker_pack"), list):
@@ -1344,6 +1428,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         )
 
     sys_content = "\n\n".join(p for p in (safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    lore = lore_block(chars, delivered(data["messages"]))
+    if lore:  # 📚 this setup's worldbook, the entries that apply now
+        sys_content += "\n\n" + lore
     if data.get("memory"):  # 🧠 what happened before the messages below
         sys_content += f"\n\nEARLIER IN THIS CHAT (a summary of what came before the messages below):\n{data['memory']}"
     messages = [{"role": "system", "content": sys_content}]
@@ -2952,6 +3039,7 @@ def serialize_thread_full(thread, user):
             "has_voice": bool(prof.get("voice_id") or c.eleven_voice_char_id),
             "set_up": is_set_up(c),
             "card_people": card_people(c),  # ✂️ several people on one card: offered a split
+            "has_lorebook": bool(c.worldbook_id),
             **prof,
         })
         stickers.extend(character_stickers(c))

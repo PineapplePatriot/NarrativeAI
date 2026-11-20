@@ -64,7 +64,10 @@ they left open, and say what you filled in. When something they want is unclear,
 8. Reminders: when they mention a plan or ask you to remind them, put it in the chat's events with
    propose_texting_chat (the whole list as it should be; each with a `when` such as "Friday 20:00", "tomorrow
    9am", "in 30 minutes"). When it's due, the character texts them about it.
-9. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
+9. Each character has a worldbook for this setup (places, people, groups, terms; read when their words come up).
+   Change it with propose_texting_profile's `worldbook` (the whole list as it should be). Their roleplay lorebook
+   is never changed from here.
+10. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
    uses. If they want the roleplay card changed, tell them to open Bulba from the chat page.
 
 ## What the fields mean
@@ -148,6 +151,7 @@ def tool_read_texting_chat(session, args):
         prof = messenger.char_profile(c)
         profiles.append({"name": c.name, "set_up": messenger.is_set_up(c),
                          **{k: prof.get(k) for k in PROFILE_FIELDS},
+                         "worldbook": prof.get("lore") or "(none yet)",
                          "has_pictures": bool(prof.get("neutral_url")), "extra_pictures": len(prof.get("extra_refs") or []),
                          "roleplay_card_summary": (c.description or "")[:600]})
     recent = []
@@ -177,6 +181,8 @@ def tool_propose_texting_profile(session, args):
     if character is None:
         return {"error": "Name one of this chat's characters."}, []
     changes = {k: str(v) for k, v in (args.get("changes") or {}).items() if k in PROFILE_FIELDS and v is not None}
+    if isinstance(args.get("worldbook"), list):  # 📚 the whole worldbook as it should be
+        changes["lore"] = messenger.clean_lore(args["worldbook"])
     if changes.get("mode") not in (None, "modern_au", "canon"):
         return {"error": "mode is modern_au or canon."}, []
     if not changes:
@@ -184,6 +190,9 @@ def tool_propose_texting_profile(session, args):
     current = messenger.char_profile(character)
     summary = []
     for k, v in changes.items():
+        if k == "lore":
+            summary += ["Worldbook:"] + [f"  • {e['title']}: {e['content'][:160]}" for e in v]
+            continue
         summary += [f"{k.replace('_', ' ').capitalize()}:", f"  before: {str(current.get(k) or '(empty)')[:300]}",
                     f"  after: {v[:600]}"]
     if args.get("why"):
@@ -284,7 +293,11 @@ def tool_defs():
         _fn("propose_texting_profile", "Change a character's texting profile (never the roleplay card). Give only the "
             "fields that change, written in full. What the user told you goes in as they said it.",
             {"character": {"type": "string", "description": "The character's name (leave out in a 1-on-1 chat)"},
-             "changes": {"type": "object", "properties": props}, "why": STR}, ("changes",)),
+             "changes": {"type": "object", "properties": props},
+             "worldbook": {"type": "array", "description": "The whole texting worldbook as it should be (only when it changes)",
+                           "items": {"type": "object", "properties": {"title": STR, "keys": {"type": "array", "items": STR},
+                                                                      "content": STR, "always": {"type": "boolean"}}}},
+             "why": STR}, ("changes",)),
         _fn("propose_texting_chat", "Change this chat's own setup: its scenario override, its scheduled events (the "
             "whole list as it should be), who the user is in this chat (persona: name and description; empty = their "
             "usual persona), and/or how far tease photos go (photo_mood). Give only what changes.",

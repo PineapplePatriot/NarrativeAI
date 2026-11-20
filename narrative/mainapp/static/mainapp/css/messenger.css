@@ -1687,3 +1687,6 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
   .tg-composer-row .tg-send-btn { order: 0; }
   .tg-composer-row .tg-icon-btn { order: 2; width: 36px; height: 36px; font-size: 17px; }
 }
+/* 📚 texting worldbook */
+.tg-lore { margin: 6px 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.tg-lore small { color: var(--tg-muted); }
