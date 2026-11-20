@@ -10337,3 +10337,77 @@ class CardFocusTests(TestCase):
             card_sections.fill_empty(user, data)
         self.assertIn("This card's focus: Plot, Relationship", c.call_args.args[2][1]["content"])
         self.assertEqual(card_sections.focus_note(card_sections.clean({"kind": "character"})), "")
+
+
+class CardSearchTests(TestCase):
+    """🔎 Cards from Chub and Janitor (the sites answered by stand-ins here)."""
+    def setUp(self):
+        from mainapp.models import BulbaSession
+        self.user = get_user_model().objects.create_user(username="seeker", password="pw12345!")
+        self.session = BulbaSession.objects.create(user=self.user, target_model="x")
+
+    @staticmethod
+    def answer(data, status=200, content=b""):
+        from unittest import mock
+        r = mock.Mock(status_code=status, ok=status < 400, content=content)
+        r.json.return_value = data
+        return r
+
+    def test_search_hides_adult_cards_unless_mature_is_on(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        nodes = {"data": {"nodes": [{"fullPath": "anon/dottore", "name": "Dottore", "tagline": "Mad scientist", "nTokens": 1800},
+                                    {"fullPath": "anon/spicy", "name": "Spicy", "nsfw": True}]}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)) as get, \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            found = cardsearch.search_chub(self.user, "dottore")
+        self.assertEqual([f["name"] for f in found], ["Dottore"])
+        self.assertEqual(get.call_args.kwargs["params"]["nsfw"], "false")
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)), \
+                mock.patch("mainapp.mature.wanted", return_value=True):
+            self.assertEqual(len(cardsearch.search_chub(self.user, "dottore")), 2)
+
+    def test_a_chub_card_comes_in_with_its_lorebook_and_undo_removes_it(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        from mainapp.models import Character
+        node = {"node": {"name": "Dottore", "topics": ["Genshin"], "definition": {
+            "name": "Dottore", "personality": "{{char}} is a scientist with a mask.", "first_message": "Ah. You.",
+            "scenario": "His lab.", "embedded_lorebook": {"entries": [{"keys": ["Fatui"], "content": "An army.", "enabled": True}]}}}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(node)), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, events = cardsearch.tool_bring_in_card(self.session, {"where": "https://chub.ai/characters/anon/dottore"})
+        self.assertTrue(out.get("done"), out)
+        made = Character.objects.get(author=self.user, name="Dottore")
+        self.assertEqual(made.initial_message, "Ah. You.")
+        self.assertTrue(out["has_lorebook"])
+        self.assertTrue(made.worldbook_id)
+
+    def test_janitor_hidden_cards_risu_and_adult_cards_say_why(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        link = "https://janitorai.com/characters/0b1e2f3a-1111-2222-3333-444455556666_character-dottore"
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "showdefinition": False})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("hid this card's definition", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "is_nsfw": True,
+                                                                                           "personality": "x"})), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("marked as adult", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"chat_name": "Dottore", "personality": "Masked.",
+                                                                                           "first_message": "Hm."})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertEqual(out["character"], "Dottore")
+        out, _ = cardsearch.tool_bring_in_card(self.session, {"where": "https://realm.risuai.net/character/abc"})
+        self.assertIn("Download (PNG)", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_find_card(self.session, {"query": "x"})
+        self.assertIn("turned the request away", out["error"])
+
+    def test_every_bulba_mode_has_it(self):
+        from mainapp.bulba import agent, doctor, texting
+        names = lambda tools: {t["function"]["name"] for t in tools}
+        self.assertTrue({"find_card", "bring_in_card"} <= names(agent.TOOLS))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(doctor.tools()))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(texting.tools()))

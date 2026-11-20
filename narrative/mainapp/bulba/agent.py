@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
-from mainapp.bulba import control, doctor, library, lore, rules, tune
+from mainapp.bulba import cardsearch, control, doctor, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -300,6 +300,7 @@ TOOLS = [
          "why": STR},
         ["name", "greeting"]),
     *library.tool_defs(_fn, STR),
+    *cardsearch.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
     *control.tool_defs(_fn, STR),
@@ -1066,7 +1067,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
+    **library.HANDLERS, **cardsearch.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
     "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
                                                   [{"type": "preset_upload"}]),

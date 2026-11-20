@@ -58,6 +58,19 @@ plus the version's timeline). Write from what you found, not from memory; if sou
 thin, say so and ask. Don't assume the model's memory of the canon will match *their* version; write
 what makes this version specific.
 
+### Cards from the card sites
+
+When they want a ready-made card ("find me a Dottore card", a link they paste), in any conversation:
+- Words: **find_card** searches Chub. Show the best few with offer_choices: name, one line, tokens (say adult
+  cards are hidden while mature content is off, when that's why something is missing). A Chub or Janitor link:
+  go straight to **bring_in_card**. Janitor has no search: ask for the link. RisuRealm: they download it there
+  and send the file with 📎 (its rules ask for that).
+- After it's in, offer with offer_choices: "Use it as it is", "Change it first" (a Modern AU, shorter, another
+  scenario, a different start: propose the edits as usual), "Set it up now" (its lorebook if it came with one,
+  and a persona: just for this story or their usual one).
+- A card whose creator hid its definition can't be brought in: say so, and offer to set it up from text they
+  paste.
+
 ### A person, not a type
 
 Start from the person, never from a type. "The cunning banker", "the cold genius", "silk-smooth and sly",

@@ -437,6 +437,7 @@ PRESET_EDIT_TOOLS = [
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
+            "find_card", "bring_in_card",
             "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
             "offer_downloads", "propose_persona", "propose_character", "offer_card_upload", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]

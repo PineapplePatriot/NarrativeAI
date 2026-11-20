@@ -318,7 +318,7 @@ def tool_defs():
 
 
 def tools():
-    keep = {"offer_choices", "record_preference", "look_up"}  # 🔎 web search for canon details (modernizing a known character)
+    keep = {"offer_choices", "record_preference", "look_up", "find_card", "bring_in_card"}  # 🔎 web search for canon details (modernizing a known character)
     return [t for t in agent_mod.TOOLS if t["function"]["name"] in keep] + tool_defs()
 
 
