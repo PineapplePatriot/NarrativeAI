@@ -8,9 +8,10 @@ Claude's current Screen/TeleChat branch. Gemini's Subtext was already present in
 ## What is implemented
 
 Screen opens on a responsive launcher, with eight apps: TeleChat, Scenes, Subtext,
-Drive, Mail, Wave, Pulse, and Moments. It has four wallpaper palettes, a device-local
+Drive, Mail, Wave, Pulse, and Moments. It has four gradient palettes and three GPT-generated illustrated wallpapers, a device-local
 clock, recent conversations, and counts of saved work. The mobile dock remains
-available while a conversation is open. Opening Home does not mark an unopened
+available while a conversation is open. On phones it shows Home, Chats, Scenes
+and Alerts; other apps open through Home rather than a scrolling row of ten icons. Opening Home does not mark an unopened
 chat as read. Existing `?thread=…` and `?char=…` links still open TeleChat directly;
 `?app=messenger`, `?app=files`, etc. open a named app.
 
@@ -123,10 +124,35 @@ lore/browser edge checks also run with `?app=messenger` so their direct-chat ent
 point remains explicit.
 
 The affected backend suite passes 124 tests, including preservation of unread
-messages when opening Home. No paid model/image/audio requests were made.
+messages when opening Home. App model/audio validation used mocked responses. The wallpaper assets were
+generated separately with the image-generation tool; no OpenRouter generations
+were used for validation.
 
 To verify Drive proposals in the disposable fixture, seed with
 `scripts/seed_drive_proposals.py` through `manage.py shell` (as for the main fixture),
 then run `scripts/check_drive_proposals.cjs` with the same `VN_TEST_URL`,
 `VN_TEST_SESSION_FILE`, and `CHROMIUM_PATH`. It checks reviewed replacements,
 unsaved-input guards, persistence, stale proposals, and rejection at both widths.
+
+
+## Visual alignment and wallpapers
+
+Screen now loads NarrativeAI's shared `base.css` and uses its purple primary
+buttons, title treatment, card radius, borders and panel colours in the new apps.
+This is visual alignment; custom user themes remain a separate future feature.
+The static wallpaper pack lives under `mainapp/img/screen-wallpapers` with a source
+README. All three images total about 230 KB as WebP; no generation occurs on selection.
+Wallpaper choices are validated, scoped by account in local storage, and also
+retained in the session draft fallback. Unknown saved values fall back to Dusk;
+blocked storage still allows changing the wallpaper for the current page.
+
+Layout fixes include a four-column launcher at tablet widths, bounded widgets for
+long chat names, phone-sized touch controls and safe-area spacing, a Home action
+that returns to the top, stable app-tile keyboard focus during background updates,
+and collapsed history for already reviewed document proposals.
+
+Run `scripts/check_screen_wallpapers.cjs` with the same fixture environment to
+verify assets, layout, focus, persistence and storage denial at 320, 390, 768,
+1024 and 1280 px. The mini-app, Drive proposal, VN/lore workflow and edge browser
+checks also pass at phone/desktop widths. The 124-test backend baseline was unchanged
+by this visual pass.

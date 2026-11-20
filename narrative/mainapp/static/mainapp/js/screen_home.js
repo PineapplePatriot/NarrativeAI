@@ -55,8 +55,8 @@
   }
   function home() {
     const grid = document.getElementById('screenAppGrid');
-    grid.innerHTML=apps.map(([id,label,icon,color])=>`<button type="button" class="screen-app-tile" data-open="${id}"><span class="screen-app-symbol" style="--icon:${color}"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><path d="${icons[id]}"></path></svg></span><span>${label}</span></button>`).join('');
-    document.getElementById('screenRecentChats').innerHTML=TG.state.threads.slice(0,3).map(t=>`<button type="button" class="screen-recent" data-thread="${esc(t.id)}"><span>${esc(t.chat_name || t.title || 'Chat')}</span><small>${Number(t.unread)>0 ? esc(t.unread)+' unread' : 'Open ↗'}</small></button>`).join('') || '<p class="screen-muted">Your conversations will appear here. Open TeleChat to start one.</p>';
+    if(!grid.childElementCount)grid.innerHTML=apps.map(([id,label,icon,color])=>`<button type="button" class="screen-app-tile" data-open="${id}"><span class="screen-app-symbol" style="--icon:${color}"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><path d="${icons[id]}"></path></svg></span><span>${label}</span></button>`).join('');
+    document.getElementById('screenRecentChats').innerHTML=TG.state.threads.slice(0,3).map(t=>`<button type="button" class="screen-recent" data-thread="${esc(t.id)}"><span>${esc(t.chat_name || t.title || 'Chat')}</span><small>${Number(t.unread)>0 ? esc(t.unread)+' unread' : 'Open'}</small></button>`).join('') || '<p class="screen-muted">Your conversations will appear here. Open TeleChat to start one.</p>';
     const data=S.overview;
     document.getElementById('screenDeskSummary').innerHTML=data ? `<div class="screen-desk-stats"><div><strong>${esc(data.documents)}</strong><span>documents</span></div><div><strong>${esc(data.events)}</strong><span>open plans</span></div><div><strong>${esc(data.mail)}</strong><span>mail subjects</span></div></div>` : '<p class="screen-muted">Open Drive, Mail, or Pulse to start filling your desk.</p>';
   }
@@ -75,7 +75,7 @@
   }
   function header() {
     const title=apps.find(a=>a[0]===S.app)?.[1];
-    return `<header class="screen-mini-header"><div>${button('⌂ Home','home')}<h1>${esc(title)}</h1><p>${esc(descriptions[S.app])}</p></div><div class="screen-context"><label for="screenAppThread">Story / chat<select id="screenAppThread">${TG.state.threads.map(t=>`<option value="${esc(t.id)}" ${String(t.id)===String(S.thread)?'selected':''}>${esc(t.chat_name||t.title||'Chat')}</option>`).join('')}</select></label>${button('Refresh','refresh')}</div></header>`;
+    return `<header class="screen-mini-header"><div>${button('⌂ Home','home')}<h1 class="na-title">${esc(title)}</h1><p>${esc(descriptions[S.app])}</p></div><div class="screen-context"><label for="screenAppThread">Story / chat<select id="screenAppThread">${TG.state.threads.map(t=>`<option value="${esc(t.id)}" ${String(t.id)===String(S.thread)?'selected':''}>${esc(t.chat_name||t.title||'Chat')}</option>`).join('')}</select></label>${button('Refresh','refresh')}</div></header>`;
   }
   function editor(item) {
     const kind=kinds[S.app];
@@ -116,10 +116,12 @@
       const stale=p.base_revision!==item.revision;
       const pending=p.status==='pending';
       const status={pending:'Awaiting your review',applied:'Applied by you',rejected:'Rejected by you'}[p.status] || p.status;
-      return `<section class="screen-preview"><strong>Proposal from ${esc(p.character)}</strong> <small class="screen-muted">${esc(status)} · from revision ${esc(p.base_revision)} · ${esc(date(p.created))}</small>`+
+      const tag=pending?'section':'details';
+      const heading=`<strong>Proposal from ${esc(p.character)}</strong> <small class="screen-muted">${esc(status)} · from revision ${esc(p.base_revision)} · ${esc(date(p.created))}</small>`;
+      return `<${tag} class="screen-preview">${pending?heading:'<summary>'+heading+'</summary>'}`+
         `<details><summary>Before this proposal</summary><pre>${esc(p.before)}</pre></details>`+
         (pending ? field('Proposed replacement (editable)',`proposal-${p.id}`,p.after,'textarea','maxlength="30000"') : `<pre>${esc(p.after)}</pre>`)+
-        (pending ? `<p class="screen-muted">${stale?'The document changed. Request a new proposal to apply changes safely.':'Not yet applied. You can edit the replacement before accepting it.'}</p><div class="screen-actions">${button('Apply this edit','apply-proposal',`class="screen-primary" data-proposal="${p.id}" ${stale || item.data.scope!=='shared'?'disabled':''}`)}${button('Reject proposal','reject-proposal',`data-proposal="${p.id}"`)}</div>`:'')+'</section>';
+        (pending ? `<p class="screen-muted">${stale?'The document changed. Request a new proposal to apply changes safely.':'Not yet applied. You can edit the replacement before accepting it.'}</p><div class="screen-actions">${button('Apply this edit','apply-proposal',`class="screen-primary" data-proposal="${p.id}" ${stale || item.data.scope!=='shared'?'disabled':''}`)}${button('Reject proposal','reject-proposal',`data-proposal="${p.id}"`)}</div>`:'')+`</${tag}>`;
     }).join('');
   }
   function mail(item) {
@@ -265,7 +267,7 @@
       if(app==='messenger' && active && (active.unread>0 || S.dirtyThreads.has(String(active.id)))) {
         TG.selectThread(active.id).then(ok=>{if(ok)S.dirtyThreads.delete(String(active.id));});
       }
-      if(app==='home'){home();overview();}
+      if(app==='home'){document.getElementById('app-home').scrollTop=0;document.querySelector('.screen-home').scrollTop=0;home();overview();}
       if(roots[app]) {S.thread ||= TG.state.active_thread?.id || TG.state.threads[0]?.id;render();load();}
       window.dispatchEvent(new CustomEvent('screen-app-changed',{detail:{app}}));
     };
@@ -278,8 +280,12 @@
       root.addEventListener('change',e=>{if(e.target.id==='screenAppThread'){S.thread=e.target.value;render();load();}});
     });
     const wallpaper=document.getElementById('screenWallpaper');
-    wallpaper.value=ScreenDrafts.get('home').wallpaper || 'dusk';document.body.dataset.screenWallpaper=wallpaper.value;
-    wallpaper.addEventListener('change',()=>{document.body.dataset.screenWallpaper=wallpaper.value;ScreenDrafts.put('home',{wallpaper:wallpaper.value});});
+    const preferenceKey='narrative-screen-wallpaper:'+TG.state.account_id;
+    let preference=ScreenDrafts.get('home').wallpaper;
+    try{preference ||= localStorage.getItem(preferenceKey);}catch(_){}
+    const allowed=new Set([...wallpaper.options].map(option=>option.value));
+    wallpaper.value=allowed.has(preference)?preference:'dusk';document.body.dataset.screenWallpaper=wallpaper.value;
+    wallpaper.addEventListener('change',()=>{document.body.dataset.screenWallpaper=wallpaper.value;ScreenDrafts.put('home',{wallpaper:wallpaper.value});try{localStorage.setItem(preferenceKey,wallpaper.value);}catch(_){}});
     tick();setInterval(tick,30000);
     const query=new URLSearchParams(location.search);
     const wanted=query.get('app') || (query.has('thread')||query.has('char')?'messenger':'home');

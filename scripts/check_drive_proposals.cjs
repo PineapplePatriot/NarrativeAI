@@ -37,6 +37,7 @@ const assert=require('node:assert/strict');
       await page.reload();
       await page.getByRole('button',{name:`Shared packing list ${width} Shared with this chat`,exact:true}).first().click();
       assert.equal(await page.getByLabel('Document',{exact:true}).inputValue(),'Packing list\n- Map\n- Lantern\n- Water');
+      await page.locator('details.screen-preview > summary').click();
       await page.getByText('Before this proposal',{exact:true}).click();
       await page.getByText('Packing list\n- Map',{exact:true}).waitFor();
       await page.getByRole('button',{name:`Stale packing list ${width} Shared with this chat`,exact:true}).first().click();

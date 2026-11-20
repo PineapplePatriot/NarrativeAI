@@ -54,3 +54,54 @@ body[data-screen-wallpaper=midnight] .screen-home {--home-a:#1d294a;--home-b:#1b
  .screen-home-widgets,.screen-app-columns {grid-template-columns:1fr}.screen-widget {padding:18px}.screen-mini-root {padding:20px 16px}.screen-mini-header {gap:14px}.screen-context {width:100%}.screen-context select {flex:1;max-width:100%;min-width:0}
  .screen-app-columns>aside {max-height:240px;overflow:auto}.screen-app-symbol {width:54px;height:54px;border-radius:17px}
 }
+
+/* Align the app interiors with NarrativeAI's shared base.css tokens. */
+.screen-mini-root {color:var(--text-primary);padding:36px 32px 72px}
+.screen-mini-header h1 {font-size:clamp(1.7rem,3vw,2.2rem);font-weight:700;line-height:1.15}
+.screen-mini-header p,.screen-muted {color:var(--text-secondary)}
+.screen-card {background:var(--ui-primary);border-color:var(--border-color);border-radius:var(--na-radius)}
+.screen-mini-root :is(button,select,input,textarea) {border-color:var(--border-color);background:var(--ui-secondary);color:var(--text-primary);border-radius:12px}
+.screen-mini-root button {min-height:42px}.screen-mini-root button:hover {background:#26324a}
+.screen-mini-root button.screen-primary {background:linear-gradient(135deg,var(--accent-1),#9863ff);color:white;font-weight:600}
+.screen-mini-root :is(input,select) {min-height:44px}
+.screen-mini-root textarea {font-size:16px}
+.screen-mini-root summary {cursor:pointer;min-height:34px;padding:4px 0;line-height:1.6;overflow-wrap:anywhere}
+.screen-record[aria-current=true] {background:rgba(126,58,242,.2);border-color:var(--accent-soft)}
+.screen-mini-root button:disabled {cursor:default}
+.screen-mini-root .screen-preview {border-color:rgba(196,181,253,.45);background:rgba(15,20,36,.32)}
+.screen-mini-root details.screen-preview>summary {list-style-position:inside}
+.screen-home-heading h1 {font-weight:700;font-size:clamp(1.9rem,3.6vw,2.5rem);line-height:1.15;background:linear-gradient(135deg,var(--text-primary) 30%,#b794f6);background-clip:text;-webkit-background-clip:text;color:transparent}
+.screen-home {background-color:var(--bg-primary)}
+.screen-widget {background:rgba(30,34,54,.86);border-color:var(--border-color);border-radius:var(--na-radius);min-width:0}
+.screen-home-widgets {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+.screen-app-symbol {border-radius:16px}.screen-home-clock time {letter-spacing:-2px;font-size:clamp(48px,6vw,76px)}
+body[data-screen-wallpaper=moonlit-library] .screen-home {--screen-art:url('../img/screen-wallpapers/moonlit-library.webp')}
+body[data-screen-wallpaper=cloud-station] .screen-home {--screen-art:url('../img/screen-wallpapers/cloud-station.webp')}
+body[data-screen-wallpaper=night-greenhouse] .screen-home {--screen-art:url('../img/screen-wallpapers/night-greenhouse.webp')}
+body:is([data-screen-wallpaper=moonlit-library],[data-screen-wallpaper=cloud-station],[data-screen-wallpaper=night-greenhouse]) .screen-home {
+ background-image:linear-gradient(90deg,rgba(18,21,32,.58),rgba(18,21,32,.18)),var(--screen-art);
+ background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+.screen-wallpaper-label select {max-width:215px;min-height:36px;border-color:var(--border-color)}
+.screen-recent {min-height:44px;min-width:0}.screen-recent span {min-width:0;flex:1}.screen-recent small {flex-shrink:0}
+.screen-app-grid {grid-template-columns:repeat(auto-fit,minmax(76px,1fr))}
+.screen-dock .dock-app-btn:focus:not(:focus-visible) {outline:none;box-shadow:none}
+.screen-dock .dock-app-btn:focus-visible {outline:2px solid var(--accent-soft);outline-offset:1px}
+@media(max-width:1100px) and (min-width:861px) {.screen-app-grid {grid-template-columns:repeat(4,minmax(64px,1fr));max-width:600px}}
+@media(max-width:860px) {
+ .screen-hub-shell .screen-dock {justify-content:space-around;overflow:visible;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:calc(4px + env(safe-area-inset-bottom));flex-shrink:0}
+ .screen-dock .dock-app-btn[data-app]:not([data-app=home]):not([data-app=messenger]):not([data-app=scenes]) {display:none}
+ .screen-dock .dock-spacer {display:none}
+ .screen-home-top {align-items:flex-start;flex-wrap:wrap}.screen-wordmark {font-size:15px}
+ .screen-wallpaper-label {flex-wrap:wrap}.screen-wallpaper-label select {max-width:195px;font-size:16px}
+ .screen-home {padding:20px 18px 32px}.screen-home-clock {margin:24px 0}.screen-home-clock p {margin:8px 0}
+ .screen-app-grid {grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 8px;margin:22px 0 26px}
+ .screen-home-widgets {grid-template-columns:minmax(0,1fr)}
+ .screen-app-symbol {width:48px;height:48px}.screen-app-tile {min-height:78px;font-size:12px}
+ .screen-mini-root {padding:22px 16px 40px}.screen-mini-root :is(input,select) {font-size:16px}
+ .screen-app-columns>aside {max-height:220px}.screen-mini-header .screen-context {gap:6px}
+ .screen-context label {flex:1;min-width:0}.screen-context select {width:100%}
+ #screenAppStatus {bottom:calc(76px + env(safe-area-inset-bottom));width:max-content;max-width:calc(100vw - 48px);box-sizing:border-box}
+ body:is([data-screen-wallpaper=moonlit-library],[data-screen-wallpaper=cloud-station],[data-screen-wallpaper=night-greenhouse]) .screen-home {background-position:72% center}
+}
+@media(prefers-reduced-motion:reduce) {.screen-app-tile,.screen-dock .dock-app-btn {transition:none}}
