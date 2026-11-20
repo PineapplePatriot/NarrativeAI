@@ -748,6 +748,9 @@ def thread_data(thread):
         "memory": str(raw.get("memory") or "")[:6000],
         "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
         "memory_stale": bool(raw.get("memory_stale", False)),  # a remembered message was deleted or changed
+        # 🧩 continuity: replies since the last check, and what the last check found (None = all fine)
+        "continuity_count": max(0, int(raw.get("continuity_count") or 0)),
+        "continuity_note": raw.get("continuity_note") if isinstance(raw.get("continuity_note"), dict) else None,
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
         "photo_mood": raw.get("photo_mood") if raw.get("photo_mood") in PHOTO_MOODS else "",  # 📸 how far tease photos go
@@ -1452,6 +1455,69 @@ def check_texting_slop(text):
     if len(raw) > 900 and "|||BUBBLE|||" not in raw:
         notes.append("wall_of_text")
     return notes
+
+
+CONTINUITY_EVERY = 5  # the characters' replies between two continuity checks
+
+
+def continuity_shown(data):
+    """The last continuity finding, while its message is still among the recent ones."""
+    note = data.get("continuity_note")
+    if not note:
+        return None
+    recent = [m.get("id") for m in delivered(data["messages"])[-12:]]
+    return note if note.get("message_id") in recent else None
+
+
+def continuity_check(user, thread):
+    """🧩 Does the story hold together? The background model compares the recent texts with what's established (the
+    texting profiles, this chat's setup, the memory, earlier messages) and points out one clear contradiction:
+    a fact, a place, a time, a plan, who knows what, how someone looks or what they wear. Style is not its job.
+    Saves the finding (or None) and returns it."""
+    from mainapp.cards import user_name
+    data = thread_data(thread)
+    msgs = delivered(data["messages"])
+    persona = data.get("persona") or {}
+    me = persona.get("name") or user_name(user)
+    facts = []
+    for c in thread.characters.all():
+        p = char_profile(c)
+        facts.append(f"{c.name}: " + "; ".join(f"{k.replace('_', ' ')}: {str(p.get(k))[:500]}" for k in
+                     ("scenario", "modern_persona", "appearance_notes", "relationship") if p.get(k)))
+    if data["scenario_override"]:
+        facts.append(f"This chat's situation: {data['scenario_override'][:600]}")
+    if persona.get("description"):
+        facts.append(f"{me}: {persona['description'][:500]}")
+    lines = []
+    for m in msgs[-16:]:
+        if m.get("role") == "system":
+            continue
+        who = me if m.get("role") == "user" else (m.get("sender_name") or thread.title)
+        what = m.get("text") or (m.get("voice") or {}).get("transcript") or ((m.get("photo") or {}).get("seen") or "")
+        if what:
+            lines.append(f"[{m.get('id')}] {who}: {what[:300]}")
+    prompt = ("You check a messenger roleplay for CONTINUITY only (not style, not quality). Established:\n"
+              + "\n".join(facts) + (f"\nWhat happened earlier (memory): {data['memory'][:1500]}" if data["memory"] else "")
+              + "\n\nRecent messages, oldest first, each with its [id]:\n" + "\n".join(lines)
+              + f"\n\nDoes one of the characters' recent messages (not {me}'s) clearly contradict something established "
+              "or said earlier: a fact, name, place, time, plan, what they already said or did, what they could "
+              "know (they only know what was texted or shown), how someone looks or what they're wearing? Only a clear "
+              "contradiction counts; when in doubt, it's fine. Answer with JSON only: "
+              '{"problem": null} or {"problem": {"message_id": "the [id]", "what": "the contradiction, in one short '
+              'line", "fix": "how that message should go instead, in one line"}}')
+    out = ask_json(user, prompt, need=("problem",), max_tokens=700, task="summary", temperature=0.2)
+    p = out.get("problem") if isinstance(out.get("problem"), dict) else None
+    theirs = {m.get("id") for m in msgs if m.get("role") == "assistant"}
+    note = None
+    if p and str(p.get("message_id") or "").strip("[] ") in theirs and p.get("what"):
+        note = {"message_id": str(p["message_id"]).strip("[] "), "kind": "continuity",
+                "text": "continuity: " + str(p["what"])[:240],
+                "note": str(p.get("fix") or p["what"])[:400]}
+    raw = dict(thread.data or {})
+    raw["continuity_count"], raw["continuity_note"] = 0, note
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return note
 
 
 def watch_notice(messages):
@@ -2242,6 +2308,8 @@ def redo_message(user, thread, message_id, note=""):
         target["text"] = text
     target["edited_by_redo"] = True
     touch_memory(data, message_id)
+    if (data.get("continuity_note") or {}).get("message_id") == message_id:
+        data["continuity_note"] = None  # 🧩 fixed
     save_thread_data(thread, data)
     return target
 
@@ -2775,6 +2843,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
             b["late_reason"] = late_reason
             b["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=later)).strftime("%H:%M")
     data["messages"].extend(parsed["bubbles"])
+    if parsed["bubbles"]:
+        data["continuity_count"] = data.get("continuity_count", 0) + 1  # 🧩 a continuity check every few replies
     if auto_check_in:
         data["unread"] = data.get("unread", 0) + len(parsed["bubbles"])
         data["last_auto_at"] = time.time()
@@ -2890,7 +2960,8 @@ def serialize_thread_full(thread, user):
     return {
         **serialize_thread_summary(thread),
         "messages": delivered(data["messages"]),
-        "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
+        "watch": (continuity_shown(data) or watch_notice(delivered(data["messages"]))) if _watch_on(user) else None,  # 🥔 Bulba noticed…
+        "continuity_due": _watch_on(user) and data["continuity_count"] >= CONTINUITY_EVERY,
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
         "photo_mood": photo_mood(user, data),

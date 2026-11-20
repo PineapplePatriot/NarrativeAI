@@ -558,7 +558,7 @@
     var wnSkipped = function (id) { try { return localStorage.getItem("na-tg-watch-" + id) === "1"; } catch (e) { return false; } };
     if (wn && !wnSkipped(wn.message_id) && !(STATE.failed && STATE.failed.thread === t.id)) {
       out.push('<div class="tg-watch"><span>🥔 <b>Bulba noticed:</b> ' + esc(wn.text) + "</span>" +
-        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">↻ Rewrite without it</button>' +
+        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">' + (wn.kind === "continuity" ? "↻ Fix that message" : "↻ Rewrite without it") + "</button>" +
         '<button type="button" class="tg-watch-x" onclick="TG.watchSkip()">Not now</button></div>');
     }
 
@@ -1920,6 +1920,13 @@
 
     // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
     showTurn: function (res, oldIds) {
+      if (res.thread && res.thread.continuity_due) {  // 🧩 Bulba checks the story holds together (in the background)
+        var ctid = res.thread.id;
+        apiPost({ action: "continuity_check", thread_id: ctid }).then(function (r) {
+          var t = STATE.active_thread;
+          if (r.note && t && t.id === ctid && !t.watch) { t.watch = r.note; if (!TG._typing) renderActiveThread(); }
+        }).catch(function () { /* next time */ });
+      }
       if (res.thread && res.thread.memory_due) {  // 🧠 quietly bring the chat's memory up to date
         apiPost({ action: "update_memory", thread_id: res.thread.id }).catch(function () { /* next time */ });
       }

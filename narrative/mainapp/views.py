@@ -5296,6 +5296,16 @@ def messenger_api(request):
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
 
+    if action == "continuity_check":  # 🧩 in the background, every few replies (Bulba Watch on)
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            note = messenger.continuity_check(request.user, thread)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"note": note})
+
     if action == "suggest":  # 🥔 ideas when they're stuck: a reply, a photo to send, a photo to ask for
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:

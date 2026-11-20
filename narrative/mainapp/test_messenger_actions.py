@@ -978,3 +978,34 @@ class RemindersPlusOneStyleTests(MessengerActionTests):
         self.assertEqual(out["style"], "Soft painted anime, warm light.")
         self.assertIn("ART STYLE", d.call_args.kwargs["prompt"])
         self.assertEqual(self.post(action="style_from_pictures", char_slug=self.sam.slug).status_code, 400)  # no picture
+
+
+class ContinuityTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_every_few_replies_a_contradiction_is_pointed_out_and_fixed(self):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        self.rose.messenger_profile = {"scenario": "They met at the night pharmacy."}
+        self.rose.save()
+        tid = self.thread()
+        with mock.patch("mainapp.messenger._watch_on", return_value=True):
+            for _ in range(messenger.CONTINUITY_EVERY):
+                out = self.post(action="send_user_message", thread_id=tid, text="hey", generate=True).json()
+                self.post(action="generate_reply", thread_id=tid)
+            thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+            self.assertTrue(thread["continuity_due"])
+            mid = [m for m in thread["messages"] if m["role"] == "assistant"][-1]["id"]
+            answer = {"problem": {"message_id": f"[{mid}]", "what": "she says they met at work", "fix": "the pharmacy"}}
+            with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+                note = self.post(action="continuity_check", thread_id=tid).json()["note"]
+            self.assertIn("night pharmacy", ask.call_args.args[1])
+            self.assertEqual((note["message_id"], note["kind"]), (mid, "continuity"))
+            thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+            self.assertFalse(thread["continuity_due"])
+            self.assertEqual(thread["watch"]["text"], "continuity: she says they met at work")
+            self.post(action="redo_message", thread_id=tid, message_id=mid, note=note["note"])
+            self.assertIsNone(messenger.thread_data(MessengerThread.objects.get(id=tid))["continuity_note"])
+        with mock.patch("mainapp.messenger.ask_json", return_value={"problem": {"message_id": "nope", "what": "x"}}):
+            self.assertIsNone(self.post(action="continuity_check", thread_id=tid).json()["note"])  # not one of theirs
