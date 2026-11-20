@@ -713,7 +713,7 @@
           '<div class="tg-field-group">' +
             "<label>Visual Art Style Lock (kept consistent on selfies, food & scenery photos)</label>" +
             '<input type="text" class="tg-input" id="drwCharArtStyle" value="' + esc(cur.art_style_notes || "") + '" placeholder="Empty = anime realism, matching their pictures. Pick one below or write your own">' +
-            '<div class="tg-style-chips">' + ART_STYLES.map(function (s) {
+            '<div class="tg-style-chips"><button type="button" class="tg-fmt-btn" onclick="TG.styleFromPictures(this)" title="Bulba looks at their picture and writes its style">🥔 Match their pictures</button>' + ART_STYLES.map(function (s) {
               return '<button type="button" class="tg-fmt-btn" title="' + esc(s[1]) + '" onclick="document.getElementById(\'drwCharArtStyle\').value=this.title">' + esc(s[0]) + "</button>";
             }).join("") + "</div>" +
           "</div>" +
@@ -802,7 +802,10 @@
       var evHtml = ((t.events || []).map(function (ev, idx) {
         return (
           '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;font-size:12px;">' +
-            "<div><strong>" + esc(ev.title) + "</strong>" + (ev.notes ? " — " + esc(ev.notes) : "") + "</div>" +
+            "<div>" + (ev.done ? "✓ " : "⏰ ") + "<strong>" + esc(ev.title) + "</strong>" + (ev.notes ? " — " + esc(ev.notes) : "") +
+              '<div style="color:var(--tg-muted);font-size:11px;">' +
+                (ev.at ? new Date(ev.at * 1000).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "no time: a note for them") +
+                (ev.by ? " · set by " + esc(ev.by) : "") + "</div></div>" +
             '<button type="button" class="tg-fmt-btn" onclick="TG.removeEvent(' + idx + ')">✕</button>' +
           "</div>"
         );
@@ -820,6 +823,10 @@
           '<div style="display:flex;gap:6px;margin-top:6px;">' +
             '<input type="text" class="tg-input" id="drwNewEventTitle" placeholder="e.g. Friday 20:00 — Dinner at the pier">' +
             '<button type="button" class="tg-fmt-btn" onclick="TG.addEvent()">+ Add</button>' +
+          "</div>" +
+          '<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">' +
+            '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'reminders\', this, function (x) { TG.addEvent(x); })">🥔 Find plans in the chat</button>' +
+            '<div class="tg-suggest" data-suggest-for="reminders"></div>' +
           "</div>" +
         "</div>" +
         '<div class="tg-field-group">' +
@@ -905,6 +912,7 @@
       '<div class="tg-field-group">' +
         "<label>Your Bio / Status (characters see when you change this!)</label>" +
         '<input type="text" class="tg-input" id="drwMeBio" value="' + esc(u.bio || "") + '" placeholder="Coffee first, questions later.">' +
+        (STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start;margin-top:4px" onclick="TG.suggestInto(\'bio\', this, function (x) { document.getElementById(\'drwMeBio\').value = x; })">🥔 Suggest a bio</button><div class="tg-suggest" data-suggest-for="bio"></div>' : "") +
       "</div>" +
       "<hr style='border:none;border-top:1px solid var(--tg-border);width:100%;'>" +
       '<div style="font-weight:700;font-size:13px;">🔔 Notifications & Rich Media</div>' +
@@ -1990,6 +1998,16 @@
 
     // 💬 Like a real chat, you can send several messages in a row: they answer once you've stopped for a moment
     // (a few seconds, longer while you're still typing). Sent while they're already writing: they answer it after.
+    styleFromPictures: function (btn) {
+      var slug = selectedDrawerCharSlug || ((STATE.active_thread && STATE.active_thread.members && STATE.active_thread.members[0]) || {}).slug;
+      if (!slug) return;
+      var label = btn.innerHTML; btn.disabled = true; btn.innerHTML = "🥔 Looking…";
+      apiPost({ action: "style_from_pictures", char_slug: slug }).then(function (res) {
+        btn.disabled = false; btn.innerHTML = label;
+        document.getElementById("drwCharArtStyle").value = res.style;
+      }).catch(function (err) { btn.disabled = false; btn.innerHTML = label; alert(err.message); });
+    },
+
     // 🥔 Stuck? Bulba's ideas, as chips: tap one to use it (it can still be changed before sending)
     suggestInto: function (what, btn, use) {
       var t = STATE.active_thread; if (!t) return;
@@ -2616,16 +2634,16 @@
       });
     },
 
-    addEvent: function () {
+    addEvent: function (text) {
       var t = STATE.active_thread;
       if (!t) return;
       var inp = document.getElementById("drwNewEventTitle");
-      var val = inp ? inp.value.trim() : "";
+      var val = typeof text === "string" ? text : (inp ? inp.value.trim() : "");
       if (!val) return;
       t.events = t.events || [];
       t.events.push({ id: String(Date.now()), title: val, when: val, notes: "", done: false });
-      inp.value = "";
-      TG.saveThreadSettings();
+      if (inp) inp.value = "";
+      Promise.resolve(TG.saveThreadSettings()).then(function () { renderDrawer(); });
       renderDrawer();
     },
 
@@ -2764,6 +2782,15 @@
           return '<option value="' + esc(m.slug) + '">' + esc(m.display_name || m.name) + "</option>";
         })
         .join("");
+      // 👥 a +1 in the photo: in a group chat, whoever the photo mentions (on by default); or anyone picked
+      var also = document.getElementById("photoModalAlso");
+      if (also) {
+        var seen = {}, people = [];
+        (t.members || []).concat(STATE.characters || []).forEach(function (c) { if (c.slug && !seen[c.slug]) { seen[c.slug] = 1; people.push(c); } });
+        also.innerHTML = (t.is_group ? '<option value="">👥 Whoever the photo mentions (group chats)</option><option value="none">Nobody else</option>'
+                                     : '<option value="none">Nobody else</option>') +
+          people.map(function (c) { return '<option value="' + esc(c.slug) + '">' + esc(c.display_name || c.name) + "</option>"; }).join("");
+      }
       document.getElementById("photoModalPrompt").value = "";
       document.getElementById("modalPhoto").classList.add("open");
     },
@@ -2781,6 +2808,7 @@
         char_slug: document.getElementById("photoModalChar").value,
         kind: document.getElementById("photoModalKind").value,
         subject: (document.getElementById("photoModalSubject") || {}).value || "",
+        also: (document.getElementById("photoModalAlso") || {}).value || "",
         prompt: document.getElementById("photoModalPrompt").value,
       })
         .then(function (res) {
@@ -2878,6 +2906,8 @@
             '<input type="text" class="tg-input" id="storyModalEmoji" style="width:52px;text-align:center;" value="' + esc(target.status_emoji || "✨") + '">' +
             '<input type="text" class="tg-input" id="storyModalText" placeholder="What\'s happening right now?">' +
           "</div>" +
+          (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'status\', this, function (x) { var m = x.match(/^(\\S+)\\s+(.*)$/); var e = document.getElementById(\'storyModalEmoji\'), tx = document.getElementById(\'storyModalText\'); if (m && !/\\w/.test(m[1])) { e.value = m[1]; tx.value = m[2]; } else tx.value = x; })">🥔 Suggest from the chat</button>' +
+            '<div class="tg-suggest" data-suggest-for="status"></div>' : "") +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
             '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
               '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +

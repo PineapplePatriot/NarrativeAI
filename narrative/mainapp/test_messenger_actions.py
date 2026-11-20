@@ -914,3 +914,67 @@ class SuggestTests(MessengerActionTests):
         self.assertIn("ask Rose for a photo", ask.call_args.args[1])
         with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": []}):
             self.assertEqual(self.post(action="suggest", thread_id=tid, what="my_picture").status_code, 400)
+
+
+class RemindersPlusOneStyleTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_reading_when(self):
+        import datetime as dt
+        from django.utils import timezone
+        from mainapp import messenger
+        now = timezone.localtime(timezone.now()).replace(hour=10, minute=0, second=0, microsecond=0)
+        ts = now.timestamp()
+        at = lambda text: timezone.localtime(dt.datetime.fromtimestamp(messenger.parse_when(text, ts), dt.timezone.utc))
+        self.assertEqual((at("dinner at 20:00").hour, at("dinner at 20:00").date()), (20, now.date()))
+        self.assertEqual(at("call at 9am").date(), (now + dt.timedelta(days=1)).date())  # past today: tomorrow
+        self.assertEqual(at("tomorrow 8pm").hour, 20)
+        self.assertEqual(messenger.parse_when("in 30 minutes", ts), ts + 1800)
+        self.assertEqual(at("Friday 19:30 — the pier").weekday(), 4)
+        self.assertIsNone(messenger.parse_when("someday soon", ts))
+
+    def test_a_due_reminder_is_texted_once(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, events=[{"title": "dinner in 1 minute", "when": "in 1 minute"}])
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual(data["events"][0]["by"], "you")
+        self.assertTrue(data["events"][0]["at"])
+        self.assertFalse(messenger.due_events(data))
+        with mock.patch("mainapp.messenger.time.time", return_value=time.time() + 120):
+            self.client.get(self.url + "?action=poll")
+            self.client.get(self.url + "?action=poll")  # not twice
+        reminders = [c for c in ai_client.complete.call_args_list if "A reminder is due" in json.dumps(c.args[2])]
+        self.assertEqual(len(reminders), 1)
+        self.assertIn("dinner in 1 minute", json.dumps(reminders[0].args[2]))
+        self.assertTrue(messenger.thread_data(MessengerThread.objects.get(id=tid))["events"][0]["done"])
+
+    def test_a_plus_one_in_the_photo(self):
+        from django.core.files.base import ContentFile
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        self.rose.photo_neutral.save("r.png", ContentFile(png("red")), save=True)
+        self.sam.photo_neutral.save("s.png", ContentFile(png("blue")), save=True)
+        group = MessengerThread.objects.create(user=self.user, title="Shop", is_group=True)
+        group.characters.add(self.rose, self.sam)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie with Sam at the till", thread=group, shot_type="selfie")
+        self.assertIn("SAM IS IN THE PHOTO TOO: reference picture 2", ai_client.generate_image.call_args.args[1])
+        self.assertEqual(len(ai_client.generate_image.call_args.kwargs["references"]), 2)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie with Sam", thread=group, shot_type="selfie", also=False)
+        self.assertNotIn("IS IN THE PHOTO TOO", ai_client.generate_image.call_args.args[1])  # "nobody else"
+        one = MessengerThread.objects.create(user=self.user, title="Rose")
+        one.characters.add(self.rose)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie", thread=one, shot_type="selfie", also=self.sam)
+        self.assertIn("SAM IS IN THE PHOTO TOO", ai_client.generate_image.call_args.args[1])
+
+    def test_style_from_their_picture(self):
+        from django.core.files.base import ContentFile
+        self.rose.photo_neutral.save("r.png", ContentFile(png("red")), save=True)
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("Soft painted anime, warm light.", "x")) as d:
+            out = self.post(action="style_from_pictures", char_slug=self.rose.slug).json()
+        self.assertEqual(out["style"], "Soft painted anime, warm light.")
+        self.assertIn("ART STYLE", d.call_args.kwargs["prompt"])
+        self.assertEqual(self.post(action="style_from_pictures", char_slug=self.sam.slug).status_code, 400)  # no picture

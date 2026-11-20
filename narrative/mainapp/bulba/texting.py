@@ -10,6 +10,7 @@ Bulba reads the chat (read_texting_chat) and changes things only through cards t
 - retry_texting_reply: the characters' last reply written again, with a note (costs one reply).
 """
 import copy
+import uuid
 
 from mainapp.bulba import agent as agent_mod
 
@@ -60,7 +61,10 @@ they left open, and say what you filled in. When something they want is unclear,
 7. Whenever you ask them something, give 2-4 likely answers with offer_choices (they can still type their own).
    Help them through the setup: what's left open (how they met, where they are now, who they are here), one
    question at a time, with choices.
-8. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
+8. Reminders: when they mention a plan or ask you to remind them, put it in the chat's events with
+   propose_texting_chat (the whole list as it should be; each with a `when` such as "Friday 20:00", "tomorrow
+   9am", "in 30 minutes"). When it's due, the character texts them about it.
+9. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
    uses. If they want the roleplay card changed, tell them to open Bulba from the chat page.
 
 ## What the fields mean
@@ -198,9 +202,14 @@ def tool_propose_texting_chat(session, args):
     if "scenario_override" in args:
         changes["scenario_override"] = str(args.get("scenario_override") or "")[:3000]
     if isinstance(args.get("events"), list):
-        changes["events"] = [{"text": str(e.get("text") if isinstance(e, dict) else e)[:300],
-                              **({"when": str(e.get("when"))[:80]} if isinstance(e, dict) and e.get("when") else {})}
-                             for e in args["events"]][:20]
+        changes["events"] = []
+        for e in args["events"][:20]:
+            text = str((e.get("title") or e.get("text")) if isinstance(e, dict) else e)[:300]
+            when = str(e.get("when") or "")[:80] if isinstance(e, dict) else ""
+            changes["events"].append({"id": uuid.uuid4().hex[:8], "title": text, "text": text, "when": when or text,
+                                      "notes": "", "done": False, "by": "Bulba"})
+        probe = {"events": changes["events"], "clock_offset": messenger.thread_data(thread)["clock_offset"]}
+        messenger.tidy_events(probe)  # each gets its time now, so the card can show it
     if isinstance(args.get("persona"), dict):
         changes["persona"] = {"name": str(args["persona"].get("name") or "").strip()[:80],
                               "description": str(args["persona"].get("description") or "").strip()[:3000]}
@@ -216,7 +225,8 @@ def tool_propose_texting_chat(session, args):
         summary += ["This chat's scenario:", f"  before: {data['scenario_override'] or '(none: the characters’ own)'}",
                     f"  after: {changes['scenario_override'] or '(none: the characters’ own)'}"]
     if "events" in changes:
-        summary += ["Events:"] + [f"  • {e['text']}" + (f" ({e['when']})" if e.get("when") else "") for e in changes["events"]]
+        summary += ["Reminders:"] + [f"  • {e['title']}" + (f" ({e['when']})" if e.get("when") and e["when"] != e["title"] else "")
+                                     + ("" if e.get("at") else " (no time: just a note for them)") for e in changes["events"]]
     if "persona" in changes:
         old = data["persona"] or {}
         summary += ["Who you are in this chat:", f"  before: {old.get('name') or '(your usual persona)'}"

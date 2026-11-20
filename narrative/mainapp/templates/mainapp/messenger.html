@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=29">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=30">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -311,6 +311,10 @@
         </select>
       </div>
       <div class="tg-field-group">
+        <label>👥 Someone else in it too</label>
+        <select class="tg-select" id="photoModalAlso"></select>
+      </div>
+      <div class="tg-field-group">
         <label>Scene / Prompt details (optional — leave blank to auto-extract essence from the current chat)</label>
         <textarea class="tg-textarea" id="photoModalPrompt" placeholder="Leave blank to let the scene reader inspect the last messages, or describe a specific selfie, food, or scenery shot…"></textarea>
         <button type="button" class="tg-fmt-btn" style="align-self:flex-start;margin-top:6px" onclick="TG.suggestInto('their_picture', this, function (x) { document.getElementById('photoModalPrompt').value = x; })">🥔 Suggest from the chat</button>
@@ -360,6 +364,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=29"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=30"></script>
 </body>
 </html>

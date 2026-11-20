@@ -763,6 +763,96 @@ def chat_now(data):
     return time.time() + float(data.get("clock_offset") or 0)
 
 
+# ⏰ Reminders: when an event is due, written loosely ("Friday 20:00 — dinner", "tomorrow 9am", "in 20 minutes",
+# "at 18:30", "2026-11-21T20:00"). Read on the chat's clock; a time already past today means tomorrow.
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def parse_when(text, now_ts):
+    """The moment `text` names, in seconds on the same clock as `now_ts`, or None when it names no time."""
+    import datetime as dt
+    timedelta = dt.timedelta
+    low = str(text or "").lower()
+    now = timezone.localtime(dt.datetime.fromtimestamp(now_ts, dt.timezone.utc))
+    m = re.search(r"\bin\s+(\d{1,3})\s*(min|minute|minutes|h|hr|hour|hours)\b", low)
+    if m:
+        n = int(m.group(1))
+        return now_ts + n * (3600 if m.group(2).startswith("h") else 60)
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})[t ](\d{1,2}):(\d{2})", low)
+    if m:
+        y, mo, d, hh, mm = map(int, m.groups())
+        try:
+            return now.replace(year=y, month=mo, day=d, hour=hh, minute=mm, second=0, microsecond=0).timestamp()
+        except ValueError:
+            return None
+    m = re.search(r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b", low) or re.search(r"\b(\d{1,2}):(\d{2})\b()", low)
+    if not m:
+        if "noon" in low:
+            hh, mm = 12, 0
+        elif "midnight" in low:
+            hh, mm = 0, 0
+        else:
+            return None
+    else:
+        hh, mm = int(m.group(1)), int(m.group(2) or 0)
+        if m.group(3) == "pm" and hh < 12:
+            hh += 12
+        if m.group(3) == "am" and hh == 12:
+            hh = 0
+        if hh > 23 or mm > 59:
+            return None
+    at = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    day = next((i for i, w in enumerate(_WEEKDAYS) if re.search(r"\b" + w[:3] + r"(?:" + w[3:] + r")?\b", low)), None)
+    if "tomorrow" in low:
+        at += timedelta(days=1)
+    elif day is not None:
+        ahead = (day - at.weekday()) % 7
+        at += timedelta(days=ahead)
+        if at.timestamp() <= now_ts:
+            at += timedelta(days=7)
+    elif at.timestamp() <= now_ts:
+        at += timedelta(days=1)
+    return at.timestamp()
+
+
+def tidy_events(data, by=""):
+    """Every event with its time worked out (once) and who set it. Changes `data` in place."""
+    now = chat_now(data)
+    for e in data["events"]:
+        e.setdefault("id", uuid.uuid4().hex[:8])
+        if "at" not in e:
+            e["at"] = parse_when(f"{e.get('when') or ''} {e.get('title') or ''}", now)
+        if by and not e.get("by"):
+            e["by"] = by
+
+
+def due_events(data):
+    """Reminders whose time has come (not yet sent)."""
+    now = chat_now(data)
+    return [e for e in data["events"] if e.get("at") and not e.get("done") and float(e["at"]) <= now]
+
+
+def send_reminders(user, thread):
+    """⏰ Each due reminder: the character texts about it, in their own way. Returns how many went out."""
+    data = thread_data(thread)
+    tidy_events(data)
+    due = due_events(data)
+    if not due:
+        return 0
+    for e in due:
+        e["done"] = True
+    save_thread_data(thread, data)  # first: a slow or failed reply never sends the same reminder twice
+    titles = "; ".join(f"{e.get('title')}" + (f" ({e['notes']})" if e.get("notes") else "") for e in due)
+    try:
+        generate_turn(user, thread, extra_instruction=(
+            f"⏰ A reminder is due right now: {titles}. Text about it now, as yourself and in your own way (remind "
+            "them, check they're ready, say you're on your way, whatever fits who set it and why). Keep it short."))
+    except ai_client.AIError as e:
+        log.info("messenger: a reminder couldn't be sent: %s", e)
+        return 0
+    return len(due)
+
+
 def set_clock(thread, how):
     """🕰️ The chat's clock: "real", "resume" (just after its last message: a night chat goes on the next day), or
     an ISO date and time. Returns the offset in seconds."""
@@ -1205,6 +1295,7 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
 
     events_lines = "\n".join(
         f"  • {e.get('title')}: {e.get('when') or 'upcoming'}" + (f" ({e.get('notes')})" if e.get("notes") else "")
+        + (f" [set by {e['by']}]" if e.get("by") else "")
         for e in rt["events"][:8]
     )
     time_block = (
@@ -1479,7 +1570,8 @@ def parse_ai_reply(raw_text, chars, is_group=False):
             ev_title = m.group(1).strip()[:120]
             ev_notes = (m.group(2) or "").strip()[:240]
             if ev_title:
-                new_events.append({"id": uuid.uuid4().hex[:8], "title": ev_title, "when": ev_title, "notes": ev_notes, "done": False})
+                new_events.append({"id": uuid.uuid4().hex[:8], "title": ev_title, "when": ev_title, "notes": ev_notes,
+                                   "done": False, "by": current_char.name if current_char else ""})
         chunk = RE_EVENT.sub("", chunk)
 
         # Extract sticker
@@ -1958,7 +2050,23 @@ def _looks_like_non_person_photo(desc):
     return has_object and not has_self
 
 
-def generate_messenger_photo(user, character, description="", kind="casual", thread=None, shot_type=None, camera_angle=""):
+def plus_one(character, thread, description, chosen=None):
+    """👥 Who else is in the photo (one at most): the character picked for it, else in a group chat a member the
+    description names. None when it's just them."""
+    if chosen is not None:
+        return chosen if chosen and chosen.id != character.id else None
+    if not thread or not thread.is_group:
+        return None
+    low = str(description or "").lower()
+    for c in thread.characters.all():
+        first = c.name.split()[0].lower()
+        if c.id != character.id and len(first) > 2 and re.search(r"\b" + re.escape(first) + r"\b", low):
+            return c
+    return None
+
+
+def generate_messenger_photo(user, character, description="", kind="casual", thread=None, shot_type=None, camera_angle="",
+                             also=None):
     """
     Generate a snapshot / selfie / POV food or scenery / tease photo for `character` using Nano Banana (`ai_client.generate_image`):
     - Passes 1 Neutral Reference + up to 4 Extra Reference images (`load_character_references`) so both the character's identity
@@ -2037,6 +2145,15 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             + (f"\nHOW FAR IT GOES (binding): {PHOTO_MOODS[mood][1]}." if kind == "tease" else "")
         )
 
+    other = plus_one(character, thread, desc_clean, also) if shot_type != "pov_object" else None
+    if other:  # 👥 the second person's own picture, so they look like themselves too
+        their = load_character_references(other)[:1]
+        if their:
+            refs = refs[:3] + their
+            prof_o = char_profile(other)
+            prompt += (f"\n{other.name.upper()} IS IN THE PHOTO TOO: reference picture {len(refs)} is {other.name} "
+                       f"(keep their face and look exactly; every other reference is {character.name}). "
+                       f"{other.name}'s look: {(prof_o.get('appearance_notes') or other.description or '')[:300]}")
     if shot_type != "pov_object":
         face, face_mood = expression_reference(character, expression or desc_clean)
         if face:
@@ -2245,6 +2362,24 @@ def _chat_brief(user, thread, last=20):
     return me, who, ("Earlier (memory): " + memory[:1500] + "\n" if memory else "") + "\n".join(lines)
 
 
+STYLE_PROMPT = ("Describe only the ART STYLE of this picture, for an image model that must draw new pictures in exactly "
+                "this style: the medium (anime, semi-realistic, painted, photo, 3D…), linework, shading and rendering, "
+                "colour palette, lighting, level of detail. One or two sentences, no more than 45 words, as a style "
+                "description. Never describe the person, their clothes or the scene.")
+
+
+def style_from_pictures(user, character):
+    """🥔🎨 Their art style in words, read from their texting pictures (the neutral one, else the roleplay one)."""
+    from mainapp.bulba import vision
+    prof = char_profile(character)
+    item = _read_storage_image(prof.get("neutral_url") or "") or _read_storage_image(getattr(character, "photo_neutral", None))
+    if not item:
+        raise ValueError("They have no picture to look at yet: add one first.")
+    data_url, _ = vision.prepare(item[0])
+    text, _ = vision.describe(user, data_url, prompt=STYLE_PROMPT)
+    return re.sub(r"\s+", " ", text).strip().strip('"')[:600]
+
+
 def suggest(user, thread, what, hint=""):
     """🥔 Bulba's ideas when they're stuck: what = "reply" (3 texts they could send), "my_picture" (3 photos they
     could send) or "their_picture" (a photo to ask a character for, read from the scene). Returns a list of strings."""
@@ -2256,6 +2391,17 @@ def suggest(user, thread, what, hint=""):
                 "voice (short, like real texting; match how they've been writing, their language included): one that "
                 "answers warmly or directly, one playful or teasing, one that moves things somewhere new (a question, "
                 "a plan, something about their day). Never write for the other characters.")
+    elif what == "reminders":
+        task = ("Find plans and promises in the chat that deserve a reminder (a meeting, a call, a deadline, "
+                "something one of them said they'd do at a time). For each, one line: the day and time first, then "
+                "what it is, e.g. \"Friday 20:00 — dinner at the pier\" or \"tomorrow 9am — call about the flat\". "
+                "Up to 3; only real plans from the chat, none invented.")
+    elif what == "status":
+        task = (f"Suggest 3 statuses {me} could post on their messenger profile right now (one emoji, a space, then "
+                "a short line, like a real status), from what's going on in the chat and their day.")
+    elif what == "bio":
+        task = (f"Suggest 3 short messenger bios for {me} (under 70 characters each, the kind people really write), "
+                "true to who they are here.")
     elif what == "my_picture":
         task = (f"{me} wants to send a photo in this chat. Suggest 3 photos that fit this moment (what they're doing, "
                 "where they are, what was just said): each a concrete one-sentence description of what the photo "
@@ -2587,6 +2733,7 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     # Apply new events
     for ev in parsed["events"]:
         data["events"].append(ev)
+    tidy_events(data)
 
     # Optional auto-synthesis for voice or Nano Banana photos if enabled
     char_by_slug = {c.slug: c for c in chars}

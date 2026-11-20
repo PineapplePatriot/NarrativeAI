@@ -4701,6 +4701,14 @@ def messenger_api(request):
                             pass
                         break
 
+            # ⏰ reminders that are due: the character texts about them (one chat per poll)
+            for t in threads:
+                try:
+                    if messenger.due_events(messenger.thread_data(t)) and messenger.send_reminders(request.user, t):
+                        break
+                except Exception as e:
+                    log.info("messenger: reminder failed: %s", e)
+
             # ✨ now and then a character posts a status of their own (one per poll at most)
             if u_prof.get("auto_statuses", True) and threads:
                 for t in threads:
@@ -5210,6 +5218,7 @@ def messenger_api(request):
             td["started"] = True
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
+            messenger.tidy_events(td, by="you")
         if "title" in body and str(body["title"]).strip():
             thread.title = str(body["title"]).strip()[:200]
             thread.save(update_fields=["title"])
@@ -5291,12 +5300,21 @@ def messenger_api(request):
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
-        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture") else "reply"
+        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio") else "reply"
         try:
             ideas = messenger.suggest(request.user, thread, what, body.get("hint") or "")
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"ideas": ideas})
+
+    if action == "style_from_pictures":  # 🥔🎨 the art style read from their pictures
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            return JsonResponse({"style": messenger.style_from_pictures(request.user, c_obj)})
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
     if action == "gallery":  # 🖼️ the photos of every chat
         return JsonResponse({"photos": messenger.gallery(request.user)})
@@ -5476,6 +5494,8 @@ def messenger_api(request):
                 thread=thread,
                 shot_type=shot_type,
                 camera_angle=camera_angle,
+                also=(None if not body.get("also") else False if body.get("also") == "none"
+                      else char_by_slug.get(body.get("also")) or None),  # 👥 who else is in it (auto in groups)
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
