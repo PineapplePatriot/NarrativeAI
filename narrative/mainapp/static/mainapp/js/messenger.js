@@ -376,7 +376,8 @@
     msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
-        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
+        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) +
+          (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + "</div>");
         return;
       }
       var isUser = m.role === "user";
@@ -742,6 +743,13 @@
           '<div style="font-size:11.5px;color:#cbd5e1;">Nano Banana uses these to lock face, outfit & art style across varied-angle selfies, food shots, and scenery. For OCs without art yet, generate them from description below!</div>' +
           '<div class="tg-ref-grid">' + refSlotsHtml.join("") + "</div>" +
           '<input type="file" id="drwRefUploadInput" accept="image/*" style="display:none" onchange="TG.handleRefUploadFile(this)">' +
+          // 🖼️ the profile picture: one of their pictures (tap), an upload, or one they had before
+          '<div class="tg-field-group" style="margin-top:6px;"><label>🖼️ Profile picture <small style="font-weight:400;color:var(--tg-muted)">(tap one to use it; they may change it themselves now and then)</small></label>' +
+            '<div class="tg-avatar-pick">' + [cur.avatar_url].concat([cur.neutral_url], cur.extra_refs || [], cur.avatar_history || [])
+              .filter(function (u, i, all) { return u && all.indexOf(u) === i; }).map(function (u) {
+                return '<button type="button" class="' + (u === cur.avatar_url ? "on" : "") + '" onclick="TG.setCharAvatar(\'' + esc(u) + '\')"><img src="' + esc(u) + '" alt=""></button>';
+              }).join("") +
+              '<button type="button" class="tg-avatar-up" title="Upload a picture" onclick="TG.triggerRefUpload(\'char_avatar\', -1)">＋</button></div></div>' +
           '<div class="tg-field-group" style="margin-top:4px;">' +
             "<label>Appearance Description (used for photos & OC reference generation)</label>" +
             '<textarea class="tg-textarea" id="drwCharAppearance" style="min-height:54px;" placeholder="Face, hair, eyes, build, signature outfit…">' + esc(cur.appearance_notes || "") + "</textarea>" +
@@ -1927,6 +1935,7 @@
         var comp = document.querySelector(".tg-composer-row"); comp.parentNode.insertBefore(box, comp);
       }
       box.classList.toggle("open");
+      document.body.classList.toggle("tg-emoji-open", box.classList.contains("open"));
     },
     importTelegramPack: function () {
       var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
@@ -2661,6 +2670,12 @@
       });
     },
 
+    setCharAvatar: function (url) {
+      var slug = selectedDrawerCharSlug; if (!slug || !url) return;
+      apiPost({ action: "char_profile", char_slug: slug, profile: { avatar_url: url } }).then(function (res) {
+        syncCharCatalog(slug, res.profile || res); renderSidebar(); renderActiveThread(); renderDrawer();
+      }).catch(function (e) { alert(e.message); });
+    },
     triggerRefUpload: function (kind, slot) {
       var inp = document.getElementById("drwRefUploadInput");
       if (!inp) return;

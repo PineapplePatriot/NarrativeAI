@@ -4780,6 +4780,12 @@ def messenger_api(request):
             messenger.save_user_profile(request.user, {"custom_stickers": stickers})
             return JsonResponse({"sticker": st_item, "url": url})
 
+        if kind == "char_avatar":  # 🖼️ their profile picture, uploaded by the user
+            c_obj = next((c for c in _user_characters(request.user) if c.slug == (request.POST.get("char_slug") or "")), None)
+            if not c_obj:
+                return JsonResponse({"error": "Character not found."}, status=404)
+            return JsonResponse({"profile": messenger.save_char_profile(c_obj, {"avatar_url": url}), "char_slug": c_obj.slug})
+
         if kind in ("char_neutral", "char_extra_ref"):
             slug = request.POST.get("char_slug") or ""
             chars = _user_characters(request.user)

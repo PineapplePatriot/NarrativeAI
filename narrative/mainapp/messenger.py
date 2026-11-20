@@ -248,7 +248,10 @@ def char_profile(character):
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
         "lore": clean_lore(raw.get("lore")),
         # ✨ how often they post statuses, as who they are (Bulba sets it; editable): rarely / sometimes / often
-        "status_habit": raw.get("status_habit") if raw.get("status_habit") in STATUS_HABITS else "sometimes",  # 📚 the worldbook of this setup (the roleplay lorebook stays as it is)
+        "status_habit": raw.get("status_habit") if raw.get("status_habit") in STATUS_HABITS else "sometimes",
+        # 🖼️ when they last changed their own profile picture, and the ones before
+        "avatar_changed": float(raw.get("avatar_changed") or 0),
+        "avatar_history": [str(u)[:500] for u in (raw.get("avatar_history") or []) if u][:8],  # 📚 the worldbook of this setup (the roleplay lorebook stays as it is)
     }
 
 
@@ -451,6 +454,10 @@ def save_char_profile(character, updates):
             current[key] = val
     if current.get("voice_model") not in voice.OPENROUTER_TTS_MODELS:
         current["voice_model"] = voice.OPENROUTER_TTS_MODEL_DEFAULT
+    if "avatar_changed" in updates:
+        current["avatar_changed"] = float(updates["avatar_changed"] or 0)
+    if isinstance(updates.get("avatar_history"), list):
+        current["avatar_history"] = [str(u)[:500] for u in updates["avatar_history"] if u][:8]
     if updates.get("status_habit") in STATUS_HABITS:
         current["status_habit"] = updates["status_habit"]
     if isinstance(updates.get("lore"), list):
@@ -1347,6 +1354,7 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
    - Send a casual or tease photo: include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship). When they are NOT in the photo (their food, a view, their desk, a thing), begin the description with `No people:`. When {user} asks for a photo without them in it, it has no people.
    - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]` (a markdown table is fine for lists, schedules, results).
    - When {user} edited a message (marked "edited"), you may notice it if it matters (they softened something, took something back): real people do.
+   - Very rarely (a new haircut, a big change in their life, a mood that lasts), change their profile picture: `[AVATAR: what the new picture shows]`. Most people do this every few months; only when it truly fits.
    - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`, with a picture if it fits: `[STATUS: 🧪 | short text | PHOTO: what the picture shows]`.
    - Schedule a real-time event/reminder: `[EVENT: Title at HH:MM | short note]`."""
 
@@ -1642,6 +1650,8 @@ RE_VOICE = re.compile(r"\[\s*VOICE\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_PHOTO = re.compile(r"\[\s*(PHOTO|TEASE|SELFIE|IMAGE)\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_FILE = re.compile(r"\[\s*FILE\s*:\s*([^|\]]+?)\s*\|\s*(.+?)\s*\]", re.I | re.S)
 RE_BIO = re.compile(r"\[\s*BIO\s*:\s*(.+?)\s*\]", re.I)
+RE_AVATAR = re.compile(r"\[\s*AVATAR\s*:\s*(.+?)\s*\]", re.I)
+AVATAR_EVERY = 5 * 86400  # 🖼️ a character changes their own profile picture at most once in 5 days
 RE_STATUS = re.compile(r"\[\s*STATUS\s*:\s*(?:([^|\]]+?)\s*\|\s*)?(.+?)\s*\]", re.I)
 RE_EVENT = re.compile(r"\[\s*EVENT\s*:\s*([^|\]]+?)(?:\s*\|\s*(.+?))?\s*\]", re.I)
 
@@ -1902,7 +1912,7 @@ def parse_ai_reply(raw_text, chars, is_group=False):
         if sp_match:
             candidate_name = sp_match.group(1).strip()
             # Ensure it's not a tag like [VOICE: ...] or http:
-            if candidate_name.upper() not in ("REACT", "STICKER", "VOICE", "PHOTO", "TEASE", "FILE", "BIO", "STATUS", "EVENT", "HTTP", "HTTPS"):
+            if candidate_name.upper() not in ("REACT", "STICKER", "VOICE", "PHOTO", "TEASE", "FILE", "BIO", "AVATAR", "STATUS", "EVENT", "HTTP", "HTTPS"):
                 matched = _match_speaker(chars, candidate_name)
                 if matched:
                     current_char = matched
@@ -1916,6 +1926,10 @@ def parse_ai_reply(raw_text, chars, is_group=False):
         chunk = RE_REACT.sub("", chunk)
 
         # Extract bio updates
+        for m in RE_AVATAR.finditer(chunk):  # 🖼️ a new profile picture of their own (rarely)
+            if m.group(1).strip():
+                profile_updates.append({"char": current_char, "kind": "avatar", "text": m.group(1).strip()[:400]})
+        chunk = RE_AVATAR.sub("", chunk)
         for m in RE_BIO.finditer(chunk):
             bio_txt = m.group(1).strip()[:240]
             if bio_txt:
@@ -2718,6 +2732,22 @@ ONE_REF_SHOTS = (
 )
 
 
+def new_avatar(user, character, what):
+    """🖼️ A new profile picture of them (drawn from their pictures, so the face stays theirs). Returns its url."""
+    prof = char_profile(character)
+    refs = load_character_references(character)[:3]
+    style = prof.get("art_style_notes") or DEFAULT_ART_STYLE
+    same = "The SAME person as in the reference pictures: same face, hair, eyes and build. " if refs else ""
+    img, _ = make_picture(user, f"{same}A messenger profile picture of {character.name}: {what}. A square, "
+                                f"well-framed head-and-shoulders or a characterful shot, in-character, expressive.\n"
+                                f"How they look: {(prof.get('appearance_notes') or character.description or '')[:600]}\n"
+                                f"Art style: {style}.", references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/avatars/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    save_char_profile(character, {"avatar_url": url, "avatar_changed": time.time(),
+                                  "avatar_history": ([prof["avatar_url"]] if prof.get("avatar_url") else []) + prof["avatar_history"][:7]})
+    return url
+
+
 def story_chat(user, character, story):
     """💬 The chat a story belongs to: the one it was posted from, else the latest chat with them (one-on-one first),
     else a new one."""
@@ -3181,6 +3211,19 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     for upd in parsed["profile_updates"]:
         c_obj = upd["char"]
         c_prof = char_profile(c_obj)
+        if upd["kind"] == "avatar":
+            if time.time() - char_profile(c_obj)["avatar_changed"] < AVATAR_EVERY:
+                continue  # too soon: they did it lately
+            try:
+                url = new_avatar(user, c_obj, upd["text"])
+            except Exception as e:  # (no picture model, a refusal…): the chat goes on without it
+                log.info("messenger: no new avatar for %s: %s", c_obj.name, e)
+                continue
+            notice = {"id": uuid.uuid4().hex[:10], "role": "system", "time": now_hm, "ts": time.time(),
+                      "text": f"{c_prof['display_name']} changed their profile picture", "image_url": url}
+            data["messages"].append(notice)
+            system_notices.append(notice)
+            continue
         if upd["kind"] == "bio":
             save_char_profile(c_obj, {"bio": upd["text"]})
             notice = {

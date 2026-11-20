@@ -1225,3 +1225,30 @@ class StoriesTests(MessengerActionTests):
         ai_client.complete.side_effect = lambda *a, **k: "ugh [STATUS: ☕ | coffee again, the only constant]"
         self.post(action="generate_reply", thread_id=tid)
         self.assertEqual(len(messenger.char_profile(self.rose.__class__.objects.get(id=self.rose.id))["stories"]), 1)  # too soon
+
+
+class AvatarTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_the_user_changes_it_and_they_change_it_rarely(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import Character
+        up = self.client.post(self.url, {"kind": "char_avatar", "char_slug": self.rose.slug, "file": upload()}).json()
+        self.assertTrue(up["profile"]["avatar_url"])
+        prof = self.post(action="char_profile", char_slug=self.rose.slug, profile={"avatar_url": "/media/other.png"}).json()
+        self.assertEqual((prof.get("profile") or prof)["avatar_url"], "/media/other.png")
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "new haircut [AVATAR: Rose with a fresh bob, smirking]"
+        self.post(action="generate_reply", thread_id=tid)
+        rose = Character.objects.get(id=self.rose.id)
+        p = messenger.char_profile(rose)
+        self.assertNotEqual(p["avatar_url"], "/media/other.png")
+        self.assertEqual(p["avatar_history"][0], "/media/other.png")
+        self.assertIn("fresh bob", ai_client.generate_image.call_args.args[1])
+        notice = [m for m in messenger.thread_data(rose.messenger_threads.first())["messages"] if m.get("role") == "system"][-1]
+        self.assertIn("changed their profile picture", notice["text"])
+        changed = p["avatar_url"]
+        self.post(action="generate_reply", thread_id=tid)  # again right away: too soon, nothing changes
+        self.assertEqual(messenger.char_profile(Character.objects.get(id=self.rose.id))["avatar_url"], changed)
