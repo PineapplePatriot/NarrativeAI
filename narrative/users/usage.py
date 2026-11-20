@@ -56,7 +56,7 @@ def _messages_sent(user):
     return sent, notes, with_messages
 
 
-def report(days=None, exclude=("demo",), include_staff=False):
+def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunday"):
     """Everything the stats page shows. `days`: only the last N days of activity; `exclude`: usernames left out
     (the demo account, which graders share); staff accounts are left out unless include_staff."""
     from mainapp.models import BulbaSession, Character
@@ -135,30 +135,32 @@ def report(days=None, exclude=("demo",), include_staff=False):
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
             "filled_feedback_form": sum(1 for r in rows if r["feedback"]),
         },
-        "weekly": weekly(sessions_by_user, now),
-        "retention": retention(users, times, now),
+        "weekly": weekly(sessions_by_user, now, starts=week_starts),
+        "retention": retention(users, times, now, starts=week_starts),
+        "week_starts": week_starts,
         "signups_by_day": sorted(((d, n) for d, n in _by_day(r["joined"] for r in rows).items()), reverse=True),
         "active_by_day": sorted(((d, len(u)) for d, u in daily.items()), reverse=True),
         "users": rows,
     }
 
 
-def _week_start(t):
+def _week_start(t, starts="sunday"):
+    """The first day of t's week: the Sunday (Sunday to Saturday) or, with starts="monday", the Monday."""
     d = timezone.localtime(t).date()
-    return d - timedelta(days=(d.weekday() + 1) % 7)  # the Sunday (weeks run Sunday to Saturday)
+    return d - timedelta(days=d.weekday() if starts == "monday" else (d.weekday() + 1) % 7)
 
 
-def weekly(sessions_by_user, now, weeks=12):
+def weekly(sessions_by_user, now, weeks=12, starts="sunday"):
     """Week by week (Sunday to Saturday, the last `weeks`, newest first), everyone added up: minutes on the site,
     sessions, and people active. A session counts in the week it started."""
     out = defaultdict(lambda: {"minutes": 0.0, "sessions": 0, "people": set()})
     for user_id, sess in sessions_by_user.items():
         for s in sess:
-            w = out[_week_start(s[0])]
+            w = out[_week_start(s[0], starts)]
             w["minutes"] += length(s).total_seconds() / 60
             w["sessions"] += 1
             w["people"].add(user_id)
-    this = _week_start(now)
+    this = _week_start(now, starts)
     rows = []
     for k in range(weeks):
         start = this - timedelta(weeks=k)
@@ -169,7 +171,7 @@ def weekly(sessions_by_user, now, weeks=12):
     return rows
 
 
-def retention(users, times, now):
+def retention(users, times, now, starts="sunday"):
     """Who came back. Day N: of the people signed up at least N days ago, the share active again N or more days
     after signing up. Cohorts: people by the week they signed up, and the share active in each of the 4 weeks
     after (a week only counts once it's over)."""
@@ -181,7 +183,7 @@ def retention(users, times, now):
                    "share": round(100 * len(back) / len(eligible)) if eligible else None}
     cohorts = defaultdict(list)
     for u in users:
-        cohorts[_week_start(u.date_joined)].append(u)
+        cohorts[_week_start(u.date_joined, starts)].append(u)
     rows = []
     for start in sorted(cohorts, reverse=True)[:12]:
         people = cohorts[start]

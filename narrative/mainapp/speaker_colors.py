@@ -45,7 +45,10 @@ TONES = {
 MODES = ("story", "app")
 MAX_CAST = 24
 DEFAULT_APP = "#e594f2"
-TAG = re.compile(r"<(/?)([a-z]+)(?::([a-z]+))?>")
+# Models write the tags loosely now and then: <plum:"drawl">, < plum : drawl >, <Plum>, <plum=whisper>; all count
+TAG = re.compile(r"<\s*(/?)\s*([a-zA-Z]+)(?:\s*[:=]\s*[\"']?([a-zA-Z]+)[\"']?)?\s*>")
+# …or lose the brackets altogether right before the speech: plum:"drawl""Now." (the marker is dropped)
+BARE = re.compile(r"\b([a-z]+)\s*:\s*\"([a-z]+)\"(?=\s*[\"“])")
 
 
 def name_of(value):
@@ -166,7 +169,7 @@ def for_writing_user(s, user_name="{{user}}"):
 
 def tag_greeting(text, color):
     """A greeting written before colours were chosen: its untagged spoken lines take the character's colour."""
-    if not text or not color or TAG.search(text) and any(m.group(2) in PALETTE for m in TAG.finditer(text)):
+    if not text or not color or TAG.search(text) and any(m.group(2).lower() in PALETTE for m in TAG.finditer(text)):
         return text
     parts = re.split(r"(<[^>]*>|`+[^`]*`+)", text)
     for i in range(0, len(parts), 2):
@@ -177,7 +180,8 @@ def tag_greeting(text, color):
 
 def strip_tags(text):
     """The text without colour tags (for reading aloud, copying and background jobs that quote it)."""
-    return TAG.sub(lambda m: "" if m.group(2) in PALETTE else m.group(0), text or "")
+    text = TAG.sub(lambda m: "" if m.group(2).lower() in PALETTE else m.group(0), text or "")
+    return BARE.sub(lambda m: "" if m.group(1) in PALETTE else m.group(0), text)
 
 
 def css():

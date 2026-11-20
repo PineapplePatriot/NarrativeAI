@@ -1472,6 +1472,9 @@ def chat(request, slug):
             # The old reply is only replaced once the new one arrives (and is kept as a swipe)
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
+                # the trackers go back to before the reply being rewritten (the new one updates them again)
+                chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
+                    chat_state["tracker_history"], chat_state["trackers"], len(messages))
                 watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
                 rec = chats.polish_of(regen_from)
                 if rec:  # a polished reply thrown away: did the polish miss? (the card shows with the new reply)
@@ -1484,6 +1487,11 @@ def chat(request, slug):
                 messages[-1] = chats.choose_version(messages[-1], int(data.get("to")))
             except (TypeError, ValueError, IndexError):
                 return JsonResponse({"success": False, "error": "No such version."})
+            # another version of the reply: the trackers go back to before it, then update from the one shown
+            chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
+                chat_state["tracker_history"], chat_state["trackers"], len(messages) - 1)
+            swipe_config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+                                                     "keepsakes" in extra_kinds)
             if chat_state["memory"]:
                 chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], len(messages) - 1)
             save_messages(messages)
@@ -1506,6 +1514,9 @@ def chat(request, slug):
                 "swipes": chats.version_info(messages),
                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
                 "directed": chats.directed_of(messages[-1]),
+                "trackers": trackers.normalize_state(chat_state["trackers"], swipe_config),
+                "trackers_due": bool(trackers.ai_trackers(swipe_config))
+                and ai_client.get_task_setting(request.user, "trackers").mode == ai_client.get_task_setting(request.user, "trackers").MODE_AUTO,
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -3668,6 +3679,12 @@ def get_media_resources(request):
 # Bulba, the setup assistant
 # ---------------------------------------------------------------------------
 
+def _has_chatted(user):
+    """They have a story chat or a messenger chat: set up, whichever way they got there."""
+    from .models import Chat, MessengerThread
+    return Chat.objects.filter(character__author=user).exists() or MessengerThread.objects.filter(user=user).exists()
+
+
 def _bulba_state(session):
     from .bulba import agent, editing, lore, progress
     profile = agent.target_profile(session)
@@ -3677,6 +3694,8 @@ def _bulba_state(session):
         "needs_portrait": bool(character and not character.photo_neutral),
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
         "progress": progress.progress(session, agent.STAGES) if session.mode == "setup" else None,
+        # already chatting (the quick setup, or set up before): the guided steps fold away instead of nagging
+        "already_set_up": session.mode == "setup" and session.stage != "done" and _has_chatted(session.user),
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
         "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
         "mode": session.mode,

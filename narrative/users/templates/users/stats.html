@@ -57,7 +57,11 @@
         {% endfor %}
     </div>
 
-    <h2>Week by week <small class="note">(everyone added up; a session counts in the week it started)</small></h2>
+    <h2>Week by week <small class="note">(everyone added up; a whole session counts in the week it started, even one
+        that runs past midnight into the next week)</small></h2>
+    <p class="note">Weeks start on:
+        {% if data.week_starts == "monday" %}<a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=sunday">Sunday</a> · <b>Monday</b>
+        {% else %}<b>Sunday</b> · <a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=monday">Monday</a>{% endif %}</p>
     <div class="table-wrap"><table>
         <tr><th>Week of</th><th>Time on the site</th><th>Sessions</th><th>People active</th><th>Minutes per person</th></tr>
         {% for w in data.weekly %}<tr><td>{{ w.week }}</td><td>{{ w.hours }} h <span class="note">({{ w.minutes }} min)</span></td><td>{{ w.sessions }}</td><td>{{ w.people }}</td><td>{{ w.per_person }}</td></tr>{% endfor %}

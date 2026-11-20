@@ -55,7 +55,7 @@
   // (online / away / busy) changes as their day goes on, and a reply that arrived meanwhile shows up
   setInterval(function () {
     var T = window.TG, t = STATE.active_thread;
-    if (!T || !t || document.hidden || T._typing || T._busy) return;
+    if (!T || !t || document.hidden || T._typing || T._busy || editFor) return;
     var before = (t.messages || []).map(function (m) { return m.id; });
     apiPost({ action: "load_thread", thread_id: t.id }).then(function (r) {
       if (!STATE.active_thread || STATE.active_thread.id !== t.id || T._typing) return;
@@ -289,6 +289,8 @@
   })();
 
   function renderActiveThread() {
+    var openEdit = document.getElementById("tgEditText");
+    if (openEdit) editDraft = openEdit.value;  // ✏️ (a redraw keeps what they've typed)
     var t = STATE.active_thread;
     var hdrTitle = document.getElementById("hdrTitle");
     var hdrSub = document.getElementById("hdrSub");
@@ -562,6 +564,13 @@
         "</div>"
       );
       if (redoFor === m.id && !isUser) out.push(redoBox(m));
+      if (editFor === m.id) {  // ✏️ edited in place: the whole text, as long as it is
+        out.push('<div class="tg-edit-box ' + (isUser ? "user" : "") + '" id="tgEditBox"><textarea id="tgEditText" rows="3">' +
+          esc(editDraft != null ? editDraft : ((m.voice && m.voice.transcript) || m.text || "")) + "</textarea>" +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.saveEdit(\'' + esc(m.id) + '\')">✓ Save</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.cancelEdit()">Cancel</button>' +
+          '<small style="color:var(--tg-muted)">Ctrl+Enter saves · Esc cancels</small></div></div>');
+      }
     });
 
     // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
@@ -1172,6 +1181,8 @@
 
   // --- ↻ One message again: its text (or a voice note's words) rewritten, or its photo redrawn, with a note ---
   var redoFor = null;
+  var editFor = null;  // ✏️ the message being edited in place
+  var editDraft = null;  // (what's typed so far, kept when the chat redraws)
   function redoBox(m) {
     var hasText = !!((m.voice && m.voice.transcript) || m.text), hasPhoto = !!m.photo;
     var picks = hasPhoto && !hasText ? [["🎨 Other angle", "A different camera angle."], ["😏 Cheekier", "More playful."], ["🌙 Moodier light", "Moodier lighting."]]
@@ -2580,18 +2591,33 @@
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
-    editMessagePrompt: function (msgId) {
-      var t = STATE.active_thread;
-      if (!t) return;
-      var m = (t.messages || []).find(function (x) { return x.id === msgId; });
-      if (!m) return;
-      var next = prompt("Edit message:", m.text || "");
-      if (next == null || !next.trim()) return;
-      apiPost({ action: "edit_message", thread_id: t.id, message_id: msgId, text: next.trim() }).then(function (res) {
+    editMessagePrompt: function (msgId) {  // ✏️ opens the edit box under the message
+      editFor = editFor === msgId ? null : msgId;
+      editDraft = null;
+      renderActiveThread();
+      var ta = document.getElementById("tgEditText");
+      if (!ta) return;
+      var grow = function () { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.5) + "px"; };
+      grow(); ta.addEventListener("input", grow);
+      ta.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); TG.saveEdit(msgId); }
+        if (e.key === "Escape") TG.cancelEdit();
+      });
+      ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+      document.getElementById("tgEditBox").scrollIntoView({ block: "nearest" });
+    },
+    cancelEdit: function () { editFor = null; editDraft = null; renderActiveThread(); },
+    saveEdit: function (msgId) {
+      var t = STATE.active_thread, ta = document.getElementById("tgEditText");
+      if (!t || !ta) return;
+      var next = ta.value.trim();
+      if (!next) return;
+      apiPost({ action: "edit_message", thread_id: t.id, message_id: msgId, text: next }).then(function (res) {
         var idx = t.messages.findIndex(function (x) { return x.id === msgId; });
         if (idx !== -1) t.messages[idx] = res.message;
+        editFor = null; editDraft = null;
         renderActiveThread();
-      });
+      }).catch(function (e) { alert(e.message); });
     },
 
     deleteMessage: function (msgId) {

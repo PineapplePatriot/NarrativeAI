@@ -10,6 +10,7 @@ import hashlib
 import logging
 import os
 import re
+import time
 
 import requests
 
@@ -324,6 +325,9 @@ def _invalid_safety_setting(resp):
             and bool(re.search(r"invalid|unsupported|unknown|unrecognized|not supported|not allowed", reason, re.I)))
 
 
+RATE_LIMIT_WAITS = (3, 6)  # seconds before each retry of a 429
+
+
 def _post(profile, payload, *, diagnostic_task=None, diagnostic_operation=None, **kwargs):
     """Retry compatibility errors only when the provider names an invalid safety-setting field."""
     url = f"{profile.api_url}/chat/completions"
@@ -336,6 +340,13 @@ def _post(profile, payload, *, diagnostic_task=None, diagnostic_operation=None, 
         logging.getLogger(__name__).warning("Retrying invalid safety-setting request %s", how)
         resp.close()
         payload = change(payload)
+        resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
+    for wait in RATE_LIMIT_WAITS:  # ⏳ "temporarily rate-limited upstream": usually gone in seconds
+        if resp.status_code != 429:
+            break
+        logging.getLogger(__name__).info("Rate-limited (429): trying again in %ss", wait)
+        resp.close()
+        time.sleep(wait)
         resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     if resp.status_code >= 400:
         try:

@@ -693,7 +693,8 @@ def stats(request):
         from users import backup
         handle, name = backup.make_zip()
         return FileResponse(handle, as_attachment=True, filename=name, content_type="application/zip")
-    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
+    week_starts = "monday" if request.GET.get("week") == "monday" else "sunday"  # 📅 Sunday weeks unless asked
+    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",), week_starts=week_starts)
     if request.GET.get("format") == "csv":
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'

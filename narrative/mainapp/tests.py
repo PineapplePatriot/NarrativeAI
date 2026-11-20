@@ -1571,6 +1571,18 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertNotIn("One", call["messages"][1]["content"])
         self.assertIn("Two", call["messages"][1]["content"])
 
+    def test_regenerate_and_swipe_rewind_the_trackers(self):
+        self.build_story()
+        self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it
+        data = self.chat_file()
+        self.assertEqual(data["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertEqual([s["at"] for s in data["tracker_history"]], [3])
+        self.tracker_reply = '{"world": {"location": "Garden"}}'
+        self.post({"action": "update_trackers"})
+        resp = self.post({"action": "swipe", "to": 0}).json()  # back to the first version: back to before it too
+        self.assertEqual(resp["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertIn("trackers_due", resp)
+
     def test_delete_drops_summary_pieces_and_rewinds_trackers(self):
         self.build_story()
         resp = self.post({"action": "delete", "index": 4}).json()  # removes the second reply
@@ -10221,6 +10233,9 @@ class WeeklyAndRetentionTests(TestCase):
         cohort = data["retention"]["cohorts"][0]
         # signed up on a Saturday: day 8 falls in calendar week 2 after the signup week (ann, not bob)
         self.assertEqual((cohort["people"], cohort["weeks"]), (2, [0, 50, 0, 0]))
+        with mock.patch("users.usage.timezone.now", return_value=now):
+            monday = usage.report(week_starts="monday")
+        self.assertEqual(monday["weekly"][0]["week"].weekday(), 0)  # 📅 Monday weeks, when asked
 
 
 class PersonaMoodUploadTests(TestCase):

@@ -1735,3 +1735,10 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-avatar-pick img { width: 100%; height: 100%; object-fit: cover; }
 .tg-sys-pill img { display: block; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin: 6px auto 0; }
 .tg-emoji-open .tg-down-btn { display: none !important; }
+/* ✏️ editing a message in place */
+.tg-edit-box { margin: 2px 0 8px 46px; max-width: min(620px, 92%); background: var(--tg-panel, #1c2135); border: 1px solid var(--tg-accent, #8b5cf6);
+  border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.tg-edit-box.user { align-self: flex-end; margin: 2px 46px 8px 0; }
+.tg-edit-box textarea { width: 100%; box-sizing: border-box; resize: none; background: transparent; color: var(--tg-text); border: 0; outline: 0;
+  font: inherit; font-size: 15px; line-height: 1.45; min-height: 60px; }
+@media (max-width: 860px) { .tg-edit-box, .tg-edit-box.user { margin-left: 0; margin-right: 0; max-width: 100%; } }

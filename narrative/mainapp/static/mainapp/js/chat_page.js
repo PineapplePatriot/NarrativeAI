@@ -224,7 +224,12 @@ function messagePlace(where) {
 function speechTags(text) {
     const sp = window.SPEECH || {};
     const palette = sp.palette || {}, tones = sp.tones || [];
-    let out = text.replace(/<(\/?)([a-z]+)(?::([a-z]+))?>/g, (m, close, name, tone) => {
+    // (models write them loosely now and then: <plum:"drawl">, < plum : drawl >, <Plum>; a bare plum:"drawl" right
+    // before the speech, its brackets lost, is dropped)
+    let out = text.replace(/\b([a-z]+)\s*:\s*"([a-z]+)"(?=\s*["“])/g, (m, name) =>
+        Object.prototype.hasOwnProperty.call(palette, name) ? '' : m);
+    out = out.replace(/<\s*(\/?)\s*([a-zA-Z]+)(?:\s*[:=]\s*["']?([a-zA-Z]+)["']?)?\s*>/g, (m, close, name, tone) => {
+        name = name.toLowerCase(); tone = tone && tone.toLowerCase();
         if (!Object.prototype.hasOwnProperty.call(palette, name)) return m;
         if (close) return '</span>';
         return `<span class="sc sc-${name}${tone && tones.includes(tone) ? ' t-' + tone : ''}">`;
@@ -1544,6 +1549,8 @@ function swipe(step) {
             setGame(last, d.game);
             setExtras(last, d.extras_html);
             if (d.game_trackers && window.Trackers) Trackers.setState(d.game_trackers);
+            // the trackers went back to before this reply: they update from the version now shown
+            if (d.trackers && window.Trackers) { Trackers.setState(d.trackers); Trackers.afterReply(d); }
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;
