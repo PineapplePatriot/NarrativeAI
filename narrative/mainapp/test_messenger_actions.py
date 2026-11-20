@@ -864,3 +864,33 @@ class GalleryMoodRedoTests(MessengerActionTests):
         sent = json.dumps(ai_client.complete.call_args.args[2])
         self.assertIn("wait are you coming tonight", sent)
         self.assertIn("must still lead", sent)
+
+
+class ExpressionAndDailyTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_mood_picture_lends_its_expression(self):
+        from django.core.files.base import ContentFile
+        from mainapp import ai_client, messenger
+        self.rose.photo_neutral.save("n.png", ContentFile(png("green")), save=False)
+        self.rose.photo_happy.save("h.png", ContentFile(png("yellow")), save=True)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie, grinning at the camera", shot_type="selfie")
+        refs = ai_client.generate_image.call_args.kwargs["references"]
+        self.assertEqual(len(refs), 2)  # the portrait + the happy face
+        self.assertIn("EXPRESSION REFERENCE ONLY (happy)", ai_client.generate_image.call_args.args[1])
+        messenger.generate_messenger_photo(self.user, self.rose, "No people: my lunch")
+        self.assertNotIn("EXPRESSION REFERENCE", ai_client.generate_image.call_args.args[1])
+
+    def test_daily_photos_show_their_day(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, photo_mood="daily")
+        thread = MessengerThread.objects.get(id=tid)
+        messenger.generate_messenger_photo(self.user, self.rose, "the flower market this morning", kind="tease", thread=thread)
+        prompt = ai_client.generate_image.call_args.args[1]
+        self.assertIn("NO PEOPLE", prompt)
+        self.assertNotIn("HOW FAR IT GOES", prompt)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie at the market", thread=thread)
+        self.assertNotIn("NO PEOPLE", ai_client.generate_image.call_args.args[1])  # asked for one: a selfie

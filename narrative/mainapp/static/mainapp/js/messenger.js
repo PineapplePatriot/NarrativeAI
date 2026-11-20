@@ -712,7 +712,10 @@
           "</div>" +
           '<div class="tg-field-group">' +
             "<label>Visual Art Style Lock (kept consistent on selfies, food & scenery photos)</label>" +
-            '<input type="text" class="tg-input" id="drwCharArtStyle" value="' + esc(cur.art_style_notes || "") + '" placeholder="e.g. semi-realistic painted anime illustration, warm cinematic light">' +
+            '<input type="text" class="tg-input" id="drwCharArtStyle" value="' + esc(cur.art_style_notes || "") + '" placeholder="Empty = anime realism, matching their pictures. Pick one below or write your own">' +
+            '<div class="tg-style-chips">' + ART_STYLES.map(function (s) {
+              return '<button type="button" class="tg-fmt-btn" title="' + esc(s[1]) + '" onclick="document.getElementById(\'drwCharArtStyle\').value=this.title">' + esc(s[0]) + "</button>";
+            }).join("") + "</div>" +
           "</div>" +
           '<button type="button" class="tg-bulba-btn" onclick="TG.generateCharRefsFromDesc(this)">🍌 Generate Neutral + Reference Pics from Description</button>' +
         "</div>" +
@@ -943,6 +946,17 @@
         "</select><small style=\"color:var(--tg-muted);font-size:11.5px;\">All three keep faces from the reference pictures. Through your OpenRouter key.</small></div>" +
       '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
+
+  // 🎨 Picture styles to pick from (or write your own); empty = anime realism, matching their pictures
+  var ART_STYLES = [
+    ["✨ Anime realism", "semi-realistic anime illustration (anime realism): detailed painted rendering, natural proportions, soft cinematic light, lively expressive faces"],
+    ["🌸 Clean anime", "clean cel-shaded anime illustration: crisp lines, flat vivid colours, big readable expressions"],
+    ["🖌️ Painterly", "painterly digital illustration: visible brushwork, warm atmospheric light, expressive faces"],
+    ["📷 Photo-real", "photorealistic smartphone photo: natural skin texture, real-world lighting, candid expressions"],
+    ["💥 Comic", "western comic / graphic-novel style: bold inks, strong shadows, punchy expressions"],
+    ["💧 Watercolour", "soft watercolour illustration: gentle colours, light linework, airy light"],
+    ["🧸 3D animated", "stylized 3D animated-film look: soft lighting, appealing proportions, very expressive faces"],
+  ];
 
   function renderMomentsFeed() {
     var box = document.getElementById("momentsFeedList");

@@ -1668,3 +1668,4 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-gallery-item figcaption span { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tg-gallery-item figcaption button { position: absolute; right: 4px; top: 4px; }
 @media (max-width: 860px) { .tg-gallery-grid { grid-template-columns: repeat(2, 1fr); } .dock-app-btn { min-width: 0; flex: 1; } }
+.tg-style-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }

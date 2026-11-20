@@ -1179,8 +1179,11 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
 
     all_moods = sorted({m for c in chars for m in sprites.emotions(c)})
     safeguards = TEXTING_SAFEGUARDS.format(user=u_name, moods=", ".join(all_moods[:16]))
-    safeguards += (f"\n   - A [TEASE: …] photo in this chat goes this far and no further: "
-                   f"{PHOTO_MOODS[photo_mood(user, thread_data(thread))][1]}.")
+    _mood = photo_mood(user, thread_data(thread))
+    safeguards += ("\n   - Photos in this chat: no [TEASE] photos; [PHOTO] shows what they're up to (food, the view, "
+                   "their desk, a thing), with `No people:`, unless {user} asks for a photo of them."
+                   .replace("{user}", u_name) if _mood == "daily" else
+                   f"\n   - A [TEASE: …] photo in this chat goes this far and no further: {PHOTO_MOODS[_mood][1]}.")
     model_info = active_model_texting_rules(user)
     model_block = (
         f"ACTIVE MODEL TEXTING CALIBRATION ({model_info['label']}):\n{model_info['rules']}"
@@ -1680,6 +1683,41 @@ def load_character_references(character):
     return refs[:5]
 
 
+# 🙂 Which mood picture shows an expression ("a tired half-smile" → calm or tired): the character's own mood pictures
+# hold real expressions, so the picture model copies one instead of inventing a smooth, plastic face
+EXPRESSION_WORDS = {
+    "happy": ("smil", "grin", "laugh", "happy", "amused", "cheer", "delight", "beam", "joy"),
+    "scheming": ("smirk", "sly", "mischiev", "scheming", "teas", "devious", "playful"),
+    "sad": ("sad", "tear", "cry", "gloom", "upset", "hurt", "down", "melanchol"),
+    "angry": ("angry", "annoyed", "furious", "scowl", "glar", "irritat", "frown", "pout"),
+    "surprised": ("surpris", "shock", "wide-eyed", "startled", "gasp"),
+    "scared": ("scared", "afraid", "nervous", "anxious", "fear", "worried"),
+    "confused": ("confus", "puzzl", "bewilder", "quizzical"),
+    "calm": ("calm", "relax", "serene", "sleepy", "tired", "drowsy", "soft", "content"),
+}
+
+
+def expression_reference(character, expression):
+    """(picture, mood) of the mood picture closest to `expression`, or (None, "")."""
+    low = str(expression or "").lower()
+    if not low.strip():
+        return None, ""
+    own = sprites.extras(character)
+    for mood, url in own.items():  # their own named moods first ("flustered", "smug")
+        if mood and re.search(r"\b" + re.escape(mood[:6]), low):
+            item = _read_storage_image(url)
+            if item:
+                return item, mood
+    for mood, words in EXPRESSION_WORDS.items():
+        if any(w in low for w in words):
+            field = getattr(character, f"photo_{mood}", None)
+            if field:
+                item = _read_storage_image(field)
+                if item:
+                    return item, mood
+    return None, ""
+
+
 def generate_character_references_from_description(user, character, count=2):
     """
     For OCs (or characters without reference pictures yet), generate:
@@ -1767,8 +1805,15 @@ POV_CAMERA_ANGLES = (
     "rear-camera smartphone snapshot looking out through a window or across their current environment, candid framing",
 )
 
+# 🎨 The picture style when none is set (the messenger's character drawer offers more, or their own words)
+DEFAULT_ART_STYLE = ("semi-realistic anime illustration (anime realism), with the exact linework, shading and colour "
+                     "palette of the reference image(s); lively, expressive faces")
+
+
 # 📸 How far a tease photo goes, per chat (the user or Bulba sets it). "Bold" only with mature content switched on.
 PHOTO_MOODS = {
+    "daily": ("📷 Daily", "no tease photos: their photos show what they're up to (their food, the view, their desk, "
+                         "a thing they found), not themselves; a selfie only when asked for one"),
     "sweet": ("💗 Sweet", "warm, affectionate and wholesome: a soft smile, cosy clothes, nothing suggestive at all"),
     "playful": ("😏 Playful", "playful and cheeky: a wink, a smirk, a cute or teasing pose; fully and normally dressed; "
                              "the flirt is in the expression and the framing, not in skin or posing"),
@@ -1853,6 +1898,8 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
         recent_chat += f"\n[Specific photo direction: {hint}]"
 
     mood = photo_mood(user, data)
+    if mood == "daily":
+        kind = "casual"
     kind_desc = (
         "Casual everyday smartphone photo (could be a varied-angle selfie, mirror shot, OR a POV photo of their food/coffee/desk/scenery depending on what they were just talking about)"
         if kind != "tease"
@@ -1930,11 +1977,16 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
     if not card_appearance:
         card_appearance = (character.description or "")[:600]
 
-    art_style = prof.get("art_style_notes") or "exact same art style, linework, shading, and color palette as the reference image(s)"
+    art_style = prof.get("art_style_notes") or DEFAULT_ART_STYLE
     desc_clean = str(description or "").strip()
 
     # If no explicit description was supplied (or it's a generic placeholder), extract scene essence from the thread
     expression = ""
+    mood = photo_mood(user, thread_data(thread) if thread else {})
+    if mood == "daily":  # 📷 they show their day, not themselves (unless a photo of them was asked for)
+        kind = "casual"
+        if not shot_type and not re.search(r"selfie|mirror|of (?:me|myself|you|yourself)|my face|\bme\b", desc_clean, re.I):
+            shot_type = "pov_object"
     if not desc_clean or desc_clean in ("casual selfie", f"candid smartphone selfie of {character.name} in their current setting"):
         scene = describe_photo_scene(user, thread, character, kind=kind, hint=desc_clean)
         desc_clean = scene["visual_prompt"]
@@ -1968,7 +2020,6 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"Photo subject & scene: {subject[:600]}"
         )
     else:
-        mood = photo_mood(user, thread_data(thread) if thread else {})
         style_note = (
             "candid smartphone photo / selfie sent in a private chat app, natural atmospheric lighting, expressive and in-character"
             if kind != "tease"
@@ -1986,6 +2037,12 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             + (f"\nHOW FAR IT GOES (binding): {PHOTO_MOODS[mood][1]}." if kind == "tease" else "")
         )
 
+    if shot_type != "pov_object":
+        face, face_mood = expression_reference(character, expression or desc_clean)
+        if face:
+            refs = (refs[:4] if len(refs) >= 5 else refs) + [face]
+            prompt += (f"\nThe LAST attached picture is an EXPRESSION REFERENCE ONLY ({face_mood}): copy how the face "
+                       "moves (eyes, brows, mouth), never its clothes, background or framing.")
     img_bytes, cost = make_picture(user, prompt, references=refs)
     rel_path = f"messenger/photos/{character.slug}-{uuid.uuid4().hex[:8]}.png"
     saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
