@@ -1175,3 +1175,53 @@ class SetupIdeasTests(MessengerActionTests):
         self.assertEqual(out["ideas"][0], "She runs a night florist.")
         self.assertIn("A florist with a sharp tongue", ask.call_args.args[1])
         self.assertIn("we're neighbours", ask.call_args.args[1])
+
+
+class StoriesTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_in_character_varied_answerable_stories(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        self.rose.messenger_profile = {"status_habit": "rarely", "stories": [
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+        self.rose.save()
+        self.assertTrue(messenger.status_due(self.rose))
+        self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [{"id": "s0", "text": "x", "ts": time.time() - 20 * 3600}]}
+        self.rose.save()
+        self.assertFalse(messenger.status_due(self.rose))  # "rarely": not again after 20 hours
+        self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+        self.rose.save()
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        long_text = "The tulips came in wrong. " * 20
+        with mock.patch("mainapp.messenger.ask_json", return_value={"emoji": "🌷", "text": long_text, "photo": ""}) as ask:
+            story = messenger.post_own_status(self.user, self.rose, thread=thread)
+        sent = ask.call_args.args[1]
+        self.assertIn("Coffee. Again.", sent)  # their last statuses, so it doesn't repeat them
+        self.assertIn("No motivational quotes", sent)
+        self.assertTrue(story["text"].endswith("."))  # cut at a full sentence, never mid-word
+        self.assertLessEqual(len(story["text"]), 280)
+        self.assertEqual(story["thread_id"], tid)
+        # a reply goes to that chat, and they answer there
+        out = self.post(action="answer_story", owner=self.rose.slug, story_id=story["id"], text="which ones??").json()
+        self.assertEqual(out["thread_id"], tid)
+        self.assertEqual(out["messages"][0]["story_ref"]["text"], story["text"])
+        self.assertIn("About Rose's story", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertGreater(len(out["messages"]), 1)
+        react = self.post(action="answer_story", owner=self.rose.slug, story_id=story["id"], emoji="😂").json()
+        self.assertEqual(len(react["messages"]), 1)  # a reaction alone gets no reply right away
+        self.assertIn("😂", next(s for s in react["profile"]["stories"] if s["id"] == story["id"])["reactions"])
+
+    def test_statuses_inside_replies_keep_the_habit(self):
+        import time
+        from mainapp import ai_client, messenger
+        self.rose.messenger_profile = {"status_habit": "sometimes", "stories": [{"id": "s0", "text": "Coffee first, always", "ts": time.time() - 3600}]}
+        self.rose.save()
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "ugh [STATUS: ☕ | coffee again, the only constant]"
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertEqual(len(messenger.char_profile(self.rose.__class__.objects.get(id=self.rose.id))["stories"]), 1)  # too soon

@@ -5475,6 +5475,17 @@ def messenger_api(request):
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"url": url, "seen": seen})
 
+    if action == "answer_story":  # ✨ a reply or a reaction to a character's story, into the chat it came from
+        c_obj = char_by_slug.get(body.get("owner") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            thread, new = messenger.answer_story(request.user, c_obj, body.get("story_id"), body.get("text"), body.get("emoji"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"thread_id": thread.id, "thread_title": thread.title, "messages": new,
+                             "profile": messenger.char_profile(c_obj), "char_slug": c_obj.slug})
+
     if action == "story_picture":  # 🖼️ a status's picture, made when it's first viewed
         c_obj = char_by_slug.get(body.get("owner") or "")
         if not c_obj:

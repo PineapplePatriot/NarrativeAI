@@ -1711,3 +1711,20 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-places summary { cursor: pointer; font-size: 12.5px; color: var(--tg-muted); margin: 4px 0; }
 .tg-place { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; margin-bottom: 6px; }
 .tg-linked { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+/* ✨ react or reply to a story (above the tap zones) */
+.tg-stories-text { overflow-wrap: anywhere; }
+.tg-stories-answer { position: relative; z-index: 3; padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+.tg-stories-reacts { display: flex; gap: 6px; justify-content: center; }
+.tg-stories-reacts button { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 50%; width: 42px; height: 42px; font-size: 20px; cursor: pointer; }
+.tg-stories-reacts button.on { background: rgba(167,139,250,.45); border-color: #a78bfa; }
+.tg-stories-answer form { display: flex; gap: 6px; }
+.tg-stories-answer input { flex: 1; min-width: 0; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 20px; padding: 10px 14px; font: inherit; }
+.tg-stories-answer form button { background: #8b5cf6; color: #fff; border: 0; border-radius: 50%; width: 42px; height: 42px; font-size: 16px; cursor: pointer; }
+.tg-stories-sent { font-size: 12.5px; color: rgba(255,255,255,.7); text-align: center; min-height: 1em; }
+.tg-stories-sent a { color: #c4b5fd; }
+/* ✨ a message that answers a story */
+.tg-story-quote { display: flex; gap: 8px; align-items: center; border-left: 3px solid var(--tg-accent, #8b5cf6); padding: 4px 8px; margin-bottom: 6px;
+  background: rgba(139,92,246,.12); border-radius: 6px; font-size: 12.5px; }
+.tg-story-quote img { width: 34px; height: 46px; object-fit: cover; border-radius: 4px; }
+.tg-story-quote small { display: block; color: var(--tg-muted); }
+.moment-memo { opacity: .75; }

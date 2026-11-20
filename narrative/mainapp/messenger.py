@@ -246,7 +246,9 @@ def char_profile(character):
         "share_memory": raw.get("share_memory", True) is not False,
         "avatar_url": char_avatar(character),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
-        "lore": clean_lore(raw.get("lore")),  # 📚 the worldbook of this setup (the roleplay lorebook stays as it is)
+        "lore": clean_lore(raw.get("lore")),
+        # ✨ how often they post statuses, as who they are (Bulba sets it; editable): rarely / sometimes / often
+        "status_habit": raw.get("status_habit") if raw.get("status_habit") in STATUS_HABITS else "sometimes",  # 📚 the worldbook of this setup (the roleplay lorebook stays as it is)
     }
 
 
@@ -449,6 +451,8 @@ def save_char_profile(character, updates):
             current[key] = val
     if current.get("voice_model") not in voice.OPENROUTER_TTS_MODELS:
         current["voice_model"] = voice.OPENROUTER_TTS_MODEL_DEFAULT
+    if updates.get("status_habit") in STATUS_HABITS:
+        current["status_habit"] = updates["status_habit"]
     if isinstance(updates.get("lore"), list):
         current["lore"] = clean_lore(updates["lore"])
     if isinstance(updates.get("extra_refs"), list):
@@ -653,6 +657,7 @@ Answer with JSON only:
   "voice_id": "one voice name from the list above",
   "scenario": "Why {char} and {user} have each other's contact and what is happening as the chat begins (2-4 sentences)",
   "first_text": "Their opening text message (no stage directions)",
+  "status_habit": "How often {char} would post statuses/stories, as who they are: rarely, sometimes or often",
   "changes": ["What differs from the roleplay card in this setup, one short line each (job, look, lore)"],
   "questions": ["Up to 3 short questions for {user} about choices that are theirs to make (e.g. keep the mask?)"]
 }}"""
@@ -738,6 +743,7 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
         "voice_id": picked_voice,
         "scenario": parsed.get("scenario") or "",
         "first_text": parsed.get("first_text") or "",
+        "status_habit": str(parsed.get("status_habit") or "").strip().lower(),  # (kept only when it's one of the three)
     }
     notes = {k: [str(x).strip()[:300] for x in (parsed.get(k) or []) if str(x).strip()][:6]
              for k in ("changes", "questions") if isinstance(parsed.get(k), list)}  # shown with the draft, not saved
@@ -1564,6 +1570,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
             continue
         speaker = m.get("sender_name") or (u_name if role == "user" else chars[0].name)
         parts = []
+        if m.get("story_ref"):  # ✨ a reply or a reaction to their story
+            sr = m["story_ref"]
+            parts.append(f"[About {sr.get('owner_name') or 'your'}'s story: \"{str(sr.get('text') or '')[:160]}\""
+                         + (f" (with a picture: {str(sr.get('photo') or '')[:120]})" if sr.get("photo") else "") + "]")
+            if m.get("story_reaction"):
+                parts.append(f"(reacted {m['story_reaction']} to the story)")
         if m.get("reply_to_text"):
             parts.append(f"[Replying to {m.get('reply_to_sender', 'message')}: \"{m['reply_to_text'][:120]}\"]")
         if m.get("sticker"):
@@ -2629,16 +2641,31 @@ def see_photo(user, url, their_words=""):
     return text.strip()[:1200]
 
 
-STATUS_EVERY = 6 * 3600  # a character's own statuses: at most one per 6-12 hours (a fixed jitter per character and day)
+STATUS_EVERY = 6 * 3600  # (the "sometimes" gap; see STATUS_HABITS)
+# ✨ hours between their own statuses (then a jitter of up to the same again): who they are decides
+STATUS_HABITS = {"rarely": 40, "sometimes": 12, "often": 5}
+STORY_HOURS = 48  # a story is up for 48 hours, then it's one of their memos
 
 
 def status_due(character, now=None):
-    """Whether it's time for this character's own next status."""
+    """Whether it's time for this character's own next status (as often as their habit says)."""
     import hashlib
     now = now or time.time()
-    last = max([ts_of(s) for s in char_profile(character).get("stories") or []] or [0])
-    jitter = int(hashlib.md5(f"{character.slug}{int(now // 86400)}".encode()).hexdigest(), 16) % STATUS_EVERY
-    return now - last >= STATUS_EVERY + jitter
+    prof = char_profile(character)
+    gap = STATUS_HABITS.get(prof.get("status_habit"), 12) * 3600
+    last = max([ts_of(s) for s in prof.get("stories") or []] or [0])
+    jitter = int(hashlib.md5(f"{character.slug}{int(now // 86400)}".encode()).hexdigest(), 16) % gap
+    return now - last >= gap + jitter
+
+
+def _words(text):
+    """The longer words of a text (to tell when a status says the same thing again)."""
+    return {w for w in re.findall(r"[^\W\d_]{5,}", str(text or "").lower())}
+
+
+def story_live(story, now=None):
+    """Up for 48 hours; after that it's a memo (kept, shown with the older ones)."""
+    return (now or time.time()) - ts_of(story) < STORY_HOURS * 3600
 
 
 def post_own_status(user, character, thread=None):
@@ -2651,18 +2678,33 @@ def post_own_status(user, character, thread=None):
         recent = "\n".join(f"{'them' if m.get('role') == 'assistant' else 'the user'}: {(m.get('text') or '')[:200]}"
                            for m in msgs if m.get("text"))
     rt = real_time_context(thread) if thread is not None else {"clock": timezone.localtime(timezone.now()).strftime("%A %H:%M")}
+    before = [f"- {s.get('emoji', '')} {s.get('text', '')}" + (f" [picture: {s['photo_prompt'][:80]}]" if s.get("photo_prompt") else "")
+              for s in (prof.get("stories") or [])[:8]]
+    here = scene_line(thread_data(thread), character.name) if thread is not None else ""
     prompt = (f"{character.name} posts a messenger status (like a Telegram story) on their own. It's {rt['clock']}.\n"
               f"Who they are here: {(prof['modern_persona'] or character.description or '')[:900]}\n"
               f"How they text: {prof['texting_style'][:300]}\nTheir scenario: {prof['scenario'][:400]}\n"
+              + (f"Where they are right now: {here}\n" if here else "")
               + (f"Recent texts with the user:\n{recent}\n" if recent else "")
-              + "Write one status that fits the hour and their life: short, in their voice, not addressed to the user "
-                "directly (it's for everyone). Add a picture only when it makes the status (their coffee, the view, a "
-                "mess on their desk); describe it, with 'No people:' first when they're not in it.\n"
+              + ("Their last statuses (newest first):\n" + "\n".join(before) + "\n" if before else "")
+              + "Write one status the way THEY would post it: only something they'd actually share, in their voice, "
+                "for everyone who follows them (not addressed to the user). Vary it: a different subject and kind from "
+                "their last statuses (something they saw, a gripe, a small win, a dry joke, an opinion, a question, "
+                "something from their day or from what's been going on in the chats, without private details). Never "
+                "repeat a subject or a picture idea from the list above. No motivational quotes, aphorisms or "
+                "inspirational captions unless that is genuinely who they are. Under 200 characters, complete "
+                "sentences, not cut off. Add a picture only when it makes the status; describe it (with 'No people:' "
+                "first when they're not in it).\n"
                 'Answer with JSON only: {"emoji": "one emoji", "text": "the status", "photo": "what the picture shows, or empty"}')
-    data = ask_json(user, prompt, need=("text",), max_tokens=400, task="summary", temperature=0.9)
-    story = {"id": uuid.uuid4().hex[:8], "emoji": str(data.get("emoji") or "💬")[:12], "text": str(data["text"])[:280],
+    data = ask_json(user, prompt, need=("text",), max_tokens=1200, task="summary", temperature=0.9)
+    text = re.sub(r"\s+", " ", str(data["text"])).strip()
+    if len(text) > 280:  # too long: end at the last full sentence, never mid-word
+        cut = text[:280]
+        text = cut[:max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? ")) + 1] or cut.rsplit(" ", 1)[0] + "…"
+    story = {"id": uuid.uuid4().hex[:8], "emoji": str(data.get("emoji") or "💬")[:12], "text": text,
              "photo_prompt": str(data.get("photo") or "")[:500], "image_url": "",
-             "at": timezone.localtime(timezone.now()).strftime("%H:%M"), "ts": time.time(), "own": True}
+             "at": timezone.localtime(timezone.now()).strftime("%H:%M"), "ts": time.time(), "own": True,
+             "thread_id": thread.id if thread is not None else None}  # 💬 replies to it go to the chat it came from
     save_char_profile(character, {"stories": [story, *(prof.get("stories") or [])][:30], "status_emoji": story["emoji"]})
     return story
 
@@ -2674,6 +2716,54 @@ ONE_REF_SHOTS = (
     "a relaxed medium shot in their usual surroundings, hands and clothes visible",
     "a three-quarter view from a slightly low angle, profile and hair visible",
 )
+
+
+def story_chat(user, character, story):
+    """💬 The chat a story belongs to: the one it was posted from, else the latest chat with them (one-on-one first),
+    else a new one."""
+    from mainapp.models import MessengerThread
+    if story.get("thread_id"):
+        t = MessengerThread.objects.filter(user=user, id=story["thread_id"], characters=character).first()
+        if t:
+            return t
+    theirs = MessengerThread.objects.filter(user=user, characters=character).order_by("is_group", "-updated").first()
+    return theirs or ensure_thread_for_character(user, character)
+
+
+def answer_story(user, character, story_id, text="", emoji=""):
+    """✨ A reply (text) or a reaction (emoji) to their story, sent in the chat the story belongs to; a reply gets an
+    answer from them there. Returns (thread, the new messages)."""
+    prof = char_profile(character)
+    stories = list(prof.get("stories") or [])
+    story = next((s for s in stories if s.get("id") == story_id), None)
+    if story is None:
+        raise ValueError("That story is gone.")
+    text, emoji = str(text or "").strip()[:2000], str(emoji or "").strip()[:12]
+    if not text and not emoji:
+        raise ValueError("Write a reply or pick a reaction.")
+    if emoji:  # kept on the story too
+        story["reactions"] = {**(story.get("reactions") or {}), emoji: ["You"]}
+        save_char_profile(character, {"stories": stories})
+    thread = story_chat(user, character, story)
+    data = thread_data(thread)
+    now = time.time()
+    msg = {"id": uuid.uuid4().hex[:10], "role": "user", "text": text, "ts": now,
+           "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
+           "story_ref": {"story_id": story_id, "owner": character.slug, "owner_name": character.name,
+                         "text": story.get("text") or "", "image_url": story.get("image_url") or "",
+                         "photo": story.get("photo_prompt") or "", "emoji": story.get("emoji") or ""}}
+    if emoji:
+        msg["story_reaction"] = emoji
+    data["messages"].append(msg)
+    save_thread_data(thread, data)
+    if not text:
+        return thread, [msg]
+    res = generate_turn(user, thread)
+    raw = dict(thread.data or {})
+    raw["unread"] = int(raw.get("unread") or 0) + len(res.get("bubbles") or [])  # they'll see it in the chat list
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return thread, [msg, *(res.get("bubbles") or [])]
 
 
 def one_reference(user, character, slot):
@@ -3048,8 +3138,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         rt = real_time_context(thread)
         extra_instruction = (
             f"{user.username} hasn't texted in {rt['elapsed_text']} (it is now {rt['clock']}) and is currently away/busy. "
-            f"Send ONE short, natural check-in: a text, or a voice note ([VOICE: ...]) if that's how they'd do it, or "
-            f"a status update; whatever fits your character and "
+            f"Send ONE short, natural check-in: a text, or a voice note ([VOICE: ...]) if that's how they'd do it; "
+            f"whatever fits your character and "
             f"what was happening last. Do not be clingy if your character is aloof."
         )
 
@@ -3104,6 +3194,12 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
             system_notices.append(notice)
         elif upd["kind"] == "status":
             stories = list(c_prof.get("stories") or [])
+            # ✨ their posting habit holds in chats too: too soon after the last one (or the same subject again), skipped
+            gap = STATUS_HABITS.get(c_prof.get("status_habit"), 12) * 3600 / 2
+            last = stories[0] if stories else {}
+            same = last and _words(upd["text"]) and len(_words(upd["text"]) & _words(last.get("text") or "")) >= 3
+            if last and (time.time() - ts_of(last) < gap or same):
+                continue
             stories.insert(0, {
                 "id": uuid.uuid4().hex[:8],
                 "emoji": upd.get("emoji") or "💬",
@@ -3112,6 +3208,7 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
                 "image_url": "",
                 "at": now_hm,
                 "ts": time.time(),
+                "thread_id": thread.id,  # 💬 replies to it come back to this chat
             })
             save_char_profile(c_obj, {"stories": stories[:30], "status_emoji": upd.get("emoji") or c_prof["status_emoji"]})
             notice = {

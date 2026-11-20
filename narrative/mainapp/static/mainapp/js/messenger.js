@@ -128,11 +128,16 @@
     try { var a = JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]"); if (a.indexOf(id) === -1) { a.push(id); localStorage.setItem("na-tg-seen-stories", JSON.stringify(a.slice(-400))); } } catch (e) { /* no memory here */ }
   }
 
+  // ✨ a story is up for 48 hours; after that it's a memo (kept in Moments, out of the story rings)
+  function liveStories(list) {
+    var cut = Date.now() / 1000 - 48 * 3600;
+    return (list || []).filter(function (s) { return (s.ts || 0) >= cut; });
+  }
   function renderStoriesStrip() {
     var strip = document.getElementById("tgStoriesStrip");
     if (!strip) return;
     var u = STATE.user_profile || {};
-    var uStories = u.stories || [];
+    var uStories = liveStories(u.stories);
     var html = [];
     html.push(
       '<div class="tg-story-item" onclick="TG.openStoryModal(\'user\')" title="Your Status / Story">' +
@@ -145,7 +150,8 @@
     );
 
     (STATE.characters || []).forEach(function (c) {
-      var hasStories = (c.stories || []).length > 0, unseen = (c.stories || []).some(function (s) { return !storySeen(s.id); });
+      var live = liveStories(c.stories);
+      var hasStories = live.length > 0, unseen = live.some(function (s) { return !storySeen(s.id); });
       html.push(
         '<div class="tg-story-item" onclick="' + (hasStories ? "TG.viewStories(\'" + esc(c.slug) + "\')" : "") + '" title="' + esc(c.display_name) + ': ' + esc(c.bio || "No status yet") + '">' +
           '<div class="tg-story-ring ' + (hasStories ? (unseen ? "unseen" : "seen") : "empty") + '">' +
@@ -380,6 +386,12 @@
       var senderColor = isUser ? "#a78bfa" : (mem.color || "#f0abfc");
 
       var inner = [];
+      if (m.story_ref) {  // ✨ an answer to their story: the story, small, on top
+        var sr = m.story_ref;
+        inner.push('<div class="tg-story-quote">' + (sr.image_url ? '<img src="' + esc(sr.image_url) + '" alt="">' : "<span>" + esc(sr.emoji || "✨") + "</span>") +
+          "<div><small>" + (m.story_reaction ? "Reacted " + esc(m.story_reaction) + " to " : "Replying to ") + esc(sr.owner_name || "their") + "'s story</small>" +
+          esc(String(sr.text || "").slice(0, 120)) + "</div></div>");
+      }
       if (!isUser && (t.is_group || (t.members && t.members.length > 1))) {
         inner.push(
           '<div class="tg-bubble-sender" style="color:' + esc(senderColor) + '" onclick="TG.openCharProfile(\'' + esc(m.sender_slug || "") + '\')">' +
@@ -790,6 +802,10 @@
         '<div class="tg-field-group">' +
           "<label>Telegram Bio / Status Line</label>" +
           '<input type="text" class="tg-input" id="drwCharBio" value="' + esc(cur.bio || "") + '" placeholder="In the lab. Do not disturb.">' +
+          "<label style=\"margin-top:8px\">✨ How often they post stories</label>" +
+          '<select class="tg-select" id="drwCharStatusHabit">' + [["rarely", "Rarely (every couple of days)"], ["sometimes", "Sometimes (about twice a day)"], ["often", "Often (several a day)"]].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((cur.status_habit || "sometimes") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+          }).join("") + "</select>" +
         "</div>" +
         '<div class="tg-field-group">' +
           "<label>Modern AU / Messenger Persona (separate from RP card)</label>" +
@@ -1052,16 +1068,20 @@
       });
     });
     items.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    var cut = Date.now() / 1000 - 48 * 3600;  // ✨ older than 48 hours: memos, under the live ones
+    items.forEach(function (it) { it.memo = (it.ts || 0) < cut; });
 
     if (!items.length) {
       box.innerHTML =
         '<div class="moment-card"><div style="color:var(--tg-muted);font-size:13.5px;">No status updates yet. Click <b>+ Post My Status</b> above or chat with your characters!</div></div>';
       return;
     }
+    var memoAt = items.findIndex(function (it) { return it.memo; });
     box.innerHTML = items
-      .map(function (it) {
+      .map(function (it, idx) {
         return (
-          '<div class="moment-card">' +
+          (idx === memoAt ? '<h3 style="margin:14px 0 4px;font-size:14px;color:var(--tg-muted)">🗂️ Memos <small style="font-weight:400">(stories older than 48 hours)</small></h3>' : "") +
+          '<div class="moment-card' + (it.memo ? " moment-memo" : "") + '">' +
             avatarHtml(it.avatar, it.owner, "tg-avatar") +
             '<div style="flex:1;">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;">' +
@@ -1677,7 +1697,7 @@
     // the right side for the next one, the left for the one before
     viewStories: function (slug) {
       var c = (STATE.characters || []).find(function (x) { return x.slug === slug; }); if (!c) return;
-      var stories = (c.stories || []).slice().reverse();  // oldest first, like a story
+      var stories = liveStories(c.stories).slice().reverse();  // oldest first, like a story (only the last 48 hours)
       if (!stories.length) return;
       var i = Math.max(0, stories.findIndex(function (s) { return !storySeen(s.id); }));
       var box = document.getElementById("tgStories");
@@ -1690,12 +1710,44 @@
           '<div class="tg-stories-pic">' + (s.image_url ? '<img src="' + esc(s.image_url) + '" alt="">'
             : s.photo_prompt ? '<button type="button" class="tg-setup-go" data-pic>🖼️ Show the picture</button>' : '<div class="tg-stories-emoji">' + esc(s.emoji || "✨") + "</div>") + "</div>" +
           (s.text ? '<div class="tg-stories-text">' + esc(s.emoji || "") + " " + formatMessageHtml(s.text) + "</div>" : "") +
-          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>';
+          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>' +
+          // ❤️ react or reply: it goes to the chat this story came from
+          '<div class="tg-stories-answer">' +
+            '<div class="tg-stories-reacts">' + ["❤️", "🔥", "😂", "😮", "😢", "👏"].map(function (e) {
+              var on = s.reactions && s.reactions[e];
+              return '<button type="button" data-react="' + e + '" class="' + (on ? "on" : "") + '">' + e + "</button>";
+            }).join("") + "</div>" +
+            '<form data-reply><input type="text" placeholder="Reply to ' + esc(c.display_name || c.name) + '…" autocomplete="off"><button type="submit">➤</button></form>' +
+            '<div class="tg-stories-sent" data-sent></div>' +
+          "</div>";
         box.classList.add("open");
         renderStoriesStrip();
       };
+      var answer = function (payload, note) {
+        var sent = box.querySelector("[data-sent]"); if (sent) sent.textContent = note;
+        apiPost(Object.assign({ action: "answer_story", owner: slug, story_id: stories[i].id }, payload)).then(function (res) {
+          syncCharCatalog(slug, res.profile);
+          stories[i].reactions = ((res.profile.stories || []).find(function (x) { return x.id === stories[i].id; }) || {}).reactions;
+          var t = STATE.active_thread;
+          if (t && t.id === res.thread_id) { t.messages = (t.messages || []).concat(res.messages); renderActiveThread(); }
+          var sent2 = box.querySelector("[data-sent]");
+          if (sent2) sent2.innerHTML = (payload.text ? "Sent in “" + esc(res.thread_title) + "” · " : "Reacted · ") +
+            '<a href="#" data-goto="' + res.thread_id + '">open the chat</a>';
+          renderSidebar();
+        }).catch(function (err) { var s2 = box.querySelector("[data-sent]"); if (s2) s2.textContent = err.message; });
+      };
+      box.onsubmit = function (e) {
+        e.preventDefault();
+        var inp = box.querySelector("[data-reply] input"), text = inp.value.trim(); if (!text) return;
+        inp.value = ""; answer({ text: text }, "Sending… they'll answer in your chat");
+      };
       box.onclick = function (e) {
         if (e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-reply]")) return;
+        var go = e.target.closest("[data-goto]");
+        if (go) { e.preventDefault(); box.classList.remove("open"); TG.switchApp("messenger"); TG.selectThread(parseInt(go.getAttribute("data-goto"), 10)); return; }
+        var rb = e.target.closest("[data-react]");
+        if (rb) { rb.classList.add("on"); answer({ emoji: rb.getAttribute("data-react") }, "Reacting…"); return; }
         if (e.target.closest("[data-pic]")) {
           var b = e.target.closest("[data-pic]"); b.disabled = true; b.textContent = "📸 Making the picture…";
           apiPost({ action: "story_picture", owner: slug, story_id: stories[i].id }).then(function (res) {
@@ -2586,6 +2638,7 @@
         status_emoji: document.getElementById("drwCharEmoji").value,
         handle: document.getElementById("drwCharHandle").value,
         bio: document.getElementById("drwCharBio").value,
+        status_habit: (document.getElementById("drwCharStatusHabit") || {}).value || undefined,
         modern_persona: document.getElementById("drwCharPersona").value,
         texting_style: document.getElementById("drwCharStyle").value,
         scenario: document.getElementById("drwCharScenario").value,
