@@ -20,6 +20,14 @@ chat as read. Existing `?thread=…` and `?char=…` links still open TeleChat d
   The chat archive shows delivered files, photos and voice transcripts/audio with
   links to their source messages. Existing account-wide personal notes remain
   readable in a separate tab. They are not automatically shared with characters.
+  A shared document can invite an edit from a character in its chat. The labelled
+  request makes one model call against the saved version and stores a proposal,
+  without updating the document or chat facts. Review the before/replacement text,
+  optionally edit the replacement, then apply or reject it. Applying requires an
+  unchanged document revision and no unsaved local changes. Stale proposals must
+  be rejected or replaced by a fresh request. Accepted/rejected proposals keep
+  their author, base revision and before/after text. The latest 30 proposals per
+  chat are listed; older proposals remain stored.
 - **Mail:** subjects with persisted correspondence. Write and send a letter, or
   explicitly request one character's reply using model tokens. Generated replies
   are editable local previews until delivered. Mail uses the source chat's cards,
@@ -55,6 +63,9 @@ Records are separate from `ChatSettings.appearance`, so saving an app does not
 rewrite TeleChat, Subtext, or VN settings. API requests filter by both user and chat.
 Conditional revision updates prevent concurrent editors from silently overwriting
 one another. Mail preview revisions also prevent delivering an outdated preview.
+Migration `0042_document_proposals` adds the server-side proposal records. They
+are scoped through their source document and cascade when it is deleted. Applying
+and marking a proposal reviewed commit together, preventing duplicate acceptance.
 
 The template includes `partials/screen_apps.html`, `screen_home.css`, and
 `screen_home.js`. The script wraps the existing app-switch function after the
@@ -74,9 +85,8 @@ has been performed here. Apply migrations before opening the new apps.
 No scheduled/offline character calls, automatic calendar messages, invented live
 locations or "currently listening" activity. Those need an explicit simulation
 clock/job system, spending controls and delivery semantics. No automatic unlock of
-private character scratchpads, trust score, or forced drama. Shared documents can
-be edited by the user and read by characters; autonomous character edits and a
-reviewable suggested-edit workflow remain follow-up work.
+private character scratchpads, trust score, or forced drama. Character document
+edits require a user request and review; autonomous edits remain follow-up work.
 
 No CC/BCC mail audiences yet: correspondence belongs to the selected chat's cast.
 Mail previews spend one model call only on the labelled button; model quality has
@@ -112,5 +122,11 @@ at 390px and 1280px. Model requests are mocked/blocked. Existing integrated VN a
 lore/browser edge checks also run with `?app=messenger` so their direct-chat entry
 point remains explicit.
 
-The affected backend suite passes 119 tests, including preservation of unread
+The affected backend suite passes 124 tests, including preservation of unread
 messages when opening Home. No paid model/image/audio requests were made.
+
+To verify Drive proposals in the disposable fixture, seed with
+`scripts/seed_drive_proposals.py` through `manage.py shell` (as for the main fixture),
+then run `scripts/check_drive_proposals.cjs` with the same `VN_TEST_URL`,
+`VN_TEST_SESSION_FILE`, and `CHROMIUM_PATH`. It checks reviewed replacements,
+unsaved-input guards, persistence, stale proposals, and rejection at both widths.

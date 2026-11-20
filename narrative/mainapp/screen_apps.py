@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from mainapp.models import MessengerThread, ScreenEntry
+from mainapp.models import MessengerThread, ScreenEntry, ScreenDocumentProposal
 
 
 def packed(item):
@@ -100,8 +100,42 @@ def listing(thread):
     media, total = receipts(thread)
     raw = thread.data or {}
     return {"entries": [packed(v) for v in found[:200]], "total": found.count(),
+            "proposals": [proposal_payload(p) for p in ScreenDocumentProposal.objects.filter(
+                document__owner=thread.user, document__thread=thread)[:30]],
             "receipts": media, "receipt_total": total, "legacy_events": raw.get("events") or [],
             "legacy_notes": messenger.user_profile(thread.user).get("notes") or []}
+
+
+def proposal_payload(proposal):
+    return {"id": proposal.pk, "document_id": proposal.document_id, "base_revision": proposal.base_revision,
+            "before": proposal.before, "after": proposal.after, "character": proposal.character_name,
+            "status": proposal.status, "created": proposal.created.isoformat()}
+
+
+def propose_document(user, thread, item, direction, slug):
+    from mainapp import ai_client, messenger, thinking
+    if item.kind != "document" or item.data.get("scope") != "shared":
+        raise ValueError("Save this as a shared document before inviting character edits.")
+    character = thread.characters.filter(slug=slug).first()
+    if not character:
+        raise ValueError("Choose a character in this chat.")
+    messages = messenger.build_messenger_prompt(user, thread)
+    messages.append({"role": "system", "content":
+        f"SHARED DOCUMENT EDITOR: Propose an edit to the saved document as {character.name}, using their "
+        "knowledge, priorities and voice. Return the complete replacement document, without a preface, "
+        "code fences, TeleChat tags or stage directions. Preserve unrelated sections, names, dates, "
+        "formatting and existing facts. Change only what the direction calls for. Do not invent "
+        "agreements, completed tasks, other people's consent or events. A checklist remains a checklist; "
+        "do not turn it into a scene or monologue. This is an unaccepted proposal, not an event that happened."})
+    messages.append({"role": "user", "content": json.dumps({"title": item.title,
+        "saved_document": item.body, "requested_edit": direction}, ensure_ascii=False)})
+    raw = ai_client.complete(user, "chat", messages, max_tokens=6000, temperature=0.6)
+    _, replacement = thinking.split(raw or "")
+    replacement = text(replacement, 30000, True)
+    if replacement == item.body.strip():
+        raise ValueError("The character proposed no changes. The saved document is unchanged.")
+    return ScreenDocumentProposal.objects.create(document=item, base_revision=item.revision,
+        before=item.body, after=replacement, character_slug=character.slug, character_name=character.name)
 
 
 def draft_mail(user, thread, item, direction, character_slug):
@@ -164,6 +198,36 @@ def api(request):
                 text(body.get("direction", ""), 2000), text(body.get("character_slug", ""), 255, True))
             return JsonResponse({"draft": draft, "sender": character.name, "sender_slug": character.slug,
                                  "revision": revision})
+        if action == "draft_document":
+            proposal = propose_document(request.user, thread, item,
+                text(body.get("direction", ""), 2000, True), text(body.get("character_slug", ""), 255, True))
+            return JsonResponse({"proposal": proposal_payload(proposal)})
+        if action in ("apply_proposal", "reject_proposal"):
+            with transaction.atomic():
+                proposal = ScreenDocumentProposal.objects.select_for_update().filter(
+                    pk=positive(body.get("proposal_id")), document=item).first()
+                if not proposal or proposal.status != "pending":
+                    raise ValueError("This proposal is no longer pending.")
+                if action == "apply_proposal":
+                    if item.kind != "document" or item.data.get("scope") != "shared":
+                        raise ValueError("Only shared documents can accept character proposals.")
+                    replacement = text(body.get("replacement", proposal.after), 30000, True)
+                    changed = ScreenEntry.objects.filter(pk=item.pk, owner=request.user,
+                        revision=proposal.base_revision, data__scope="shared").update(
+                        body=replacement, revision=F("revision") + 1, updated=timezone.now())
+                    if not changed:
+                        current = ScreenEntry.objects.get(pk=item.pk, owner=request.user)
+                        return JsonResponse({"error": "The document changed since this proposal. Review the current version and request a new proposal.",
+                                             "current": packed(current)}, status=409)
+                    proposal.after = replacement
+                    proposal.status = "applied"
+                else:
+                    proposal.status = "rejected"
+                if not ScreenDocumentProposal.objects.filter(pk=proposal.pk, status="pending").update(
+                        status=proposal.status, after=proposal.after):
+                    raise ValueError("This proposal has already been reviewed.")
+            item.refresh_from_db()
+            return JsonResponse({"entry": packed(item), "proposal": proposal_payload(proposal)})
         values = {}
         if action == "save":
             if item.kind == "mail":

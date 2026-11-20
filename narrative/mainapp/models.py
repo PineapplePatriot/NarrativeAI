@@ -324,3 +324,17 @@ class ScreenEntry(models.Model):
     class Meta:
         ordering = ("-updated", "-pk")
         indexes = [models.Index(fields=["owner", "thread", "kind"], name="screen_owner_thread_kind")]
+
+
+class ScreenDocumentProposal(models.Model):
+    document = models.ForeignKey(ScreenEntry, on_delete=models.CASCADE, related_name="proposals")
+    base_revision = models.PositiveIntegerField()
+    before = models.TextField()
+    after = models.TextField()
+    character_slug = models.CharField(max_length=255)
+    character_name = models.CharField(max_length=255)
+    status = models.CharField(max_length=12, default="pending")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-pk",)

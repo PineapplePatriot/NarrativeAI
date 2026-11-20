@@ -83,6 +83,11 @@
     if(kind==='document') {
       html+=`<label for="miniScope">Who can read it?<select id="miniScope" data-screen-field="miniScope"><option value="private" ${item?.data.scope!=='shared'?'selected':''}>Private scratchpad — only you</option><option value="shared" ${item?.data.scope==='shared'?'selected':''}>Shared with this chat’s characters</option></select></label>`;
       html+=field('Document','miniBody',item?.body || '','textarea','maxlength="30000"');
+      if(item?.data.scope==='shared') {
+        const members=TG.state.threads.find(t=>String(t.id)===String(S.thread))?.member_slugs || [];
+        html+=`<details class="screen-document-invite"><summary>Invite a character to edit</summary><p class="screen-muted">One model request using the saved document. You review the proposal before anything changes.</p><label for="miniDocCharacter">Character<select id="miniDocCharacter" data-screen-field="miniDocCharacter">${TG.state.characters.filter(c=>members.includes(c.slug)).map(c=>`<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}</select></label>`+
+          field('What should they change?','miniDocDirection','','textarea','maxlength="2000" placeholder="e.g. Add the supplies you agreed to bring, keeping the rest of the list."')+button('Request edit · uses model tokens','draft-document')+'</details>';
+      }
     } else if(kind==='event') {
       let when='';if(item?.data.when) {const d=new Date(item.data.when);when=new Date(+d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
       html+=field('When (your device’s local time)','miniWhen',when,'input','type="datetime-local" required');
@@ -99,9 +104,23 @@
     }
     if(kind!=='mail' || !item) html+=`<div class="screen-actions">${button(item?'Save changes':'Create '+({document:'document',event:'plan',track:'track',mail:'subject'}[kind]),'save','class="screen-primary"')}${item?button('Delete…','delete'):''}</div>`;
     if(item && ['document','track'].includes(kind)) html+=`<div class="screen-actions">${button('Send a copy to TeleChat…','forward')}</div>`;
+    if(item && kind==='document') html+=documentProposals(item);
     const error=S.errors.get(selectKey());
     if(error) html+=`<div class="screen-error" role="alert">${esc(error.message)}</div>` + (error.current ? `<details class="screen-preview"><summary>Review saved version</summary><pre>${esc(JSON.stringify(error.current,null,2))}</pre>${button('Load saved version (replaces this draft)…','reload-record')}</details>` : '');
     return `<fieldset class="screen-form" ${S.busy?'disabled':''} style="border:0;margin:0;padding:0;min-width:0" aria-busy="${S.busy}">${html}</fieldset>`;
+  }
+  function documentProposals(item) {
+    const proposals=(cache()?.proposals || []).filter(p=>p.document_id===item.id);
+    if(!proposals.length)return '';
+    return '<h2 style="margin-top:24px">Character edits</h2>'+proposals.map(p=>{
+      const stale=p.base_revision!==item.revision;
+      const pending=p.status==='pending';
+      const status={pending:'Awaiting your review',applied:'Applied by you',rejected:'Rejected by you'}[p.status] || p.status;
+      return `<section class="screen-preview"><strong>Proposal from ${esc(p.character)}</strong> <small class="screen-muted">${esc(status)} · from revision ${esc(p.base_revision)} · ${esc(date(p.created))}</small>`+
+        `<details><summary>Before this proposal</summary><pre>${esc(p.before)}</pre></details>`+
+        (pending ? field('Proposed replacement (editable)',`proposal-${p.id}`,p.after,'textarea','maxlength="30000"') : `<pre>${esc(p.after)}</pre>`)+
+        (pending ? `<p class="screen-muted">${stale?'The document changed. Request a new proposal to apply changes safely.':'Not yet applied. You can edit the replacement before accepting it.'}</p><div class="screen-actions">${button('Apply this edit','apply-proposal',`class="screen-primary" data-proposal="${p.id}" ${stale || item.data.scope!=='shared'?'disabled':''}`)}${button('Reject proposal','reject-proposal',`data-proposal="${p.id}"`)}</div>`:'')+'</section>';
+    }).join('');
   }
   function mail(item) {
     const members=TG.state.threads.find(t=>String(t.id)===String(S.thread))?.member_slugs || [];
@@ -174,9 +193,10 @@
       if(result.forwarded) S.dirtyThreads.add(thread);
       const data=S.cache.get(thread);
       if(result.entry && data) {data.entries=data.entries.filter(e=>e.id!==result.entry.id);data.entries.unshift(result.entry);}
+      if(result.proposal && data) {data.proposals=(data.proposals||[]).filter(p=>p.id!==result.proposal.id);data.proposals.unshift(result.proposal);}
       if(result.deleted && data) data.entries=data.entries.filter(e=>String(e.id)!==String(payload.id));
       await onSuccess?.(result,thread,app);
-      toast(result.draft?'Reply preview ready. Review it before delivery.':result.forwarded?'Copy sent to TeleChat. No reply was generated.':'Saved.');
+      toast(result.proposal?.status==='pending'?'Edit proposal ready. The saved document is unchanged.':result.draft?'Reply preview ready. Review it before delivery.':result.forwarded?'Copy sent to TeleChat. No reply was generated.':'Saved.');
       overview();
     } catch(error) {S.errors.set(key,{message:error.message,current:error.current});}
     finally {S.busy=false;if(roots[S.app]) render();}
@@ -212,6 +232,13 @@
     }
     if(!item) return;
     const base={id:item.id,revision:item.revision};
+    if(['draft-document','apply-proposal'].includes(action)) {
+      if(value('miniBody')!==item.body || value('miniTitle')!==item.title || value('miniScope')!==item.data.scope)
+        return toast('Save your document changes before requesting or applying a character edit.');
+      if(action==='draft-document')return mutate({...base,revision:ScreenDrafts.get(key).baseRevision || item.revision,action:'draft_document',direction:value('miniDocDirection'),character_slug:value('miniDocCharacter')});
+      return mutate({...base,action:'apply_proposal',proposal_id:Number(el.dataset.proposal),replacement:value('proposal-'+el.dataset.proposal)},()=>ScreenDrafts.clear(key));
+    }
+    if(action==='reject-proposal')return mutate({...base,action:'reject_proposal',proposal_id:Number(el.dataset.proposal)},()=>ScreenDrafts.clear(key,['proposal-'+el.dataset.proposal]));
     if(action==='delete') {if(confirm('Delete this saved record? This cannot be undone.')) {const selectionAtStart=selectKey();return mutate({...base,action:'delete'},()=>{ScreenDrafts.clear(key);S.selection.set(selectionAtStart,'new');});}return;}
     if(action==='forward') {if(confirm('Send a copy to everyone in '+name(S.thread)+'? This does not generate a reply.')) return mutate({...base,action:'forward'});return;}
     if(action==='draft-mail') {

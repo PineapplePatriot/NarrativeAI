@@ -164,3 +164,66 @@ class ScreenAppsTests(TestCase):
         self.client.get(reverse('screen_hub'),{'thread':self.thread.pk})
         self.thread.refresh_from_db()
         self.assertEqual(self.thread.data['unread'],0)
+
+    def proposal(self, item):
+        self.model.side_effect=None
+        self.model.return_value='Packing list\n- Map\n- Lantern'
+        with patch('mainapp.ai_client.resolve',return_value=(None,'test/model')):
+            response=self.post('draft_document',id=item['id'],revision=item['revision'],
+                direction='Add a lantern, keeping the rest.',character_slug=self.char.slug)
+        self.assertEqual(response.status_code,200,response.content)
+        return response.json()['proposal']
+
+    def test_document_proposals_are_persisted_without_changing_story_facts(self):
+        item=self.create(body='Packing list\n- Map',data={'scope':'shared'})
+        proposal=self.proposal(item)
+        self.model.assert_called_once()
+        self.assertEqual(ScreenEntry.objects.get(pk=item['id']).body,item['body'])
+        self.assertNotIn('Lantern',screen_apps.context_for(self.thread))
+        found=self.client.get(self.url,{'thread_id':self.thread.pk}).json()['proposals']
+        self.assertEqual(found[0]['id'],proposal['id'])
+        self.assertEqual(self.client.get(self.url,{'thread_id':self.second.pk}).json()['proposals'],[])
+        self.assertIn('SHARED DOCUMENT EDITOR',json.dumps(self.model.call_args.args[2]))
+        applied=self.post('apply_proposal',id=item['id'],revision=1,proposal_id=proposal['id'],replacement=proposal['after']+'\n- Water')
+        self.assertEqual(applied.status_code,200,applied.content)
+        self.assertEqual(applied.json()['entry']['revision'],2)
+        self.assertEqual(applied.json()['proposal']['status'],'applied')
+        self.assertIn('Water',screen_apps.context_for(self.thread))
+        self.assertEqual(self.post('apply_proposal',id=item['id'],revision=2,proposal_id=proposal['id']).status_code,400)
+
+    def test_proposal_cannot_overwrite_a_newer_document(self):
+        item=self.create(body='Packing list\n- Map',data={'scope':'shared'})
+        proposal=self.proposal(item)
+        updated=self.post('save',id=item['id'],revision=1,title=item['title'],body='New agreement',data=item['data'])
+        self.assertEqual(updated.status_code,200)
+        response=self.post('apply_proposal',id=item['id'],revision=2,proposal_id=proposal['id'])
+        self.assertEqual(response.status_code,409)
+        self.assertEqual(ScreenEntry.objects.get(pk=item['id']).body,'New agreement')
+        self.assertEqual(self.post('reject_proposal',id=item['id'],revision=2,proposal_id=proposal['id']).json()['proposal']['status'],'rejected')
+
+    def test_private_documents_and_outside_characters_cannot_request_edits(self):
+        private=self.create(body='Private scratchpad')
+        self.assertEqual(self.post('draft_document',id=private['id'],revision=1,direction='Read this',character_slug=self.char.slug).status_code,400)
+        shared=self.create(body='Shared',data={'scope':'shared'})
+        self.assertEqual(self.post('draft_document',id=shared['id'],revision=1,direction='Edit',character_slug='absent').status_code,400)
+        self.model.assert_not_called()
+
+    def test_cannot_apply_another_documents_proposal(self):
+        item=self.create(body='Packing list\n- Map',data={'scope':'shared'})
+        proposal=self.proposal(item)
+        other=self.create(body='Other document',data={'scope':'shared'})
+        self.assertEqual(self.post('apply_proposal',id=other['id'],revision=1,proposal_id=proposal['id']).status_code,400)
+        self.assertEqual(ScreenEntry.objects.get(pk=other['id']).body,'Other document')
+
+    def test_failed_and_unchanged_document_edits_do_not_create_proposals(self):
+        from mainapp import ai_client
+        item=self.create(body='Same document',data={'scope':'shared'})
+        for output in ['', 'Same document']:
+            self.model.side_effect=None;self.model.return_value=output
+            with patch('mainapp.ai_client.resolve',return_value=(None,'test/model')):
+                result=self.post('draft_document',id=item['id'],revision=1,direction='Review',character_slug=self.char.slug)
+            self.assertEqual(result.status_code,400)
+        self.model.side_effect=ai_client.AIError('Provider refused')
+        with patch('mainapp.ai_client.resolve',return_value=(None,'test/model')):
+            self.assertEqual(self.post('draft_document',id=item['id'],revision=1,direction='Review',character_slug=self.char.slug).status_code,400)
+        self.assertEqual(self.client.get(self.url,{'thread_id':self.thread.pk}).json()['proposals'],[])
