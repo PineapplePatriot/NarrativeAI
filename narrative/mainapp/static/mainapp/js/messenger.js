@@ -867,6 +867,16 @@
             '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
             (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
           "</div></div>" +
+        '<div class="tg-field-group"><label>📍 Right now <small style="font-weight:400;color:var(--tg-muted)">(where everyone is, what\'s around them, what they\'re wearing; kept up to date as you text, used by every photo; edit freely)</small></label>' +
+          (Object.keys(t.scene || {}).length ? Object.keys(t.scene).map(function (name, i) {
+            var s = t.scene[name] || {};
+            return '<div class="tg-scene" data-scene-name="' + esc(name) + '"><b>' + esc(name) + "</b>" +
+              ["where", "around", "wearing"].map(function (k) {
+                return '<input type="text" class="tg-input" data-scene-k="' + k + '" value="' + esc(s[k] || "") + '" placeholder="' +
+                  { where: "where (e.g. their flat, the lab)", around: "what's around them", wearing: "what they're wearing" }[k] + '">';
+              }).join("") + "</div>";
+          }).join("") : '<div style="font-size:12px;color:var(--tg-muted)">Filled in after the first few messages.</div>') +
+        "</div>" +
         '<div class="tg-field-group"><label>📸 Tease photos go this far <small style="font-weight:400;color:var(--tg-muted)">(Bulba can set it too)</small></label><select class="tg-select" id="drwThreadPhotoMood">' +
           (t.photo_moods || []).map(function (o) { return '<option value="' + o[0] + '"' + (t.photo_mood === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1970,6 +1980,12 @@
 
     // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
     showTurn: function (res, oldIds) {
+      if (res.thread && res.thread.scene_due) {  // 📍 where everyone is and what they wear, kept up to date quietly
+        var stid = res.thread.id;
+        apiPost({ action: "update_scene", thread_id: stid }).then(function (r) {
+          if (STATE.active_thread && STATE.active_thread.id === stid) STATE.active_thread.scene = r.scene;
+        }).catch(function () { /* next time */ });
+      }
       if (res.thread && res.thread.continuity_due) {  // 🧩 Bulba checks the story holds together (in the background)
         var ctid = res.thread.id;
         apiPost({ action: "continuity_check", thread_id: ctid }).then(function (r) {
@@ -2678,6 +2694,12 @@
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
         theme: (document.getElementById("drwThreadTheme") || {}).value || "",
         photo_mood: (document.getElementById("drwThreadPhotoMood") || {}).value || undefined,
+        scene: (function () {  // 📍 as edited in the panel (left out when the panel shows none)
+          var rows = document.querySelectorAll(".tg-scene[data-scene-name]"); if (!rows.length) return undefined;
+          var out = {};
+          rows.forEach(function (r) { var o = {}; r.querySelectorAll("[data-scene-k]").forEach(function (i) { o[i.getAttribute("data-scene-k")] = i.value; }); out[r.getAttribute("data-scene-name")] = o; });
+          return out;
+        })(),
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],

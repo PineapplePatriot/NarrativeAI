@@ -834,6 +834,9 @@ def thread_data(thread):
         "memory_stale": bool(raw.get("memory_stale", False)),  # a remembered message was deleted or changed
         # 🧩 continuity: replies since the last check, and what the last check found (None = all fine)
         "continuity_count": max(0, int(raw.get("continuity_count") or 0)),
+        # 📍 right now, for everyone in the chat: {name: {"where", "around", "wearing"}}; scene_upto = messages read
+        "scene": clean_scene(raw.get("scene")),
+        "scene_upto": max(0, int(raw.get("scene_upto") or 0)),
         "continuity_note": raw.get("continuity_note") if isinstance(raw.get("continuity_note"), dict) else None,
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
@@ -1428,6 +1431,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         )
 
     sys_content = "\n\n".join(p for p in (safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    now_lines = [f"- {n}: {scene_line(data, n)}" for n in data["scene"] if scene_line(data, n)]
+    if now_lines:  # 📍 keeps places and clothes consistent
+        sys_content += "\n\nRIGHT NOW (where everyone is and what they're wearing; it changes only when the texts say so):\n" + "\n".join(now_lines)
     lore = lore_block(chars, delivered(data["messages"]))
     if lore:  # 📚 this setup's worldbook, the entries that apply now
         sys_content += "\n\n" + lore
@@ -1542,6 +1548,72 @@ def check_texting_slop(text):
     if len(raw) > 900 and "|||BUBBLE|||" not in raw:
         notes.append("wall_of_text")
     return notes
+
+
+SCENE_EVERY = 4  # messages between two quiet updates of "📍 Right now"
+SCENE_FIELDS = ("where", "around", "wearing")
+
+
+def clean_scene(raw):
+    out = {}
+    for name, v in (raw.items() if isinstance(raw, dict) else []):
+        if isinstance(v, dict) and str(name).strip():
+            out[str(name).strip()[:80]] = {k: str(v.get(k) or "").strip()[:300] for k in SCENE_FIELDS}
+    return dict(list(out.items())[:8])
+
+
+def scene_due(data):
+    return len(delivered(data["messages"])) - data["scene_upto"] >= SCENE_EVERY
+
+
+def scene_line(data, name):
+    """"at the lab; around: …; wearing: …" for one person, or ""."""
+    s = (data.get("scene") or {}).get(name) or {}
+    bits = [f"at/in {s['where']}" if s.get("where") else "", f"around them: {s['around']}" if s.get("around") else "",
+            f"wearing {s['wearing']}" if s.get("wearing") else ""]
+    return "; ".join(b for b in bits if b)
+
+
+def update_scene(user, thread):
+    """📍 Where everyone is, what's around them and what they're wearing, brought up to date from the recent texts
+    (the background model). Only what the texts say or clearly imply changes; the rest stays. Returns the scene."""
+    from mainapp.cards import user_name
+    data = thread_data(thread)
+    msgs = delivered(data["messages"])
+    persona = data.get("persona") or {}
+    me = persona.get("name") or user_name(user)
+    people = {me: (persona.get("description") or getattr(user, "persona_description", "") or "")[:300]}
+    for c in thread.characters.all():
+        people[c.name] = (char_profile(c).get("appearance_notes") or "")[:400]
+    lines = []
+    for m in msgs[-12:]:
+        if m.get("role") == "system":
+            continue
+        who = me if m.get("role") == "user" else (m.get("sender_name") or thread.title)
+        what = m.get("text") or (m.get("voice") or {}).get("transcript") or ""
+        ph = m.get("photo") or {}
+        if ph:
+            what += f" [sent a photo: {ph.get('seen') or ph.get('prompt') or ''}]"
+        if what.strip():
+            lines.append(f"{who}: {what.strip()[:300]}")
+    current = {n: data["scene"].get(n) or {k: "" for k in SCENE_FIELDS} for n in people}
+    prompt = ("You keep track of where the people in a messenger chat are right now, for the pictures they send. "
+              f"Clock: {real_time_context(thread).get('clock', '')}.\nPeople (their usual look): "
+              + json.dumps(people, ensure_ascii=False) + "\nWhat we had so far: " + json.dumps(current, ensure_ascii=False)
+              + "\n\nRecent messages:\n" + "\n".join(lines)
+              + "\n\nUpdate each person: `where` (the place, a few words), `around` (what's around them there: a few "
+              "concrete things), `wearing` (their clothes now). Change only what the texts say or clearly imply (they "
+              "went home, got changed, it's night now so they're likely in sleepwear only if they said they're in "
+              "bed); keep the rest as it was; fill an empty field with a likely guess from their usual look and the "
+              "time of day. Short phrases. Answer with JSON only: "
+              '{"scene": {"<name>": {"where": "...", "around": "...", "wearing": "..."}}}')
+    out = ask_json(user, prompt, need=("scene",), max_tokens=900, task="summary", temperature=0.2)
+    scene = clean_scene({**current, **{k: v for k, v in (out.get("scene") or {}).items() if k in people}})
+    raw = dict(thread.data or {})
+    raw["scene"], raw["scene_upto"] = scene, len(msgs)
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return scene
 
 
 CONTINUITY_EVERY = 5  # the characters' replies between two continuity checks
@@ -2264,6 +2336,7 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
 
     refs = load_character_references(character)
     setting_note = "modern-day setting" if prof["mode"] == "modern_au" else "in-world setting"
+    here = scene_line(thread_data(thread), character.name) if thread else ""  # 📍 where they are and what they wear
 
     if shot_type == "pov_object":
         # No people in it: their portraits stay out (image models copy whoever is in a reference). With an art style in
@@ -2278,7 +2351,8 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
                f"never the person in it.\n" if refs else "")
             + f"CRITICAL STYLE LOCK: art style: {art_style}. Do NOT switch to stock photorealism if the style is illustrated/anime, and vice versa.\n"
             f"Camera angle & framing: {camera_angle}.\n"
-            f"Photo subject & scene: {subject[:600]}"
+            + (f"Where they are right now (the photo is taken there unless it says otherwise): {here}.\n" if here else "")
+            + f"Photo subject & scene: {subject[:600]}"
         )
     else:
         style_note = (
@@ -2292,7 +2366,8 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"as the attached reference image(s).\n"
             f"Camera angle & composition (avoid stiff centered passport framing): {camera_angle}.\n"
             f"Character appearance: {card_appearance[:550]}\n"
-            f"Photo scene & moment: {desc_clean[:600]}\n"
+            + (f"RIGHT NOW (wins over the usual clothes above): {character.name} is {here}.\n" if here else "")
+            + f"Photo scene & moment: {desc_clean[:600]}\n"
             + (f"Their expression: {expression}\n" if expression else "")
             + EXPRESSION_LOCK
             + (f"\nHOW FAR IT GOES (binding): {PHOTO_MOODS[mood][1]}." if kind == "tease" else "")
@@ -2586,7 +2661,8 @@ def user_picture(user, thread, description, ref_urls=(), with_me=True):
     if not description:
         raise ValueError("Describe the picture first.")
     persona = thread_data(thread).get("persona") or {}
-    me_name = persona.get("name") or (getattr(user, "persona_name", "") or "").strip() or "the user"
+    from mainapp.cards import user_name
+    me_name = persona.get("name") or user_name(user)  # (the same name "📍 Right now" uses)
     me_look = (persona.get("description") or getattr(user, "persona_description", "") or "")[:600]
     refs = []
     if with_me and getattr(user, "persona_photo_neutral", None):
@@ -2599,6 +2675,9 @@ def user_picture(user, thread, description, ref_urls=(), with_me=True):
             refs.append(item)
     first = thread.characters.first()
     style = (char_profile(first).get("art_style_notes") if first else "") or "the same art style as the reference pictures"
+    here = scene_line(thread_data(thread), me_name)  # 📍 where they are and what they wear now
+    if here:
+        me_look += f"\nRight now (wins over the usual look): {here}"
     people = (f"{me_name} is in it" + (" (the person in the first reference picture: keep their face, hair and build)"
                                          if with_me and refs else "") + (f". How they look: {me_look}" if me_look else "")
               if with_me else "NO PEOPLE unless the description names someone")
@@ -3050,6 +3129,7 @@ def serialize_thread_full(thread, user):
         "messages": delivered(data["messages"]),
         "watch": (continuity_shown(data) or watch_notice(delivered(data["messages"]))) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "continuity_due": _watch_on(user) and data["continuity_count"] >= CONTINUITY_EVERY,
+        "scene": data["scene"], "scene_due": scene_due(data),
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
         "photo_mood": photo_mood(user, data),

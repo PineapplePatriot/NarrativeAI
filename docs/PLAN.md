@@ -321,6 +321,13 @@ Added on 19 November (second message):
 - Reminder: the worldbook (lorebook) as a step of the texting setup; scene tracking for pictures (place and
   surroundings + clothes, both sides).
 
+Done on 20 November: Gallery; photo mood (daily / sweet / playful / flirty / bold) and livelier faces (expression
+references from mood pictures); picture styles with anime realism as the default; Bulba suggestions (reply, both
+picture windows, status, bio, plans → reminders, art style from their picture); real reminders texted when due;
+a +1 in photos (on by default in groups); the continuity check (with Bulba Watch); the texting worldbook (a setup
+step, adapted from the roleplay lorebook); "📍 Right now" scene tracking used by every photo and the replies.
+Visual Novel moments: parked (another branch).
+
 ## Later / parked
 
 - The guided tours in more languages.

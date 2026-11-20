@@ -5206,6 +5206,8 @@ def messenger_api(request):
                 td["clock_offset"] = messenger.set_clock(thread, body["clock"])
             except ValueError:
                 return JsonResponse({"error": "That isn't a date and time."}, status=400)
+        if isinstance(body.get("scene"), dict):  # 📍 "Right now", edited by hand
+            td["scene"] = messenger.clean_scene(body["scene"])
         if "photo_mood" in body and body["photo_mood"] in messenger.PHOTO_MOODS:  # 📸 how far tease photos go
             td["photo_mood"] = body["photo_mood"]
         if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
@@ -5295,6 +5297,15 @@ def messenger_api(request):
                 })
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
+
+    if action == "update_scene":  # 📍 in the background, every few messages
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            return JsonResponse({"scene": messenger.update_scene(request.user, thread)})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
     if action == "continuity_check":  # 🧩 in the background, every few replies (Bulba Watch on)
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()

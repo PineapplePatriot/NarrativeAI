@@ -1043,3 +1043,36 @@ class TextingLoreTests(MessengerActionTests):
         self.assertIn("logistics company", ai_client.complete.call_args.args[2][0]["content"])
         prof = self.post(action="save_lore", char_slug=self.rose.slug, lore=prof["lore"][1:]).json()["profile"]
         self.assertEqual(len(prof["lore"]), 1)
+
+
+class SceneTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_right_now_is_kept_and_every_picture_uses_it(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        for text in ("home finally", "changing into my hoodie", "you?", "still at the shop"):
+            self.post(action="send_user_message", thread_id=tid, text=text)
+        thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+        self.assertTrue(thread["scene_due"])
+        answer = {"scene": {"texter": {"where": "their flat", "around": "a sofa, a lamp", "wearing": "a grey hoodie"},
+                            "Rose": {"where": "the flower shop", "around": "buckets of tulips", "wearing": "a green apron"},
+                            "Stranger": {"where": "nowhere"}}}
+        with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+            scene = self.post(action="update_scene", thread_id=tid).json()["scene"]
+        self.assertIn("changing into my hoodie", ask.call_args.args[1])
+        self.assertEqual(set(scene), {"texter", "Rose"})  # only people of this chat
+        self.assertFalse(self.post(action="load_thread", thread_id=tid).json()["thread"]["scene_due"])
+        thread_obj = MessengerThread.objects.get(id=tid)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie", thread=thread_obj, shot_type="selfie")
+        self.assertIn("RIGHT NOW (wins over the usual clothes above): Rose is at/in the flower shop", ai_client.generate_image.call_args.args[1])
+        self.assertIn("wearing a green apron", ai_client.generate_image.call_args.args[1])
+        self.post(action="user_picture", thread_id=tid, prompt="me on the sofa", with_me=True)
+        self.assertIn("wearing a grey hoodie", ai_client.generate_image.call_args.args[1])
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("RIGHT NOW (where everyone is", ai_client.complete.call_args.args[2][0]["content"])
+        self.post(action="thread_settings", thread_id=tid, scene={"Rose": {"where": "the pier", "around": "", "wearing": "a raincoat"}})
+        self.assertEqual(messenger.scene_line(messenger.thread_data(MessengerThread.objects.get(id=tid)), "Rose"),
+                         "at/in the pier; wearing a raincoat")
