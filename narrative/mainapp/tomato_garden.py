@@ -15,9 +15,11 @@
     Basil             every second harvest gives the seed back
     Mr. Death         every third harvest brings 3 extra compost (Lantern Night banner)
     Babbo Natale      once a day leaves a present in the shed: a packet of seeds (First Snow banner)
+- The shelf: every harvest gives its compost and puts the crop on the shelf (SHELF_MAX of each; past that it's
+  composted). From there it's handed over by hand ("give"): to an order, or to the cottage builder.
 - The order board: neighbours post orders for crops ("3 carrots"). A new one each day, at most ORDERS_OPEN open, each
-  open for ORDER_DAYS days. Harvests count toward the oldest open order for that crop (and still give compost);
-  a filled order pays 100-300 tomatoes, which count toward spins (not the leaderboard: TomatoScore.machine "earned").
+  open for ORDER_DAYS days. Crops from the shelf are given to an order; a filled order pays 100-300 tomatoes, which
+  count toward spins (not the leaderboard: TomatoScore.machine "earned").
 - Mutations: 1 in MUTATION_ODDS harvests is a strange variant (MUTATIONS), kept in the almanac. The common ones
   give triple compost; the rare one of each crop gives a free spin. A mutation also gives one of its seeds
   (VARIANT_SEEDS): planted, it grows like its crop and comes out as the variant again KEEP of the time (with
@@ -50,6 +52,7 @@ GARDENERS = {
     "gardener_babbo": "Once a day he leaves a present in the shed: a packet of seeds, wrapped badly, with love.",
 }
 ORDERS_OPEN = 3
+SHELF_MAX = 30  # of each crop on the shelf
 ORDER_DAYS = 3
 # 🍲 Dishes the cottage kitchen can make (orders for several crops at once, paid double)
 DISHES = (
@@ -119,6 +122,7 @@ def _state(score):
             orders.append(o)
     g["orders"] = orders
     g["almanac"] = {k: int(v) for k, v in (g.get("almanac") or {}).items() if k in MUTANT}
+    g["shelf"] = {k: int(v) for k, v in (g.get("shelf") or {}).items() if k in CROPS and int(v) > 0}
     return g
 
 
@@ -196,13 +200,48 @@ def describe(needs):
     return " and ".join(parts) if len(parts) < 3 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
-def _deliver(g, m, seed, by=""):
-    """A harvest goes to the cottage first (the builder's order, mainapp/tomato_house.py), else toward the oldest open
-    order that needs that crop; a filled order pays its tomatoes."""
+def _shelve(g, seed):
+    """🧺 A harvested crop onto the shelf (past SHELF_MAX it was composted anyway). True if it went on."""
+    if g["shelf"].get(seed, 0) >= SHELF_MAX:
+        return False
+    g["shelf"][seed] = g["shelf"].get(seed, 0) + 1
+    return True
+
+
+def give(g, m, target):
+    """🧺 Crops from the shelf handed over: to the cottage builder ("house") or to an order (its id), as many as it
+    still needs and the shelf has. Returns how many went. Raises ValueError for the person."""
     from mainapp import tomato_house as H
-    if H.deliver(g, seed):
-        return "house"
-    order = next((o for o in g["orders"] if o["have"].get(seed, 0) < o["needs"].get(seed, 0)), None)
+    given = 0
+    if target == "house":
+        stage = H.current(g)
+        if not stage or not stage["needs"]:
+            raise ValueError("Il Dattore doesn't need crops right now.")
+        for seed in stage["needs"]:
+            while g["shelf"].get(seed, 0) > 0 and H.deliver(g, seed):
+                g["shelf"][seed] -= 1
+                given += 1
+    else:
+        order = next((o for o in g["orders"] if str(o["id"]) == str(target)), None)
+        if order is None:
+            raise ValueError("That order is gone.")
+        for seed in list(order["needs"]):
+            while g["shelf"].get(seed, 0) > 0 and order in g["orders"] and order["have"].get(seed, 0) < order["needs"][seed]:
+                g["shelf"][seed] -= 1
+                _deliver(g, m, seed, order=order)
+                given += 1
+    g["shelf"] = {k: v for k, v in g["shelf"].items() if v > 0}
+    if not given:
+        raise ValueError("Nothing on the shelf for that yet: harvest some first.")
+    if target == "house" or any(o["id"] == order["id"] for o in g["orders"]):
+        _log(g, f"🧺 You handed over {given} from the shelf" + (" to Il Dattore." if target == "house" else f" to {order['from']}."))
+    return given
+
+
+def _deliver(g, m, seed, by="", order=None):
+    """One crop toward an order (the given one, else the oldest open one that needs it); a filled order pays its
+    tomatoes."""
+    order = order or next((o for o in g["orders"] if o["have"].get(seed, 0) < o["needs"].get(seed, 0)), None)
     if not order:
         return None
     order["have"][seed] += 1
@@ -235,7 +274,8 @@ def _harvest(g, m, key, by="", rng=None):
     if odd:
         _log(g, f"🧬 A mutation! {odd['emoji']} {odd['name']}: " + ("a free spin at the Sauce-o-Matic." if odd["rare"]
                                                                      else "triple compost.") + " Into the almanac, and its seed into the basket.")
-    _deliver(g, m, base(tile["seed"]))
+    if not _shelve(g, base(tile["seed"])):
+        _log(g, f"(The shelf is full of {crop['name'].lower()}s: that one went straight to the compost.)")
     return got
 
 
@@ -370,6 +410,8 @@ def act(user, body):
                 m["crew"] = [x for x in now if x != pid]
                 _log(g, f"{M.BY_ID[pid]['name']} went to rest in the shed.")
         return _locked(user, shift)
+    if action == "give":  # 🧺 crops from the shelf to an order or to the cottage
+        return _locked(user, lambda g, m: give(g, m, body.get("to")))
     if action == "build":  # 🏡 pay the compost and let Il Dattore build the next stage of the cottage
         from mainapp import tomato_house as H
         return _locked(user, lambda g, m: H.build(g, m))
@@ -442,7 +484,7 @@ def public(score):
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
             "water": int(WATER * (1.25 if H.has(g, "barrel") else 1)), "crops": CROPS, "now": int(now),
             "orders": [{**o, "what": describe(o["needs"]), "left": max(0, o["due"] - int(now))} for o in g["orders"]],
-            "orders_max": order_slots(g), "filled": g["filled"], "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
+            "orders_max": order_slots(g), "filled": g["filled"], "shelf": g["shelf"], "shelf_max": SHELF_MAX, "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
             "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
                           if p["kind"] in ("seed", "decor", "gardener")},

@@ -550,7 +550,9 @@
                 <div class="g-bar"><i style="width:${Math.round(x.have / x.n * 100)}%"></i></div></div>`).join('')
                 + (c.mutations ? `<div class="g-need"><span>🧬 Different mutations found</span><b>${Math.min(c.found, c.mutations)} / ${c.mutations}</b>
                 <div class="g-bar"><i style="width:${Math.round(Math.min(c.found, c.mutations) / c.mutations * 100)}%"></i></div></div>` : '');
-            body = `<p><b>${c.emoji} ${esc(c.name)}</b>: the builder's order. Harvests go here first.</p><div class="g-needs">${needs}</div>
+            const canGive = c.needs.some(x => x.have < x.n && (st.shelf || {})[x.seed]);
+            body = `<p><b>${c.emoji} ${esc(c.name)}</b>: the builder's order. Hand him crops from your shelf.</p><div class="g-needs">${needs}</div>
+                ${c.needs.length ? `<div class="g-row"><button type="button" class="na-btn${canGive ? ' na-primary' : ''}" data-give="house" ${canGive ? '' : 'disabled'}>🧺 Give from the shelf</button></div>` : ''}
                 <div class="g-row"><button type="button" class="na-btn${hs.ready ? ' na-primary' : ''}" data-build ${hs.ready ? '' : 'disabled'}>🔨 Build it: ♻ ${c.compost} compost</button>
                 <span class="muted g-small">${esc(hs.ready ? `${hs.builder} needs about ${c.hours} hours.` : hs.why)}</span></div>
                 <p class="muted g-small">Unlocks: ${esc(c.about)}${c.budget_left ? ` · 💰 In within ${dur(c.budget_left)} and ${esc(hs.banker)} tips 🍅 100.` : ''}</p>`;
@@ -565,6 +567,13 @@
         const d = box.querySelector('.g-scene');
         if (d) d.addEventListener('toggle', () => { try { localStorage.setItem('na-cottage-scene', String(sc.at)); } catch (e) { /* this page only */ } });
     }
+    // 🧺 handing crops over from the shelf (to the cottage or to an order)
+    document.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-give]');
+        if (!b) return;
+        b.disabled = true;
+        try { take(await call({ action: 'give', to: b.dataset.give })); } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
     $('gCottage') && $('gCottage').addEventListener('click', async (e) => {
         const b = e.target.closest('[data-build]');
         if (!b) return;
@@ -582,9 +591,17 @@
                 <div><b>${o.dish ? esc(o.dish) : esc(o.what)}</b> <small>for ${esc(o.from)} · ${days(o.left)}</small>
                 ${o.dish || Object.keys(o.needs).length > 1 ? `<small class="g-parts">${Object.entries(o.needs).map(([k, n]) => `${icon(k)} ${o.have[k] || 0}/${n}`).join(' · ')}</small>` : ''}</div>
                 <span class="pay">🍅 ${o.reward}</span>
+                ${Object.keys(o.needs).some(k => (o.have[k] || 0) < o.needs[k] && (st.shelf || {})[k])
+                    ? `<button type="button" class="na-btn na-primary g-give" data-give="${o.id}">🧺 Give</button>` : ''}
                 <div class="g-bar"><i style="width:${Math.round(have(o) / total(o) * 100)}%"></i></div></div>`).join('')}</div>`
             : '<p class="muted g-small">No orders right now. A new one goes up each day.</p>')
-            + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Harvests count toward them by themselves (and still make compost). Tomatoes from orders count toward your next spin.</p>`;
+            + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Give them crops from your shelf (🧺); tomatoes from orders count toward your next spin.</p>`;
+        // 🧺 the shelf: what's been harvested and not given yet
+        const shelf = Object.entries(st.shelf || {});
+        if ($('gShelf')) $('gShelf').innerHTML = shelf.length
+            ? `<div class="g-shelf">${shelf.map(([k, n]) => `<div class="g-jar" title="${esc(prizeOf(k).name.replace(/ seeds$/, ''))}"><span class="e">${icon(k)}</span><b>×${n}</b></div>`).join('')}</div>
+               <p class="muted g-small">Harvests land here (up to ${st.shelf_max} of each; more goes to the compost). Hand them to an order or to the cottage.</p>`
+            : '<p class="muted g-small">Empty. Harvest something ripe and it lands here, ready to give to an order.</p>';
         const al = st.almanac || [], found = al.filter(a => a.got);
         $('gAlmanacCount').textContent = `${found.length} of ${al.length}`;
         $('gAlmanac').innerHTML = `<p class="muted g-small">About 1 harvest in ${st.mutation_odds} comes out strange. Most give triple compost; the gold-edged ones give a free spin. Each one also gives its seed: plant it to try for another.</p>

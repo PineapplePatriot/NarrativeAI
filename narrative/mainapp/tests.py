@@ -9942,15 +9942,23 @@ class OrderBoardTests(TestCase):
         self.assertEqual(len(g["orders"]), 1)  # three gave up waiting, one new went up
         self.assertIn("gave up waiting", " ".join(x["text"] for x in g["log"]))
 
-    def test_harvests_fill_orders_which_pay_tomatoes_toward_spins(self):
+    def test_harvests_go_to_the_shelf_and_are_given_to_orders_which_pay_tomatoes(self):
         from mainapp import tomato_machine as M, tomato_garden as G
         m, g = M._state(self.score), G._state(self.score)
         g["orders"] = [{"id": 1, "needs": {"seed_tomato": 2}, "have": {"seed_tomato": 0}, "reward": 160,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
-        for i in range(2):
+        for i in range(3):
             g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
             self.assertEqual(G._harvest(g, m, f"{i},0", rng=self.Rolls()), 2)  # compost as usual
-        self.assertEqual((g["orders"], m["earned"], g["filled"]), ([], 160, 1))
+        self.assertEqual((g["shelf"], g["orders"][0]["have"]), ({"seed_tomato": 3}, {"seed_tomato": 0}))  # nothing given yet
+        self.assertEqual(G.give(g, m, 1), 2)  # handed over: only what the order needs
+        self.assertEqual((g["orders"], m["earned"], g["filled"], g["shelf"]), ([], 160, 1, {"seed_tomato": 1}))
+        with self.assertRaises(ValueError):
+            G.give(g, m, 1)  # gone
+        g["shelf"] = {"seed_carrot": G.SHELF_MAX}
+        g["tiles"]["5,0"] = {"kind": "plant", "seed": "seed_carrot", "at": 0, "boost": 0}
+        G._harvest(g, m, "5,0", rng=self.Rolls())
+        self.assertEqual(g["shelf"]["seed_carrot"], G.SHELF_MAX)  # a full shelf: composted
         self.score.machine, self.score.garden = m, g
         self.score.wild = 200
         self.score.save()
@@ -9997,6 +10005,7 @@ class OrderBoardTests(TestCase):
         spins = m["bonus"]
         G._harvest(g, m, "1,1", rng=self.Rolls(.2))  # kept (rare: 25%): golden again, a spin and its seed back
         self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"], g["almanac"]["golden_tomato"]), (spins + 1, 1, 2))
+        G.give(g, m, 1)
         self.assertEqual(m["earned"], 100)  # it still counts as a tomato for orders
         g["tiles"]["1,1"] = {"kind": "plant", "seed": "seed_golden_tomato", "at": 0, "boost": 0}
         m["items"]["seed_golden_tomato"] = 0
@@ -10037,6 +10046,7 @@ class CottageQuestTests(TestCase):
             G.act(self.user, {"action": "build"})  # nothing harvested yet
         m, g = self.fresh()
         self.harvest(g, m, "seed_tomato", 5)
+        G.give(g, m, "house")  # 🧺 from the shelf
         self.assertEqual(g["house"]["have"], {"seed_tomato": 5})
         m["compost"] = 20
         self.score.machine, self.score.garden = m, g
@@ -10060,6 +10070,8 @@ class CottageQuestTests(TestCase):
         g["orders"] = [{"id": 9, "needs": {"seed_tomato": 1}, "have": {"seed_tomato": 0}, "reward": 100,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
         self.harvest(g, m, "seed_tomato", 6)
+        G.give(g, m, "house")
+        G.give(g, m, 9)
         self.assertEqual((g["house"]["have"]["seed_tomato"], g["orders"], m["earned"]), (5, [], 100))  # 5 to the house, 1 to the bakery
         g["house"]["stage"] = 4  # everything up to the kitchen built
         self.assertTrue(all(H.has(g, u) for u in ("mailbox", "plot", "barrel", "kitchen")))
@@ -10086,6 +10098,7 @@ class CottageQuestTests(TestCase):
         self.assertTrue(200 <= order["reward"] <= 600)
         self.harvest(g, m, "seed_tomato", 3)
         self.harvest(g, m, "seed_carrot", 1)
+        G.give(g, m, order["id"])
         self.assertEqual((g["orders"], m["earned"]), ([], order["reward"]))
         m["compost"] = 500
         self.assertEqual(H.ready(g, m), (False, "Il Dattore needs 3 different mutations for it (0 found so far)."))
