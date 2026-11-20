@@ -1180,7 +1180,7 @@
     } else if (st.step === "busy") {
       body = "<p>Thinking about who " + n + " is on a phone… 🥔</p>";
     } else if (st.step === "review") {
-      body = "<p>Here's " + n + " for texting:</p><dl class=\"tg-setup-draft\">" +
+      body = "<p>Here's " + n + " for texting" + (st.bulbaUpdated ? ' <span class="tg-setup-fresh">🥔 updated with Bulba</span>' : "") + ":</p><dl class=\"tg-setup-draft\">" +
         "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
@@ -1193,7 +1193,7 @@
         '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
-        '<button type="button" class="tg-setup-ghost" onclick="TG.openBulba()">🥔 Talk it through</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.talkSetup(\'' + slug + '\')">🥔 Talk it through</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
@@ -1248,7 +1248,7 @@
       box.innerHTML = '<div style="color:var(--tg-muted)">Loading…</div>';
       apiPost({ action: "gallery" }).then(function (res) {
         var ph = res.photos || [];
-        if (!ph.length) { box.innerHTML = '<div style="color:var(--tg-muted);font-size:13.5px;">No photos yet. Ask them for a selfie, or send one with 🎨.</div>'; return; }
+        if (!ph.length) { box.innerHTML = '<div style="grid-column:1/-1;color:var(--tg-muted);font-size:13.5px;">No photos yet. Ask them for a selfie, or send one with 🎨.</div>'; return; }
         box.innerHTML = ph.map(function (p) {
           return '<figure class="tg-gallery-item">' +
             '<img src="' + esc(p.url) + '" alt="" loading="lazy" onclick="TG.viewImage(this.src)">' +
@@ -1661,6 +1661,7 @@
         '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
         "<h3>🎨 Make a picture to send</h3>" +
         '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
+        '<button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div>' +
         (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
           : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
         '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
@@ -1678,6 +1679,11 @@
         var d = document.getElementById("tgMakeDesc"); if (d) mk.desc = d.value;
         var c = document.getElementById("tgMakeCaption"); if (c) mk.caption = c.value;
         if (e.target === box || e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-suggest-btn]")) {
+          TG.suggestInto("my_picture", e.target.closest("[data-suggest-btn]"), function (x) { mk.desc = x; var dd = document.getElementById("tgMakeDesc"); if (dd) dd.value = x; });
+          return;
+        }
+        if (e.target.closest(".tg-suggest")) return;
         var r = e.target.closest("[data-ref]");
         if (r) {
           var u = r.getAttribute("data-ref"), at = mk.refs.indexOf(u);
@@ -1805,6 +1811,17 @@
       if (fix) st.hint = (st.hint ? st.hint + "\n" : "") + "Correction to the last draft: " + fix;
       st.fix = "";
       TG.setupRun(slug);
+    },
+    talkSetup: function (slug) {  // 🥔 the panel opens on this draft, with what's still open
+      var st = setupState[slug] || {}, t = STATE.active_thread;
+      var m = ((t && t.members) || []).find(function (x) { return x.slug === slug; }) || {};
+      TG.openBulba();
+      var q = (st.notes && st.notes.questions) || [];
+      var ask = "Let's go over " + (m.name || "their") + "'s texting setup draft together." +
+        (q.length ? " Your open questions were: " + q.join(" / ") : "");
+      var frame = document.getElementById("tgBulbaFrame");
+      var send = function () { try { frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin); } catch (e) { /* typed by hand */ } };
+      setTimeout(send, 900); frame.addEventListener("load", function once() { frame.removeEventListener("load", once); setTimeout(send, 300); });
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
     setupDraw: function (slug) {
@@ -1973,6 +1990,32 @@
 
     // 💬 Like a real chat, you can send several messages in a row: they answer once you've stopped for a moment
     // (a few seconds, longer while you're still typing). Sent while they're already writing: they answer it after.
+    // 🥔 Stuck? Bulba's ideas, as chips: tap one to use it (it can still be changed before sending)
+    suggestInto: function (what, btn, use) {
+      var t = STATE.active_thread; if (!t) return;
+      var box = (btn.parentNode && btn.parentNode.querySelector('.tg-suggest[data-suggest-for="' + what + '"]')) || document.querySelector('.tg-suggest[data-suggest-for="' + what + '"]');
+      var label = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "🥔 Thinking…";
+      apiPost({ action: "suggest", thread_id: t.id, what: what }).then(function (res) {
+        btn.disabled = false; btn.innerHTML = label;
+        if (!box) return;
+        box.innerHTML = res.ideas.map(function (x) { return '<button type="button">' + esc(x) + "</button>"; }).join("");
+        box.querySelectorAll("button").forEach(function (b, i) {
+          b.onclick = function (ev) { ev.stopPropagation(); use(res.ideas[i]); box.innerHTML = ""; };
+        });
+      }).catch(function (err) { btn.disabled = false; btn.innerHTML = label; alert(err.message); });
+    },
+    suggestReply: function (btn) {
+      var row = document.getElementById("tgSuggestReply");
+      if (!row) {
+        row = document.createElement("div"); row.id = "tgSuggestReply"; row.className = "tg-suggest tg-suggest-reply";
+        row.setAttribute("data-suggest-for", "reply");
+        var comp = document.querySelector(".tg-composer-row"); comp.parentNode.insertBefore(row, comp);
+      }
+      if (row.innerHTML) { row.innerHTML = ""; return; }  // tap 🥔 again to hide them
+      TG.suggestInto("reply", btn, function (x) { var inp = document.getElementById("tgMessageInput"); inp.value = x; inp.focus(); });
+    },
+
     replySoon: function () {
       clearTimeout(TG._replyTimer);
       if (TG._busy) { TG._replyAfter = true; return; }
@@ -2905,12 +2948,16 @@
 
   // Typing in the message box cancels "they answer your reaction"
   var inpEl = document.getElementById("tgMessageInput");
+  if (inpEl && window.matchMedia && matchMedia("(max-width: 860px)").matches) inpEl.placeholder = "Message…";
   if (inpEl) inpEl.addEventListener("input", function () { clearTimeout(TG._reactTimer); TG._lastKey = Date.now(); });
 
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {
     if (e.origin !== window.location.origin || !e.data) return;
     if (e.data.quickBulba === "close") { TG.closeBulba(); return; }
+    if (e.data.bulba === "apply" || e.data.bulba === "undo") {  // a card applied: the setup card shows the new draft
+      Object.keys(setupState).forEach(function (k) { var st = setupState[k]; if (st.step === "review") { st.notes = {}; st.bulbaUpdated = true; } });
+    }
     if ((e.data.bulba || e.data.quickBulba === "changed") && STATE.active_thread) TG.selectThread(STATE.active_thread.id);
   });
 })();

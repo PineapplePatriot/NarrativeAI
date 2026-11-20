@@ -894,3 +894,23 @@ class ExpressionAndDailyTests(MessengerActionTests):
         self.assertNotIn("HOW FAR IT GOES", prompt)
         messenger.generate_messenger_photo(self.user, self.rose, "a selfie at the market", thread=thread)
         self.assertNotIn("NO PEOPLE", ai_client.generate_image.call_args.args[1])  # asked for one: a selfie
+
+
+class SuggestTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_bulba_suggests_replies_and_pictures(self):
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="the market was packed today")
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["ugh, crowds", "bring me a peony?", "dinner later?", "4th"]}) as ask:
+            out = self.post(action="suggest", thread_id=tid, what="reply").json()
+        self.assertEqual(out["ideas"], ["ugh, crowds", "bring me a peony?", "dinner later?"])
+        prompt = ask.call_args.args[1]
+        self.assertIn("the market was packed today", prompt)
+        self.assertIn("Never write for the other characters", prompt)
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["Rose's stall from above"]}) as ask:
+            self.post(action="suggest", thread_id=tid, what="their_picture")
+        self.assertIn("ask Rose for a photo", ask.call_args.args[1])
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": []}):
+            self.assertEqual(self.post(action="suggest", thread_id=tid, what="my_picture").status_code, 400)

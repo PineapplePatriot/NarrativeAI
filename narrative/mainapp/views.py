@@ -5287,6 +5287,17 @@ def messenger_api(request):
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
 
+    if action == "suggest":  # 🥔 ideas when they're stuck: a reply, a photo to send, a photo to ask for
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture") else "reply"
+        try:
+            ideas = messenger.suggest(request.user, thread, what, body.get("hint") or "")
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"ideas": ideas})
+
     if action == "gallery":  # 🖼️ the photos of every chat
         return JsonResponse({"photos": messenger.gallery(request.user)})
 

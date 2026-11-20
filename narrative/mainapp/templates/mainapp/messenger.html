@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=27">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=29">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -159,6 +159,7 @@
             <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
             <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
             <button type="button" class="tg-icon-btn" onclick="TG.openMakePicture()" title="Make a picture to send (a photo of you, or anything)">🎨</button>
+            <button type="button" class="tg-icon-btn" onclick="TG.suggestReply(this)" title="Stuck? Bulba suggests what you could text">🥔</button>
             <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
             <button type="button" class="tg-icon-btn" id="tgMicBtn" onclick="TG.toggleRecording()" title="Record a voice message (tap again to send)">🎤</button>
             <button type="button" class="tg-send-btn" id="tgSendBtn" onclick="TG.sendUserMessage()">Send ➤</button>
@@ -312,6 +313,8 @@
       <div class="tg-field-group">
         <label>Scene / Prompt details (optional — leave blank to auto-extract essence from the current chat)</label>
         <textarea class="tg-textarea" id="photoModalPrompt" placeholder="Leave blank to let the scene reader inspect the last messages, or describe a specific selfie, food, or scenery shot…"></textarea>
+        <button type="button" class="tg-fmt-btn" style="align-self:flex-start;margin-top:6px" onclick="TG.suggestInto('their_picture', this, function (x) { document.getElementById('photoModalPrompt').value = x; })">🥔 Suggest from the chat</button>
+        <div class="tg-suggest" data-suggest-for="their_picture"></div>
       </div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Cancel</button>
@@ -357,6 +360,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=27"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=29"></script>
 </body>
 </html>

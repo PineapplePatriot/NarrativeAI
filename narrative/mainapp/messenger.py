@@ -2223,6 +2223,60 @@ def one_reference(user, character, slot):
     return save_char_profile(character, {"extra_refs": extra[:4]})
 
 
+def _chat_brief(user, thread, last=20):
+    """(the user's name in this chat, who they are, the recent chat as lines) for Bulba's suggestions."""
+    from mainapp.cards import user_name
+    data = thread_data(thread)
+    persona = data.get("persona") or {}
+    me = persona.get("name") or (getattr(user, "persona_name", "") or "").strip() or user_name(user)
+    who = (persona.get("description") or getattr(user, "persona_description", "") or "")[:800]
+    lines = []
+    for m in delivered(data["messages"])[-last:]:
+        if m.get("role") == "system":
+            continue
+        name = me if m.get("role") == "user" else (m.get("sender_name") or thread.title)
+        what = m.get("text") or (m.get("voice") or {}).get("transcript") or ""
+        ph = m.get("photo") or {}
+        if ph:
+            what += f" [photo: {ph.get('seen') or ph.get('prompt') or ph.get('caption') or ''}]"
+        if what.strip():
+            lines.append(f"{name}: {what.strip()[:300]}")
+    memory = data.get("memory") or ""
+    return me, who, ("Earlier (memory): " + memory[:1500] + "\n" if memory else "") + "\n".join(lines)
+
+
+def suggest(user, thread, what, hint=""):
+    """🥔 Bulba's ideas when they're stuck: what = "reply" (3 texts they could send), "my_picture" (3 photos they
+    could send) or "their_picture" (a photo to ask a character for, read from the scene). Returns a list of strings."""
+    me, who, chat = _chat_brief(user, thread)
+    names = ", ".join(c.name for c in thread.characters.all()) or thread.title
+    hint = str(hint or "").strip()[:300]
+    if what == "reply":
+        task = (f"{me} is stuck on what to text back. Write 3 different texts {me} could send next, in {me}'s own "
+                "voice (short, like real texting; match how they've been writing, their language included): one that "
+                "answers warmly or directly, one playful or teasing, one that moves things somewhere new (a question, "
+                "a plan, something about their day). Never write for the other characters.")
+    elif what == "my_picture":
+        task = (f"{me} wants to send a photo in this chat. Suggest 3 photos that fit this moment (what they're doing, "
+                "where they are, what was just said): each a concrete one-sentence description of what the photo "
+                f"shows, written as {me} would describe it (\"me at…\", \"my…\"). Vary them: one of {me}, one of "
+                "something around them, one that answers something in the chat.")
+    else:
+        task = (f"{me} wants to ask {names} for a photo. Suggest 3 photos that fit this moment, from what was just "
+                "said and what they'd be doing now: each a concrete one-sentence description of what the photo shows, "
+                "including the camera angle. Vary them (a selfie, their surroundings, something from the chat).")
+    prompt = (f"You are Bulba, helping in a messenger chat between {me} and {names}.\n"
+              + (f"Who {me} is here: {who}\n" if who else "")
+              + f"\nThe chat:\n{chat or '(nothing yet)'}\n\n{task}"
+              + (f"\nTheir direction: {hint}" if hint else "")
+              + '\n\nAnswer with JSON only: {"ideas": ["...", "...", "..."]}')
+    out = ask_json(user, prompt, need=("ideas",), max_tokens=700, task="summary", temperature=0.9)
+    ideas = [str(x).strip()[:400] for x in (out.get("ideas") or []) if str(x).strip()]
+    if not ideas:
+        raise ai_client.AIError("Bulba came back with nothing. Try again.")
+    return ideas[:3]
+
+
 def user_picture(user, thread, description, ref_urls=(), with_me=True):
     """🎨 A picture the user sends: a photo of them (their persona picture as the reference) or of anything, with up
     to 5 references (their persona, the character's pictures for a photo of the two of them, uploads), in the chat's

@@ -1669,3 +1669,21 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-gallery-item figcaption button { position: absolute; right: 4px; top: 4px; }
 @media (max-width: 860px) { .tg-gallery-grid { grid-template-columns: repeat(2, 1fr); } .dock-app-btn { min-width: 0; flex: 1; } }
 .tg-style-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tg-setup-fresh { font-size: 12px; color: var(--tg-accent, #8b5cf6); margin-left: 6px; }
+/* 🥔 Bulba's ideas */
+.tg-suggest { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.tg-suggest:empty { display: none; }
+.tg-suggest button { text-align: left; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.35); color: var(--tg-text);
+  border-radius: 12px; padding: 8px 10px; font: inherit; font-size: 13.5px; cursor: pointer; }
+.tg-suggest button:hover { background: rgba(167,139,250,.2); }
+.tg-suggest-reply { padding: 6px 12px 0; max-height: 40vh; overflow-y: auto; }
+/* Phones: the text box and Send on the first line, the small buttons (📎 🎭 🎨 🥔 🎤) in a row under it */
+@media (max-width: 860px) {
+  .tg-composer-row { flex-wrap: wrap; row-gap: 6px; }
+  .tg-composer-row .tg-composer-input { order: 0; flex: 1 1 0; min-width: 0; }
+  .tg-composer-row .tg-icon-btn { flex: 0 0 auto; }
+  .tg-composer-row::after { content: ""; order: 1; flex-basis: 100%; height: 0; }
+  .tg-composer-row .tg-send-btn { padding-left: 14px; padding-right: 14px; }
+  .tg-composer-row .tg-send-btn { order: 0; }
+  .tg-composer-row .tg-icon-btn { order: 2; width: 36px; height: 36px; font-size: 17px; }
+}
