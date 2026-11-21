@@ -10422,6 +10422,9 @@ class CardSearchTests(TestCase):
         out, _ = cardsearch.tool_bring_in_card(self.session, {"where": "https://realm.risuai.net/character/abc"})
         self.assertIn("Download (PNG)", out["error"])
         with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("logged-in browser", out["error"])  # Janitor turning us away: the ways that work
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
             out, _ = cardsearch.tool_find_card(self.session, {"query": "x"})
         self.assertIn("turned the request away", out["error"])
 
@@ -10516,3 +10519,22 @@ class BulbaChatPersonaTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaChatPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaChatPersonaTests, _name, None)
+
+
+class AfterNewCardTests(BulbaTests):
+    """🧭 After a new character, Bulba goes on to the persona, the world and the extras."""
+    def test_bulba_is_told_to_go_on_after_a_new_character(self):
+        self.script = [("Here.", [self.call("propose_character", name="Rafe", description="A tired detective. Tall, grey coat.",
+                                            scenario="A rainy city.", greeting="You again.")])]
+        made = self.api(action="say", text="make me a detective").json()["state"]["proposals"][-1]
+        self.script = [("Who are you in this story?", [])]
+        self.bulba_calls.clear()
+        self.api(action="apply", id=made["id"])
+        sent = json.dumps(self.bulba_calls[-1]["messages"])
+        self.assertIn("NEXT, after this new character", sent)
+        self.assertIn("propose_persona with scope account / story / chat", sent)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(AfterNewCardTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(AfterNewCardTests, _name, None)

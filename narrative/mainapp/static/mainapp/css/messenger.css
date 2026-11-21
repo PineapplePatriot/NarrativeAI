@@ -1754,3 +1754,4 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-make-suggest { margin: 8px 0 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .tg-story-made img { max-width: 180px; max-height: 180px; border-radius: 10px; display: block; margin-top: 8px; cursor: zoom-in; }
 .tg-story-made small { color: var(--tg-muted); font-size: 12px; }
+.tg-setup-ideas { align-self: flex-start; margin: 2px 0 10px; }

@@ -65,6 +65,18 @@ def card_report(character):
     return "\n\n".join(lines)
 
 
+# 🧭 After any new character (made, uploaded or brought in from a card site), whatever they chose to do with the
+# card itself (use it as it is, change it, modernize it), Bulba goes on to what makes it a story, one step at a time
+AFTER_NEW_CARD = (
+    "NEXT, after this new character (whatever they chose for the card itself), go on with the rest of the setup, "
+    "one step at a time, each with offer_choices, skipping what's already done: "
+    "1) who they are in this story: their usual persona, a persona just for this story, or just for one chat "
+    "(propose_persona with scope account / story / chat; in seven parts if they want it detailed); "
+    "2) the world: a lorebook for it (write one, or check the one it came with); "
+    "3) story extras and trackers for this story (letters, phone screens, milestones, a slow meter…). "
+    "Then offer to start the chat.")
+
+
 def import_card(session, upload):
     """Their card becomes a character, recorded like an applied character proposal (so Undo and Chat now work)."""
     from mainapp import cards

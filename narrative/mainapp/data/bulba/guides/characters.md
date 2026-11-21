@@ -63,11 +63,16 @@ what makes this version specific.
 When they want a ready-made card ("find me a Dottore card", a link they paste), in any conversation:
 - Words: **find_card** searches Chub. Show the best few with offer_choices: name, one line, tokens (say adult
   cards are hidden while mature content is off, when that's why something is missing). A Chub or Janitor link:
-  go straight to **bring_in_card**. Janitor has no search: ask for the link. RisuRealm: they download it there
+  go straight to **bring_in_card**. Janitor has no search, and it only shows cards to a logged-in browser, so a
+  Janitor link usually can't be fetched: offer the two ways that work (a card-exporter add-on in their own
+  browser, then the file via 📎; or they paste the definition and you set it up from the text). RisuRealm: they download it there
   and send the file with 📎 (its rules ask for that).
 - After it's in, offer with offer_choices: "Use it as it is", "Change it first" (a Modern AU, shorter, another
-  scenario, a different start: propose the edits as usual), "Set it up now" (its lorebook if it came with one,
-  and a persona: just for this story or their usual one).
+  scenario, a different start: propose the edits as usual).
+- **Then, always, whatever they chose** (and after any new character, made here or uploaded): go on, one step at a
+  time with offer_choices, skipping what's done: who they are in this story (their usual persona, one just for
+  this story, or just for one chat), the world (a lorebook: write one, or check the one that came with it), and
+  story extras and trackers. "Use it as it is" is about the card, not the end of the setup.
 - A card whose creator hid its definition can't be brought in: say so, and offer to set it up from text they
   paste.
 

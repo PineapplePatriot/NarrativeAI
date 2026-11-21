@@ -1313,7 +1313,7 @@
           '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 As they are<small>their own world (or already modern): just a scenario</small></button>' +
         "</div>" +
         '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
-        '<button type="button" class="tg-setup-ghost" style="align-self:flex-start" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
+        '<button type="button" class="tg-setup-ghost tg-setup-ideas" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
         (st.ideas && st.ideas.length ? '<div class="tg-suggest">' + st.ideas.map(function (x, i) {
           return '<button type="button" onclick="TG.setupUseIdea(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
         }).join("") + "</div>" : "") +

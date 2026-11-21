@@ -4349,6 +4349,9 @@ def _bulba_api(request):
         link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
         if link:  # so Bulba can point to the right places (pictures go on the character's page)
             note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        if action == "apply" and proposal["kind"] == "character":  # 🧭 and on to persona, world, extras
+            from .bulba import lore as lore_mod
+            note_for_bulba += "\n\n" + lore_mod.AFTER_NEW_CARD
         events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}", model_note=note_for_bulba)
     elif action == "forget":  # the user removes a preference Bulba recorded
         pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
@@ -4554,7 +4557,7 @@ def _bulba_card_upload(request):
     session.events += events
     link = _bulba_chat_link(session)
     note = (f"Imported their card: {proposal['title']} — chat: {link['url']}, pictures (Sprites section): "
-            f"{link['edit_url']}\n\n{lore.card_report(character)}")
+            f"{link['edit_url']}\n\n{lore.card_report(character)}\n\n{lore.AFTER_NEW_CARD}")
     events += agent.run_turn(session, None, action_note=f"Imported {character.name}", model_note=note)
     session.activity = ""
     session.save()
