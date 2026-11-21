@@ -539,30 +539,35 @@
     function paintCottage() {
         const hs = st.house, box = $('gCottage');
         if (!hs || !box) return;
-        const steps = hs.stages.map((s, i) => `<li class="${i < hs.stage ? 'done' : i === hs.stage ? 'now' : ''}" title="${esc(s.about)}">${s.emoji}<span>${esc(s.name)}</span></li>`).join('');
-        let body = '';
+        // One line for the progress (the stage names are in the tooltips), then only the next thing to do
+        const dots = hs.stages.map((s, i) => `<i class="${i < hs.stage ? 'done' : i === hs.stage ? 'now' : ''}" title="${esc(s.emoji + ' ' + s.name + ': ' + s.about)}"></i>`).join('');
         const c = hs.current;
-        if (!c) body = `<p><b>The cottage is finished.</b> ${esc(hs.builder)} is already sketching a mill. ${esc(hs.banker)} is already sketching an audit.</p>`;
-        else if (hs.building) body = `<p><b>${c.emoji} ${esc(c.name)}</b>: ${esc(hs.builder)} is building. Ready in about ${dur(hs.building)}.</p>
-            <p class="muted g-small">Then: ${esc(c.about)}</p>`;
+        const head = `<div class="g-progress"><span class="g-dots">${dots}</span>
+            <span>${c ? `Stage ${hs.stage + 1} of ${hs.stages.length} · <b>${c.emoji} ${esc(c.name)}</b>` : '<b>All built</b>'}</span></div>`;
+        let body = '';
+        if (!c) body = `<p>${esc(hs.builder)} is already sketching a mill. ${esc(hs.banker)} is already sketching an audit.</p>`;
+        else if (hs.building) body = `<p class="g-next">🔨 ${esc(hs.builder)} is building. Ready in about <b>${dur(hs.building)}</b>.</p>`;
         else {
-            const needs = c.needs.map(x => `<div class="g-need"><span>${x.seed === 'seed_tomato' ? '🍅' : prizeOf(x.seed).emoji} ${esc(x.name)}</span><b>${x.have} / ${x.n}</b>
-                <div class="g-bar"><i style="width:${Math.round(x.have / x.n * 100)}%"></i></div></div>`).join('')
-                + (c.mutations ? `<div class="g-need"><span>🧬 Different mutations found</span><b>${Math.min(c.found, c.mutations)} / ${c.mutations}</b>
-                <div class="g-bar"><i style="width:${Math.round(Math.min(c.found, c.mutations) / c.mutations * 100)}%"></i></div></div>` : '');
+            const missing = c.needs.some(x => x.have < x.n) || (c.mutations && c.found < c.mutations);
+            const chips = c.needs.map(x => `<span class="g-chip${x.have >= x.n ? ' full' : ''}">${x.seed === 'seed_tomato' ? '🍅' : prizeOf(x.seed).emoji} ${x.have}/${x.n}</span>`).join('')
+                + (c.mutations ? `<span class="g-chip${c.found >= c.mutations ? ' full' : ''}" title="Different mutations found">🧬 ${Math.min(c.found, c.mutations)}/${c.mutations}</span>` : '');
             const canGive = c.needs.some(x => x.have < x.n && (st.shelf || {})[x.seed]);
-            body = `<p><b>${c.emoji} ${esc(c.name)}</b>: the builder's order. Hand him crops from your shelf.</p><div class="g-needs">${needs}</div>
-                ${c.needs.length ? `<div class="g-row"><button type="button" class="na-btn${canGive ? ' na-primary' : ''}" data-give="house" ${canGive ? '' : 'disabled'}>🧺 Give from the shelf</button></div>` : ''}
-                <div class="g-row"><button type="button" class="na-btn${hs.ready ? ' na-primary' : ''}" data-build ${hs.ready ? '' : 'disabled'}>🔨 Build it: ♻ ${c.compost} compost</button>
-                <span class="muted g-small">${esc(hs.ready ? `${hs.builder} needs about ${c.hours} hours.` : hs.why)}</span></div>
-                <p class="muted g-small">Unlocks: ${esc(c.about)}${c.budget_left ? ` · 💰 In within ${dur(c.budget_left)} and ${esc(hs.banker)} tips 🍅 100.` : ''}</p>`;
+            body = missing
+                ? `<div class="g-next"><span>1. Give him:</span> ${chips}
+                    ${c.needs.length ? `<button type="button" class="na-btn${canGive ? ' na-primary' : ''}" data-give="house" ${canGive ? '' : 'disabled'}
+                       title="${canGive ? 'From your shelf' : 'Harvest these first: they land on the shelf'}">🧺 Give</button>` : ''}</div>
+                   <p class="muted g-small">2. Then build it for ♻ ${c.compost} compost (about ${c.hours} h).</p>`
+                : `<div class="g-next"><span>${chips}</span>
+                    <button type="button" class="na-btn${hs.ready ? ' na-primary' : ''}" data-build ${hs.ready ? '' : 'disabled'}>🔨 Build it: ♻ ${c.compost}</button>
+                    ${hs.ready ? '' : `<span class="muted g-small">${esc(hs.why)}</span>`}</div>`;
+            body += `<p class="muted g-small">Unlocks ${esc(c.about)}${c.budget_left ? ` · 💰 within ${dur(c.budget_left)}: ${esc(hs.banker)} tips 🍅 100` : ''}</p>`;
         }
         const sc = hs.scene || {}, lines = sc.lines || [];
         let seen = null;
         try { seen = localStorage.getItem('na-cottage-scene'); } catch (e) { /* private window */ }
         const fresh = lines.length && String(sc.at) !== seen;
-        box.innerHTML = `<ol class="g-steps">${steps}</ol>${body}
-            ${lines.length ? `<details class="g-scene"${fresh ? ' open' : ''}><summary>${fresh ? '✨ ' : ''}${esc(hs.builder)} and ${esc(hs.banker)}${fresh ? ' have something to say' : ': the last word'}</summary>
+        box.innerHTML = `${head}${body}
+            ${lines.length ? `<details class="g-scene"${fresh ? ' open' : ''}><summary>💬 ${esc(hs.builder)} and ${esc(hs.banker)}${fresh ? ' <span class="g-new">new</span>' : ''}</summary>
                 <div>${lines.map(l => `<p><span class="who">${WHO[l.who] || '🗨️'} ${esc(l.who)}</span> ${esc(l.text)}</p>`).join('')}</div></details>` : ''}`;
         const d = box.querySelector('.g-scene');
         if (d) d.addEventListener('toggle', () => { try { localStorage.setItem('na-cottage-scene', String(sc.at)); } catch (e) { /* this page only */ } });

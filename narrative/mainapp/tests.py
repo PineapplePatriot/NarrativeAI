@@ -1571,6 +1571,13 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertNotIn("One", call["messages"][1]["content"])
         self.assertIn("Two", call["messages"][1]["content"])
 
+    def test_the_panel_knows_what_the_ai_no_longer_sees(self):
+        self.build_story()
+        data = self.chat_file()
+        self.assertIn("out_of_view", data)  # the last reply's request: what didn't fit (0 here: all fits)
+        resp = self.post({"action": "summary_pause", "paused": False}).json()
+        self.assertEqual(resp.get("summary_data", resp).get("out_of_view", 0), 0)
+
     def test_regenerate_and_swipe_rewind_the_trackers(self):
         self.build_story()
         self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it
@@ -3432,6 +3439,19 @@ class LightReasoningTests(SimpleTestCase):
         self.assertIsNone(self.payload("trackers", "xiaomi/mimo-v2.6-pro", provider="openai"))
         self.assertIsNone(self.payload("trackers", "someone/unknown-model"))
         self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
+
+    def test_a_refused_thinking_setting_is_dropped_and_tried_again(self):
+        import types
+        from unittest import mock
+        from mainapp import ai_client
+        bad = mock.Mock(status_code=400, text='{"error": "reasoning effort low is not supported"}')
+        good = mock.Mock(status_code=200, text="{}")
+        profile = types.SimpleNamespace(api_url="https://x", provider="openrouter", api_key="k", name="Main")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=[bad, good]) as post, \
+                mock.patch("mainapp.ai_client._headers", return_value={}):
+            out = ai_client._post(profile, {"model": "x/y", "messages": [], "reasoning": {"effort": "low"}})
+        self.assertIs(out, good)
+        self.assertNotIn("reasoning", post.call_args.kwargs["json"])
 
 
 class ThinkingLevelTests(ChatPromptTests):

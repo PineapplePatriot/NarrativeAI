@@ -341,6 +341,12 @@ def _post(profile, payload, *, diagnostic_task=None, diagnostic_operation=None, 
         resp.close()
         payload = change(payload)
         resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
+    if resp.status_code == 400 and "reasoning" in payload and re.search(r"reason|think|effort", resp.text or "", re.I):
+        # 🧠 a thinking setting the model (or its provider) doesn't take after all: once more without it
+        logging.getLogger(__name__).info("Thinking setting refused (%s): retrying without it", payload.get("reasoning"))
+        resp.close()
+        payload = {k: v for k, v in payload.items() if k != "reasoning"}
+        resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     for wait in RATE_LIMIT_WAITS:  # ⏳ "temporarily rate-limited upstream": usually gone in seconds
         if resp.status_code != 429:
             break

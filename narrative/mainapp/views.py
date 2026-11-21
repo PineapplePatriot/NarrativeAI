@@ -472,6 +472,7 @@ def chat(request, slug):
         "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
         "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
         "summary_paused": False,  # automatic summaries are paused for this chat
+        "out_of_view": 0,  # the oldest messages the last reply's request couldn't hold (they need the summary)
         "memory": {},  # story memory (mainapp/story_memory.py)
         "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
@@ -503,6 +504,7 @@ def chat(request, slug):
             "parts": chat_state["summary_parts"],
             "total": len(messages),
             "first_uncovered": chats.first_uncovered(chat_state["summary_parts"], len(messages)),
+            "out_of_view": min(chat_state["out_of_view"], len(messages)),
             "paused": chat_state["summary_paused"],
             "auto": task.mode == task.MODE_AUTO,
             "interval": task.interval,
@@ -524,6 +526,7 @@ def chat(request, slug):
                 chat_state["trackers"] = data.get("trackers") or {}
                 chat_state["tracker_history"] = data.get("tracker_history") or []
                 chat_state["summary_paused"] = bool(data.get("summary_paused"))
+                chat_state["out_of_view"] = int(data.get("out_of_view") or 0)
                 chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
                 chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
@@ -643,6 +646,7 @@ def chat(request, slug):
             "summary_upto": chat_state["summary_upto"],
             "summary_parts": chat_state["summary_parts"],
             "summary_paused": chat_state["summary_paused"],
+            "out_of_view": chat_state["out_of_view"],
             "memory": chat_state["memory"],
             "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
@@ -1782,6 +1786,7 @@ def chat(request, slug):
                         presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                         history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
+                    chat_state["out_of_view"] = context_dropped  # (the summary panel offers to summarize these)
                     chat_state["last_recall"] = recalled  # shown in "What the AI saw"
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
