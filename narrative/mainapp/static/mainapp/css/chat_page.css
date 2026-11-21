@@ -2571,3 +2571,12 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .sum-run .icon-btn.on { background: var(--accent-1, #8b5cf6); color: #fff; border-color: transparent; }
 .sum-custom { margin-top: 6px; font-size: .82rem; color: var(--text-secondary); }
 .sum-custom summary { cursor: pointer; }
+/* ↕ a picture's own size (− / + on hover or tap) */
+.character-image-container { --sprite-size: 1; }
+.character-image-container .character-sprite { transform: scale(var(--sprite-size)); transform-origin: bottom center; transition: transform .2s; }
+.sprite-size { position: absolute; top: 8px; right: 8px; display: none; gap: 4px; z-index: 5; }
+.character-image-container:hover .sprite-size, .character-image-container.show-size .sprite-size { display: flex; }
+.sprite-size button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(10,12,22,.75);
+    color: #fff; font-size: 15px; line-height: 1; cursor: pointer; padding: 0; }
+.sprite-size button:hover { background: rgba(139, 92, 246, .6); }
+@media (hover: none) { .character-image-container:hover .sprite-size { display: none; } .character-image-container.show-size .sprite-size { display: flex; } }

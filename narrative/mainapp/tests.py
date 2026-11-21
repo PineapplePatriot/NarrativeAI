@@ -10422,6 +10422,9 @@ class CardSearchTests(TestCase):
         out, _ = cardsearch.tool_bring_in_card(self.session, {"where": "https://realm.risuai.net/character/abc"})
         self.assertIn("Download (PNG)", out["error"])
         with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("logged-in browser", out["error"])  # Janitor turning us away: the ways that work
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
             out, _ = cardsearch.tool_find_card(self.session, {"query": "x"})
         self.assertIn("turned the request away", out["error"])
 
@@ -10431,3 +10434,107 @@ class CardSearchTests(TestCase):
         self.assertTrue({"find_card", "bring_in_card"} <= names(agent.TOOLS))
         self.assertTrue({"find_card", "bring_in_card"} <= names(doctor.tools()))
         self.assertTrue({"find_card", "bring_in_card"} <= names(texting.tools()))
+
+
+class LibraryUploadTests(TestCase):
+    """🎵🖼️ Backgrounds and music uploaded from the stats page, for everyone."""
+    def test_owner_uploads_a_background_and_a_radio_track(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from mainapp import media_library
+        User = get_user_model()
+        owner = User.objects.create_user(username="owner", password="pw12345!", is_staff=True)
+        other = User.objects.create_user(username="someone", password="pw12345!")
+        self.client.force_login(other)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.assertEqual(self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "file": pic}).status_code, 404)
+        self.client.force_login(owner)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "name": "Rainy lab", "file": pic})
+        self.assertIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        song = SimpleUploadedFile("night.mp3", b"ID3fake", content_type="audio/mpeg")
+        self.client.post(reverse("users:stats_library"), {"kind": "radio", "name": "🌙🎻", "set": "", "new_set": "Night shift", "file": song})
+        night = next(g for g in media_library.radio() if g["set"] == "Night shift")
+        self.assertEqual(night["tracks"][0]["name"], "🌙🎻")
+        bad = SimpleUploadedFile("x.exe", b"MZ", content_type="application/octet-stream")
+        resp = self.client.post(reverse("users:stats_library"), {"kind": "music", "file": bad})
+        self.assertIn("doesn", resp["Location"])
+        page = self.client.get(reverse("users:stats"))
+        self.assertContains(page, "Rainy lab")
+        path = media_library.uploads()["backgrounds"][0]["file"]
+        self.client.post(reverse("users:stats_library"), {"remove": path})
+        self.assertNotIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        media_library.remove(media_library.uploads()["radio"][0]["file"])  # (tidy up the test's files)
+
+
+class ReadableLookTests(TestCase):
+    """👓 A look Bulba makes is never unreadable: faint text is lightened or darkened until it reads."""
+    def test_dark_on_dark_is_fixed_and_good_colours_stay(self):
+        from mainapp import chat_looks as L
+        bad = L.clean({"base": "dark", "colors": {"surface": "#1b2a3a", "bubble_ai": "#22303f", "bubble_user": "#283545",
+                                                  "page": "#101820", "text": "#3b2a55", "muted": "#4a3a66"}})
+        c = bad["colors"]
+        self.assertGreaterEqual(min(L.contrast(c["text"], c[s]) for s in L.SURFACES), 4.5)
+        self.assertGreaterEqual(min(L.contrast(c["muted"], c[s]) for s in L.SURFACES), 3.6)
+        good = L.clean({"base": "light", "colors": {"text": "#2b2440"}})
+        self.assertEqual(good["colors"]["text"], "#2b2440")  # already readable: untouched
+        css = L.css(bad)
+        self.assertIn(".tracker-panel", css)  # the tracker cards take the look's own panel colour
+
+
+class ExtrasCustomObjectTests(TestCase):
+    """✨ "My own object" from the Extras page, saved in the active preset."""
+    def test_switched_on_with_a_description(self):
+        from mainapp import experiences, presets
+        user = get_user_model().objects.create_user(username="maker", password="pw12345!")
+        self.client.force_login(user)
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": True, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertEqual(resp["state"]["custom_object"], {"on": True, "text": "A quest log card"})
+        item = next(m for m in experiences.module_states(presets.normalize(presets.get_active(user).data)) if m["key"] == experiences.CUSTOM_OBJECT)
+        self.assertTrue(item["on"])
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": False, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertFalse(resp["state"]["custom_object"]["on"])
+
+
+class BulbaChatPersonaTests(BulbaTests):
+    """🎭 Bulba on the chat page: a persona just for this chat."""
+    def test_chat_scope(self):
+        from mainapp import chats
+        from mainapp.models import BulbaSession, Character
+        dottore = Character.objects.create(name="Dottore", slug="dott-chatp", author=self.user, initial_message="Hm.")
+        chat = chats.current(dottore)
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        from mainapp.bulba import agent, actions
+        out, _ = agent.tool_propose_persona(session, {"name": "Mira", "scope": "chat",
+                                                      "sections": {"pronouns": "Mira, she/her", "appearance": "Tall, ink-stained."}})
+        session.save()
+        actions.apply(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"]["name"], "Mira")
+        self.assertIn("[Appearance]", chats.read(chat)["persona"]["description"])
+        actions.undo(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaChatPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaChatPersonaTests, _name, None)
+
+
+class AfterNewCardTests(BulbaTests):
+    """🧭 After a new character, Bulba goes on to the persona, the world and the extras."""
+    def test_bulba_is_told_to_go_on_after_a_new_character(self):
+        self.script = [("Here.", [self.call("propose_character", name="Rafe", description="A tired detective. Tall, grey coat.",
+                                            scenario="A rainy city.", greeting="You again.")])]
+        made = self.api(action="say", text="make me a detective").json()["state"]["proposals"][-1]
+        self.script = [("Who are you in this story?", [])]
+        self.bulba_calls.clear()
+        self.api(action="apply", id=made["id"])
+        sent = json.dumps(self.bulba_calls[-1]["messages"])
+        self.assertIn("NEXT, after this new character", sent)
+        self.assertIn("propose_persona with scope account / story / chat", sent)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(AfterNewCardTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(AfterNewCardTests, _name, None)

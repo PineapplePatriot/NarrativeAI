@@ -619,13 +619,37 @@
     renderStickerTray();
   }
 
+  // 🎭 The tray: one tab per pack (theirs first, then the ones you added, then the built-in ones)
+  var stickerPack = null;
+  try { stickerPack = localStorage.getItem("na-tg-sticker-pack"); } catch (e) { /* this visit */ }
   function renderStickerTray() {
     var grid = document.getElementById("tgStickerGrid");
     if (!grid) return;
     var t = STATE.active_thread;
     var list = (t && t.stickers) ? t.stickers : STATE.built_in_stickers;
+    var packs = [];
+    list.forEach(function (s) { var p = s.pack || "Stickers"; if (packs.indexOf(p) === -1) packs.push(p); });
+    if (packs.indexOf(stickerPack) === -1) stickerPack = packs[0] || null;
+    var tabs = document.getElementById("tgStickerTabs");
+    if (!tabs) {
+      tabs = document.createElement("div"); tabs.id = "tgStickerTabs"; tabs.className = "tg-sticker-tabs";
+      grid.parentNode.insertBefore(tabs, grid);
+    }
+    tabs.innerHTML = packs.map(function (p) {
+      var first = list.find(function (s) { return (s.pack || "Stickers") === p; }) || {};
+      var icon = first.url ? (first.video || /\.webm$/i.test(first.url) ? "🎞️" : '<img src="' + esc(first.url) + '" alt="">') : esc((first.emoji || "🥔").slice(0, 2));
+      return '<button type="button" class="' + (p === stickerPack ? "on" : "") + '" data-pack="' + esc(p) + '" title="' + esc(p) + '">' + icon + "<span>" + esc(p) + "</span></button>";
+    }).join("");
+    tabs.onclick = function (e) {
+      var b = e.target.closest("[data-pack]"); if (!b) return;
+      stickerPack = b.getAttribute("data-pack");
+      try { localStorage.setItem("na-tg-sticker-pack", stickerPack); } catch (err) { /* this visit */ }
+      renderStickerTray();
+    };
+    var mine = list.some(function (s) { return (s.pack || "") === stickerPack && /^(custom_|tg_)/.test(s.id || ""); });
     grid.innerHTML = list
       .map(function (s, idx) {
+        if ((s.pack || "Stickers") !== stickerPack) return "";
         if (s.url) {
           return (
             '<div class="tg-tray-item" onclick="TG.sendStickerByIndex(' + idx + ')">' +
@@ -641,13 +665,15 @@
           "</div>"
         );
       })
-      .join("");
+      .join("") + (mine ? '<button type="button" class="tg-fmt-btn tg-pack-remove" onclick="TG.removeStickerPack()">🗑 Remove “' + esc(stickerPack) + '”</button>' : "");
   }
 
   // Drawer rendering
   function renderDrawer() {  // redrawn in place: the drawer keeps where they had scrolled to
     var drw = document.getElementById("tgDrawer"), keep = drw ? drw.scrollTop : 0;
     renderDrawerNow();
+    var pd = document.getElementById("drwThreadPersonaDesc");  // 🧩 the seven-part persona, as on the profile
+    if (pd && window.PersonaParts) PersonaParts.attach(pd, { remember: "na-tg-persona-parts", inputClass: "tg-textarea" });
     if (drw) drw.scrollTop = keep;
   }
   function renderDrawerNow() {
@@ -953,7 +979,11 @@
           "<label>🧠 Memory of this chat <small style=\"font-weight:400;color:var(--tg-muted)\">(what happened before the recent messages; kept up to date as the chat grows; edit freely)</small></label>" +
           '<textarea class="tg-textarea" id="drwThreadMemory" style="min-height:90px" placeholder="Nothing yet: it starts once older messages fall out of view.">' + esc(t.memory || "") + "</textarea>" +
           '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">' +
-            '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)">🧠 Update it now</button>' +
+            (function () {  // 🧠 what the replies no longer read (out of view), or everything not in the memory yet
+              var mc = t.memory_counts || [0, 0];
+              return (mc[0] ? '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)" title="The messages the replies no longer read">🧠 Remember ' + mc[0] + " out of view</button>" : "") +
+                (mc[1] ? '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this, true)" title="Including the recent ones the replies still read">🧠 Remember all ' + mc[1] + "</button>" : '<span style="font-size:12px;color:var(--tg-muted)">Everything is in the memory.</span>');
+            })() +
             '<label style="font-size:12.5px;">Recent messages the model reads <select class="tg-select" id="drwThreadContext" style="width:auto;display:inline-block">' +
               [20, 30, 60, 100].map(function (n) { return '<option value="' + n + '"' + ((t.context_size || 30) === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
             "</select></label></div>" +
@@ -1280,10 +1310,10 @@
         "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
         '<div class="tg-setup-modes">' +
           '<button type="button" class="' + (st.mode === "modern_au" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'modern_au\')">🌆 Modern AU<small>today\'s world, a modern job</small></button>' +
-          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
+          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 As they are<small>their own world (or already modern): just a scenario</small></button>' +
         "</div>" +
         '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
-        '<button type="button" class="tg-setup-ghost" style="align-self:flex-start" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
+        '<button type="button" class="tg-setup-ghost tg-setup-ideas" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
         (st.ideas && st.ideas.length ? '<div class="tg-suggest">' + st.ideas.map(function (x, i) {
           return '<button type="button" onclick="TG.setupUseIdea(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
         }).join("") + "</div>" : "") +
@@ -1312,13 +1342,23 @@
       body = st.step === "loring" ? "<p>Writing the worldbook… 📚🥔</p>"
         : lore.length
         ? "<p>📚 " + n + "'s worldbook for this setup (the chat reads an entry when its words come up):</p>" + loreList(lore) +
-          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 Keep it</button>' +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'persona\')">👍 Keep it</button>' +
           '<button type="button" class="tg-setup-ghost" onclick="TG.setupLore(\'' + slug + '\')">↻ Another take</button></div>'
         : "<p>📚 Want a worldbook for this setup? Places, people, groups and terms the texts keep coming back to, so " + n +
           " stays consistent. " + (m.mode === "modern_au" ? "I'll bring their world into today's (a guild becomes a company, a kingdom a city)." : "") +
           (m.has_lorebook ? " I'll start from their roleplay lorebook (it stays as it is)." : "") + "</p>" +
           '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupLore(\'' + slug + '\')">📚 Write it</button>' +
-          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'look\')">Skip</button></div>';
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'persona\')">Skip</button></div>';
+    } else if (st.step === "persona") {  // 🎭 who the user is in this chat
+      var cp = t.persona || {};
+      body = "<p>🎭 Who are you in this chat? " + (cp.name ? "Right now: <b>" + esc(cp.name) + "</b> (this chat only)."
+                                                          : "Right now: your usual persona" + (STATE.user_profile && STATE.user_profile.display_name ? " (" + esc(STATE.user_profile.display_name) + ")" : "") + ".") + "</p>" +
+        (st.personas && st.personas.length ? '<div class="tg-suggest">' + st.personas.map(function (x, i) {
+          return '<button type="button" onclick="TG.setupPersona(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
+        }).join("") + "</div>" : "") +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 ' + (cp.name ? "Keep it" : "My usual persona") + "</button>" +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupPersonaIdeas(\'' + slug + '\', this)">💡 Someone for this chat</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'clock\')">✏️ Write it myself</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
         ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
@@ -1817,7 +1857,7 @@
         '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
         "<h3>🎨 Make a picture to send</h3>" +
         '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
-        '<button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div>' +
+        '<div class="tg-make-suggest"><button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div></div>' +
         (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
           : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
         '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
@@ -1948,6 +1988,17 @@
       box.classList.toggle("open");
       document.body.classList.toggle("tg-emoji-open", box.classList.contains("open"));
     },
+    removeStickerPack: function () {  // a pack they added (from Telegram, or their own stickers)
+      if (!stickerPack || !confirm("Remove the pack “" + stickerPack + "” from your stickers?")) return;
+      apiPost({ action: "remove_sticker_pack", pack: stickerPack }).then(function (res) {
+        STATE.user_profile = res.user_profile;
+        var gone = stickerPack;
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).filter(function (s) {
+          return !((s.pack || "") === gone && /^(custom_|tg_)/.test(s.id || ""));
+        });
+        stickerPack = null; renderStickerTray();
+      }).catch(function (e) { alert(e.message); });
+    },
     importTelegramPack: function () {
       var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
       if (!link || !link.trim()) return;
@@ -1972,14 +2023,14 @@
         .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
         .catch(function (e) { alert(e.message); });
     },
-    updateMemory: function (btn) {
+    updateMemory: function (btn, all) {
       var t = STATE.active_thread; if (!t) return;
+      var label = btn ? btn.textContent : "";
       if (btn) { btn.disabled = true; btn.textContent = "🧠 Updating…"; }
-      apiPost({ action: "update_memory", thread_id: t.id, now: true }).then(function (res) {
+      apiPost({ action: "update_memory", thread_id: t.id, now: true, all: !!all }).then(function (res) {
         STATE.active_thread = res.thread;
-        var box = document.getElementById("drwThreadMemory"); if (box) box.value = res.memory || "";
-        if (btn) { btn.disabled = false; btn.textContent = "✓ Updated"; }
-      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = "🧠 Update it now"; } alert(e.message); });
+        renderDrawer();
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = label; } alert(e.message); });
     },
     setClock: function (how) {
       var t = STATE.active_thread; if (!t || !how) return;
@@ -2035,6 +2086,21 @@
       var st = setupState[slug]; if (!st || !st.ideas) return;
       st.hint = st.ideas[i]; st.ideas = null; renderActiveThread();
       var h = document.getElementById("tgSetupHint"); if (h) h.focus();
+    },
+    setupPersonaIdeas: function (slug, btn) {
+      var st = setupState[slug], t = STATE.active_thread; if (!st || !t) return;
+      btn.disabled = true; btn.textContent = "💡 Thinking…";
+      apiPost({ action: "suggest", thread_id: t.id, what: "persona" }).then(function (res) {
+        st.personas = res.ideas; renderActiveThread();
+      }).catch(function (e) { btn.disabled = false; btn.textContent = "💡 Someone for this chat"; alert(e.message); });
+    },
+    setupPersona: function (slug, i) {  // "Name — who they are": this chat's persona
+      var st = setupState[slug], t = STATE.active_thread; if (!st || !t || !st.personas) return;
+      var x = st.personas[i], cut = x.split(/\s+[—–-]\s+/);
+      var persona = { name: cut[0].trim().slice(0, 80), description: (cut.slice(1).join(" — ") || x).trim() };
+      apiPost({ action: "thread_settings", thread_id: t.id, persona: persona }).then(function (res) {
+        STATE.active_thread = res.thread; st.personas = null; st.step = "look"; renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "lore"; renderActiveThread(); } },
     setupLore: function (slug) {
@@ -3152,6 +3218,7 @@
     },
 
     openStoryModal: function (owner) {
+      TG._storyMade = "";  // (a picture made for an earlier status isn't this one's)
       var box = document.getElementById("modalStoryBody");
       var isUser = owner === "user";
       var target = isUser
@@ -3191,20 +3258,40 @@
           (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'status\', this, function (x) { var m = x.match(/^(\\S+)\\s+(.*)$/); var e = document.getElementById(\'storyModalEmoji\'), tx = document.getElementById(\'storyModalText\'); if (m && !/\\w/.test(m[1])) { e.value = m[1]; tx.value = m[2]; } else tx.value = x; })">🥔 Suggest from the chat</button>' +
             '<div class="tg-suggest" data-suggest-for="status"></div>' : "") +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            '<span style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" onclick="TG.storyPictureMake(this)" title="Make a picture for this status (from what you wrote, or the chat)">🎨 Make a picture</button>' : "") +
             '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
-              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +
+              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label></span>' +
+            '<div id="storyModalMade" class="tg-story-made"></div>' +
             '<button type="button" class="tg-send-btn" onclick="TG.submitStory(\'' + esc(owner) + '\')">Post Status</button>' +
           "</div>" +
         "</div>";
       document.getElementById("modalStory").classList.add("open");
     },
 
+    storyPictureMake: function (btn) {  // 🎨 a picture for the status: from what they wrote (or the chat), them in it
+      var t = STATE.active_thread; if (!t) return;
+      var text = (document.getElementById("storyModalText") || {}).value || "";
+      var box = document.getElementById("storyModalMade");
+      var label = btn.textContent; btn.disabled = true; btn.textContent = "🎨 Making it…";
+      var describe = text.trim() ? Promise.resolve(text.trim())
+        : apiPost({ action: "suggest", thread_id: t.id, what: "my_picture" }).then(function (r) { return (r.ideas || [])[0] || "me today"; });
+      describe.then(function (what) {
+        return apiPost({ action: "user_picture", thread_id: t.id, prompt: what, with_me: !!STATE.persona_photo });
+      }).then(function (res) {
+        TG._storyMade = res.url;
+        btn.disabled = false; btn.textContent = "↻ Another picture";
+        if (box) box.innerHTML = '<img src="' + esc(res.url) + '" alt="" onclick="TG.viewImage(this.src)"><small>Posted with the status. ↻ for another.</small>';
+      }).catch(function (e) { btn.disabled = false; btn.textContent = label; alert(e.message); });
+    },
     submitStory: function (owner) {
       var emoji = document.getElementById("storyModalEmoji").value.trim() || "✨";
       var text = document.getElementById("storyModalText").value.trim();
       var pic = document.getElementById("storyModalPic"), file = pic && pic.files && pic.files[0];
-      if (!text && !file) return;
-      var upload = file ? (function () {  // the picture first (as any upload), then the status with it
+      var made = TG._storyMade || "";  // 🎨 a picture made for it
+      if (!text && !file && !made) return;
+      TG._storyMade = "";
+      var upload = made && !file ? Promise.resolve(made) : file ? (function () {  // the picture first (as any upload), then the status with it
         var fd = new FormData(); fd.append("kind", "image"); fd.append("file", file);
         return fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
           .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return r.url; });

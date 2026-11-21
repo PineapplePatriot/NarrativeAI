@@ -36,7 +36,7 @@ def tool_read_look_options(session, args):
                          if reading in ("uk", "ru", "be", "bg", "sr", "mk", "kk") else ""),
             "how": ("Colours are #rrggbb. page/page2/page3: the background (and its blobs or pattern); surface: header, "
                     "input and panels; bubble_ai / bubble_user: the message bubbles; text and muted: the writing (keep "
-                    "strong contrast with the bubbles); accent / accent2: name tags, buttons, highlights; outline: "
+                    "strong contrast with the bubbles and panels: the app lightens or darkens text that's too faint); accent / accent2: name tags, buttons, highlights; outline: "
                     "lines and hard shadows; effect: the light effect's colour. base 'light' or 'dark' is the overall "
                     "brightness. From a picture: match its palette and mood first, then its shapes (hand-drawn lines "
                     "→ wobbly + sketch; stickers → sticker frame and buttons, offset shadows), its lettering (pick the "

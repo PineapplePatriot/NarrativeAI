@@ -1,0 +1,1 @@
+<form method="post" action="{% url 'users:stats_library' %}" onsubmit="return confirm('Take “{{ i.name|escapejs }}” out for everyone?')">{% csrf_token %}<input type="hidden" name="remove" value="{{ i.file }}"><button type="submit" class="lib-x" title="Remove">🗑</button></form>

@@ -22,6 +22,7 @@ urlpatterns = [
     path("notebook/", views.notebook, name="notebook"),
     path("delete/", views.delete_account, name="delete_account"),
     path("stats/", views.stats, name="stats"),
+    path("stats/library/", views.stats_library, name="stats_library"),
     path("feedback/", views.feedback_done, name="feedback_done"),
     path("verify/", views.verify, name="verify"),
     path("verify/<str:token>/", views.verify_link, name="verify_link"),

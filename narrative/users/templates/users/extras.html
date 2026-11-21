@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extras - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=7">
-    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 <body class="na-body">
@@ -94,6 +94,10 @@
         <label class="check"><input type="checkbox" name="story_extras" value="news"> News and rumours (a paper, a noticeboard, gossip){% if "news" in designed_by_ai %} <small class="help">(off for now: your preset's AI designs these itself)</small>{% endif %}</label>
         <label class="check"><input type="checkbox" name="story_extras" value="keepsakes"> Scrapbook keepsakes of shared moments</label>
         <label class="check"><input type="checkbox" name="story_extras" value="choices"> Suggested actions under each reply (buttons that fill your message box)</label>
+        <label class="check"><input type="checkbox" id="customObject"> ✨ My own object, designed by the AI when it fits</label>
+        <textarea id="customObjectText" rows="2" class="custom-object-text" maxlength="1500"
+                  placeholder="Describe it: a character status card under each reply with mood, outfit and HP; a quest log; a diary page…"></textarea>
+        <p class="help">The AI draws this one itself (its look stays the same through the story). Saved in your active preset.</p>
     </section>
 
     <section class="option" data-tone="amber">
@@ -163,7 +167,7 @@
 {{ extras_data|json_script:"extras-data" }}
 <script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'users/js/extras.js' %}?v=4"></script>
+<script src="{% static 'users/js/extras.js' %}?v=5"></script>
 <script>window.NA_PAGE_TOUR = {name: 'extras', auto: true};</script>
 <script src="{% static 'js/show_password.js' %}?v=1" defer></script>
 </body>

@@ -144,13 +144,23 @@ def _chub_card(user, path):
 # Janitor
 # ---------------------------------------------------------------------------
 
+JANITOR_BLOCKED = ("Janitor only shows cards to a logged-in browser, so I can't fetch it from here. Two ways that "
+                   "work: export it with a Janitor card exporter add-on in your own browser (it saves a .json or .png "
+                   "card) and send me the file with 📎, or open the card on Janitor and paste its definition "
+                   "(personality, scenario, first message) to me, and I'll set it up from that.")
+
+
 def _janitor_card(user, char_id):
-    resp = _get(f"{JANITOR}/hampter/characters/{char_id}")
+    try:
+        resp = _get(f"{JANITOR}/hampter/characters/{char_id}")
+    except CardSiteError as e:
+        if "turned the request away" in str(e) or "didn't answer" in str(e):
+            raise CardSiteError(JANITOR_BLOCKED)
+        raise
     try:
         c = resp.json() or {}
     except ValueError:
-        raise CardSiteError("Janitor answered with a page instead of the card (it may be blocking automated "
-                            "requests). Copy the card's text there and paste it to me instead.")
+        raise CardSiteError(JANITOR_BLOCKED)
     if (c.get("is_nsfw") or c.get("nsfw")) and not _mature(user):
         raise CardSiteError("That card is marked as adult. Switch mature content on first if you want it.")
     personality = c.get("personality") or ""
@@ -236,9 +246,9 @@ def tool_bring_in_card(session, args):
         return {"error": str(e)}, []
     return {"done": True, "character": character.name, "slug": character.slug,
             "has_lorebook": bool(character.worldbook_id),
-            "next": "Offer, with offer_choices: use it as it is, change it (a Modern AU, shorter, a different "
-                    "scenario…: propose the edits), or set it up now (its lorebook if it has one, and a persona: "
-                    "just for this story or their usual one)."}, [{"type": "proposal", "id": p["id"]}]
+            "next": "First ask, with offer_choices, what to do with the card itself: use it as it is, change it (a "
+                    "Modern AU, shorter, a different scenario…: propose the edits). Whichever they pick, then: "
+                    + lore.AFTER_NEW_CARD}, [{"type": "proposal", "id": p["id"]}]
 
 
 def tool_defs(fn, STR):

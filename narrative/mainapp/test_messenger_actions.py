@@ -1252,3 +1252,36 @@ class AvatarTests(MessengerActionTests):
         changed = p["avatar_url"]
         self.post(action="generate_reply", thread_id=tid)  # again right away: too soon, nothing changes
         self.assertEqual(messenger.char_profile(Character.objects.get(id=self.rose.id))["avatar_url"], changed)
+
+
+class StickerPackTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_pack_they_added_can_be_removed(self):
+        from mainapp import messenger
+        messenger.save_user_profile(self.user, {"custom_stickers": [
+            {"id": "tg_1", "pack": "Shyshylo", "name": "a", "url": "/media/a.png"},
+            {"id": "custom_2", "pack": "My Stickers", "name": "b", "url": "/media/b.png"}]})
+        out = self.post(action="remove_sticker_pack", pack="Shyshylo").json()
+        self.assertEqual([s["pack"] for s in out["user_profile"]["custom_stickers"]], ["My Stickers"])
+
+
+class CanonSetupTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_as_they_are_still_gets_a_scenario_and_a_persona_step(self):
+        from mainapp import ai_client, messenger
+        tid = self.thread()
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["Mika — her flatmate", "b", "c"]}) as ask:
+            out = self.post(action="suggest", thread_id=tid, what="persona").json()
+        self.assertEqual(out["ideas"][0], "Mika — her flatmate")
+        self.assertIn("Suggest 3 different people", ask.call_args.args[1])
+        full = {k: "x" for k in ("handle", "status_emoji", "bio", "modern_persona", "texting_style", "appearance_notes",
+                                 "art_style_notes", "voice_id", "scenario", "first_text")}
+        with mock.patch("mainapp.messenger.ask_json", return_value=full) as ask:
+            messenger.modernize_with_bulba(self.user, self.rose, mode="canon", hint="a Victorian child at a burger place", save=False)
+        sent = str([c.args[1:] for c in ask.call_args_list]) + str(ai_client.complete.call_args)
+        self.assertIn("already modern", sent)
+        self.assertIn("go with it", sent)

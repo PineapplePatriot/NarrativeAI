@@ -1595,7 +1595,7 @@ def chat(request, slug):
                                  "polish_due": False})  # the new part is cleaned already; the rest stays
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
-            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
+            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:8000]}
                                      if name else {})
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
@@ -4349,6 +4349,9 @@ def _bulba_api(request):
         link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
         if link:  # so Bulba can point to the right places (pictures go on the character's page)
             note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        if action == "apply" and proposal["kind"] == "character":  # 🧭 and on to persona, world, extras
+            from .bulba import lore as lore_mod
+            note_for_bulba += "\n\n" + lore_mod.AFTER_NEW_CARD
         events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}", model_note=note_for_bulba)
     elif action == "forget":  # the user removes a preference Bulba recorded
         pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
@@ -4554,7 +4557,7 @@ def _bulba_card_upload(request):
     session.events += events
     link = _bulba_chat_link(session)
     note = (f"Imported their card: {proposal['title']} — chat: {link['url']}, pictures (Sprites section): "
-            f"{link['edit_url']}\n\n{lore.card_report(character)}")
+            f"{link['edit_url']}\n\n{lore.card_report(character)}\n\n{lore.AFTER_NEW_CARD}")
     events += agent.run_turn(session, None, action_note=f"Imported {character.name}", model_note=note)
     session.activity = ""
     session.save()
@@ -5374,7 +5377,7 @@ def messenger_api(request):
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
-        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio") else "reply"
+        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio", "persona") else "reply"
         try:
             ideas = messenger.suggest(request.user, thread, what, body.get("hint") or "")
         except ai_client.AIError as e:
@@ -5389,6 +5392,12 @@ def messenger_api(request):
             return JsonResponse({"ideas": messenger.setup_ideas(request.user, c_obj, body.get("mode") or "modern_au", body.get("hint") or "")})
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
+
+    if action == "remove_sticker_pack":  # 🗑 a pack they added (Telegram, or their own) out of their stickers
+        pack = str(body.get("pack") or "")
+        u_prof = messenger.user_profile(request.user)
+        kept = [s for s in u_prof.get("custom_stickers") or [] if (s.get("pack") or "") != pack]
+        return JsonResponse({"user_profile": messenger.save_user_profile(request.user, {"custom_stickers": kept})})
 
     if action == "custom_sticker":  # ✨ a sticker from their own idea
         who = body.get("who") or ""
@@ -5493,7 +5502,7 @@ def messenger_api(request):
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
         try:
-            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")))
+            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")), everything=bool(body.get("all")))
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"memory": memory, "thread": messenger.serialize_thread_full(thread, request.user)})
