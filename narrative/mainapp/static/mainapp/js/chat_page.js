@@ -2241,7 +2241,10 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
         const d = await resp.json();
         if (!d.success) throw new Error(d.error || 'Could not load it.');
         const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
-        box.innerHTML = block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
+        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${x.how === 'append' ? 'its summary + the rest' : 'summarized anew'})</small></p><p>${esc(x.text)}</p>`).join('')
+                + '<p class="tool-help">Read before this chat\'s own summary, as things that happened.</p>') : '')
+            + (d.memory ? block('🧠 Story memory', `<pre>${esc(d.memory)}</pre>`) : '')
+            + block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
             + block('📌 Pinned note', d.pinned_note ? esc(d.pinned_note) : '<i>none</i>')
             + block('📊 Trackers', d.trackers ? `<pre>${esc(d.trackers)}</pre>` : '<i>none</i>')
             + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no worldbook'}</i>`)

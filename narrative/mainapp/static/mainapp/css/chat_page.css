@@ -1459,6 +1459,8 @@ body.has-you .message.user .message-text .sc { color: var(--you); }
 .branch-note { color: var(--text-muted); font-size: 0.85em; }
 .header-btn.active { border-color: var(--accent-1); }
 .chat-card.current { border-color: var(--accent-1); }
+.chat-card:not(.current) { cursor: pointer; }
+.chat-card .chat-name { padding: 6px 0; }
 .chat-card header { gap: 6px; }
 .chat-card .chat-name { color: var(--text-primary); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-card .chat-name:hover { text-decoration: underline; }

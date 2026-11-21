@@ -345,7 +345,9 @@ def _linkable_chats(user, current):
     """🔗 Their other chats (any character), newest first: what bringing each one in would take."""
     from .models import Chat
     out = []
-    for chat in Chat.objects.filter(character__author=user).exclude(id=current.id).select_related("character").order_by("-time_update")[:40]:
+    for chat in Chat.objects.filter(character__author=user).exclude(id=current.id).select_related("character").order_by("-time_update")[:300]:
+        if len(out) >= 40:  # (chats with just a greeting are skipped, so look further than the first 40)
+            break
         try:
             data = chats.read(chat)
         except chats.ChatUnreadable:

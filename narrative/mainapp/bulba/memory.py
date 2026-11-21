@@ -40,6 +40,9 @@ def what_the_ai_saw(chat):
                  "notes": report.get("notes") or []},
         "persona": persona.get("name") or "",
         "recalled": [r for r in data.get("last_recall") or [] if isinstance(r, dict)],
+        # 🔗 other chats this one remembers: they go in before this chat's own summary
+        "linked": [{"title": x.get("title") or "", "character": x.get("character") or "", "how": x.get("how") or "",
+                    "text": x["text"]} for x in data.get("linked") or [] if isinstance(x, dict) and x.get("text")],
     }
 
 

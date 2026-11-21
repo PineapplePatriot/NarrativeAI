@@ -1598,6 +1598,8 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertEqual(reply.status_code, 200, reply.content[:300])
         sent = json.dumps([c["messages"] for c in self.all_calls])
         self.assertIn("From another chat", sent)  # the reply reads it
+        saw = self.client.post(url, json.dumps({"action": "ai_saw"}), content_type="application/json").json()
+        self.assertIn("Summary 1.", saw["linked"][0]["text"])  # and "What the AI saw" shows it
         self.client.post(url, json.dumps({"action": "unlink_chat", "chat_id": old.id}), content_type="application/json")
         self.assertEqual(chats.read(new).get("linked"), [])
 

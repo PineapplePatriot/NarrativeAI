@@ -44,7 +44,11 @@ window.Chats = (() => {
 
     list.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-chat-act]');
-        if (!btn) return;
+        if (!btn) {  // anywhere else on a card opens that chat (the name alone is a small target on a phone)
+            const card = e.target.closest('.chat-card');
+            if (card && !e.target.closest('a') && !card.classList.contains('current')) window.location.href = urlFor(card.dataset.id);
+            return;
+        }
         const id = Number(btn.closest('.chat-card').dataset.id);
         const chat = chats.find(c => c.id === id);
         try {
@@ -66,6 +70,8 @@ window.Chats = (() => {
         panel.hidden = !show;
         document.getElementById('chatsBtn')?.classList.toggle('active', show);
         if (show) {
+            document.getElementById('toolsMenu')?.classList.remove('show');  // the pen menu would sit on top of the list
+            document.getElementById('toolsBtn')?.classList.remove('active');
             render();
             post({ action: 'list_chats' }).catch(() => {});  // counts may have changed since the page loaded
         }
