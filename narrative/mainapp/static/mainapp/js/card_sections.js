@@ -94,8 +94,13 @@
             <input class="cs-title" data-f="title" value="${esc(e.title)}"><small class="cs-cost">${e.on ? `~${tok(e.text)} tokens` : 'off'}</small>
             <button type="button" class="cs-x" data-unextra="${i}" title="Remove this section">✕</button></div>
             <textarea data-f="text" rows="${Math.min(12, Math.max(2, Math.ceil((e.text || '').length / 90)))}">${esc(e.text)}</textarea></div>`).join('');
+        const FOCUS = [['general', 'General'], ['plot', 'Plot'], ['relationship', 'Relationship'], ['slice_of_life', 'Slice of life'],
+                       ['adventure', 'Adventure'], ['horror', 'Horror'], ['erotica', 'Erotica']];
+        data.focus = data.focus || [];
         box.innerHTML = `<div class="cs-top"><b>🧩 Sections</b> <span class="cs-kind">${esc(KIND[data.kind])}</span>
               <span class="cs-total">~${costs ? costs.total : 0} tokens in all</span></div>
+            <div class="cs-focus" title="What the story is mainly about: Bulba gives the card's words to it (pick any)">🎯 Focus:
+              ${FOCUS.map(([k, label]) => `<button type="button" class="cs-chip${data.focus.includes(k) ? ' on' : ''}" data-focus="${k}">${label}</button>`).join('')}</div>
             ${shared ? `<fieldset class="cs-person cs-shared"><legend>${data.kind === 'simulation' ? 'The world' : 'What they share'}</legend>${shared}</fieldset>` : ''}
             ${people}
             ${many ? `<button type="button" class="cs-chip" data-act="person">+ Add ${data.kind === 'simulation' ? 'a recurring person' : 'a person'}</button>` : ''}
@@ -181,6 +186,11 @@
         }
         if (b.dataset.drop != null) { data.people.splice(Number(b.dataset.drop), 1); return changed(true); }
         if (b.dataset.unextra != null) { data.extra.splice(Number(b.dataset.unextra), 1); return changed(true); }
+        if (b.dataset.focus) {  // 🎯 on or off; saved with the sections
+            const f = b.dataset.focus, at = data.focus.indexOf(f);
+            if (at === -1) data.focus.push(f); else data.focus.splice(at, 1);
+            return changed(true);
+        }
         const act = b.dataset.act;
         if (act === 'structure') return run({ action: 'structure' }, 'Sorting the card into sections… (Bulba reads it; a long card takes a minute)', d => {
             dirty = true;

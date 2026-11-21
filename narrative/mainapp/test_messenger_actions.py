@@ -264,7 +264,9 @@ class RedoOneMessageTests(MessengerActionTests):
         sent = json.dumps(ai_client.complete.call_args.args[2])
         self.assertIn("obviously", sent)  # the old version, in the instruction
         self.assertIn("warmer", sent)
-        self.assertNotIn("go to sleep", sent)  # the chat as it was before that message
+        history = ai_client.complete.call_args.args[2][1:-1]  # the chat as it was before that message…
+        self.assertNotIn("go to sleep", json.dumps(history))
+        self.assertIn("Rose: go to sleep", sent)  # …and the rest of the burst, only as what it must lead into
         msgs = MessengerThread.objects.get(id=tid).data["messages"]
         self.assertEqual([m.get("text") for m in msgs[:3]], ["are you up?", "never. come over", "go to sleep"])
         voice = self.post(action="redo_message", thread_id=tid, message_id="a3").json()["message"]["voice"]
@@ -587,17 +589,22 @@ class UserPictureTests(MessengerActionTests):
         self.user.persona_photo_neutral.save("mika.png", ContentFile(png("green")), save=True)
         tid = self.thread()
         ref = self.files(kind="image", file=upload()).json()["url"]
-        out = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", refs=[ref], with_me=True).json()
+        from unittest import mock
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("Mika at a rainy bus stop, hood up", {})):
+            out = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", refs=[ref], with_me=True).json()
         self.assertTrue(out["url"])
-        self.assertEqual(out["seen"], "Mika: at the bus stop in the rain")
+        self.assertEqual(out["seen"], "Mika at a rainy bus stop, hood up")  # what the vision model saw, not the prompt
         kwargs = ai_client.generate_image.call_args.kwargs
         self.assertEqual(len(kwargs["references"]), 2)  # my persona picture + the upload
         self.assertIn("Mika is in it", ai_client.generate_image.call_args.args[1])
         self.post(action="send_user_message", thread_id=tid, text="",
                   photo={"kind": "generated", "url": out["url"], "caption": "told you", "seen": out["seen"]})
         self.post(action="generate_reply", thread_id=tid)
-        self.assertIn("It shows: Mika: at the bus stop in the rain", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertIn("It shows: Mika at a rainy bus stop, hood up", json.dumps(ai_client.complete.call_args.args[2]))
         self.assertEqual(self.post(action="user_picture", thread_id=tid, prompt="").status_code, 400)
+        with mock.patch("mainapp.bulba.vision.describe", side_effect=ai_client.AIError("down")):
+            fallback = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", with_me=True).json()
+        self.assertEqual(fallback["seen"], "Mika: at the bus stop in the rain")  # vision down: the prompt stands in
 
 
 class OneReferenceTests(MessengerActionTests):
@@ -736,3 +743,512 @@ class ChatClockTests(MessengerActionTests):
         back = self.post(action="thread_settings", thread_id=tid, clock="real").json()["thread"]
         self.assertEqual(back["clock_offset"], 0)
         self.assertEqual(self.post(action="thread_settings", thread_id=tid, clock="not a date").status_code, 400)
+
+
+class TranslateMessageTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_translate_once_then_kept(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="see you tomorrow?")
+        msg = messenger.thread_data(MessengerThread.objects.get(id=tid))["messages"][-1]
+        self.user.display_language = "uk"
+        self.user.save()
+        ai_client.complete.side_effect = lambda *a, **k: "побачимось завтра?"
+        out = self.post(action="translate_message", thread_id=tid, message_id=msg["id"]).json()
+        self.assertEqual((out["text"], out["language"]), ("побачимось завтра?", "Ukrainian"))
+        calls = ai_client.complete.call_count
+        again = self.post(action="translate_message", thread_id=tid, message_id=msg["id"]).json()
+        self.assertEqual(again["text"], "побачимось завтра?")
+        self.assertEqual(ai_client.complete.call_count, calls)  # kept: the second look costs nothing
+        self.assertEqual(self.post(action="translate_message", thread_id=tid, message_id="nope").status_code, 400)
+
+
+class MemoryAfterDeleteTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_deleting_a_remembered_message_rebuilds_the_memory(self):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        data["messages"] = [{"id": f"m{i}", "role": "user" if i % 2 else "assistant", "text": f"line {i}", "ts": i}
+                            for i in range(40)]
+        data["memory"], data["memory_upto"] = "They talked about the secret plan.", 10
+        messenger.save_thread_data(thread, data)
+        self.post(action="delete_message", thread_id=tid, message_id="m35")  # not remembered yet: nothing changes
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory_upto"], data["memory_stale"]), (10, False))
+        self.post(action="delete_message", thread_id=tid, message_id="m3")  # remembered: rebuilt next time
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory_upto"], data["memory_stale"]), (9, True))
+        self.assertTrue(messenger.memory_due(data))
+        with mock.patch("mainapp.messenger.ask_json", return_value={"summary": "Fresh summary."}) as ask:
+            messenger.update_memory(self.user, MessengerThread.objects.get(id=tid))
+        prompt = ask.call_args.args[1]
+        self.assertNotIn("secret plan", prompt)  # the old summary is set aside
+        self.assertIn("line 0", prompt)
+        self.assertNotIn("line 3\n", prompt)
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory"], data["memory_stale"]), ("Fresh summary.", False))
+        self.post(action="edit_message", thread_id=tid, message_id="m1", text="changed")  # an edit too
+        self.assertTrue(messenger.thread_data(MessengerThread.objects.get(id=tid))["memory_stale"])
+
+
+class DeleteStoryTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_status_can_be_deleted(self):
+        out = self.post(action="post_story", owner=self.rose.slug, text="new pots!").json()
+        sid = out["story"]["id"]
+        prof = self.post(action="delete_story", owner=self.rose.slug, story_id=sid).json()["profile"]
+        self.assertFalse([s for s in prof.get("stories") or [] if s.get("id") == sid])
+        mine = self.post(action="post_story", owner="user", text="tired").json()["story"]["id"]
+        u = self.post(action="delete_story", owner="user", story_id=mine).json()["user_profile"]
+        self.assertFalse([s for s in u.get("stories") or [] if s.get("id") == mine])
+
+
+class GalleryMoodRedoTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def seed(self, messages, **extra):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        data["messages"] = messages
+        data.update(extra)
+        messenger.save_thread_data(thread, data)
+        return tid
+
+    def test_the_gallery_follows_the_chat(self):
+        tid = self.seed([{"id": "p1", "role": "assistant", "sender_name": "Rose", "ts": 1,
+                          "photo": {"url": "/media/a.png", "caption": "lunch"}},
+                         {"id": "t1", "role": "user", "text": "nice", "ts": 2}])
+        photos = self.post(action="gallery").json()["photos"]
+        self.assertEqual([(p["url"], p["from"], p["caption"]) for p in photos], [("/media/a.png", "Rose", "lunch")])
+        self.post(action="delete_message", thread_id=tid, message_id="p1")
+        self.assertEqual(self.post(action="gallery").json()["photos"], [])
+
+    def test_photo_mood_reaches_the_prompts(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.seed([{"id": "t1", "role": "user", "text": "send a pic", "ts": 1}])
+        thread = self.post(action="thread_settings", thread_id=tid, photo_mood="sweet").json()["thread"]
+        self.assertEqual(thread["photo_mood"], "sweet")
+        self.assertNotIn("bold", [m[0] for m in thread["photo_moods"]])  # mature content is off
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("nothing suggestive at all", json.dumps(ai_client.complete.call_args.args[2]))
+        messenger.generate_messenger_photo(self.user, self.rose, "a mirror selfie", kind="tease",
+                                           thread=MessengerThread.objects.get(id=tid), shot_type="selfie")
+        prompt = ai_client.generate_image.call_args.args[1]
+        self.assertIn("HOW FAR IT GOES (binding): warm, affectionate", prompt)
+        self.assertIn("no frozen doll smile", prompt)  # against the plastic faces
+        self.post(action="thread_settings", thread_id=tid, photo_mood="bold")
+        self.assertEqual(messenger.photo_mood(self.user, messenger.thread_data(MessengerThread.objects.get(id=tid))), "flirty")
+
+    def test_rewriting_one_of_a_burst_sees_the_rest(self):
+        from mainapp import ai_client
+        tid = self.seed([{"id": "u", "role": "user", "text": "hey", "ts": 1},
+                         {"id": "a1", "role": "assistant", "sender_name": "Rose", "text": "oh hi", "ts": 2},
+                         {"id": "a2", "role": "assistant", "sender_name": "Rose", "text": "wait are you coming tonight", "ts": 3}])
+        self.post(action="redo_message", thread_id=tid, message_id="a1")
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("wait are you coming tonight", sent)
+        self.assertIn("must still lead", sent)
+
+
+class ExpressionAndDailyTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_mood_picture_lends_its_expression(self):
+        from django.core.files.base import ContentFile
+        from mainapp import ai_client, messenger
+        self.rose.photo_neutral.save("n.png", ContentFile(png("green")), save=False)
+        self.rose.photo_happy.save("h.png", ContentFile(png("yellow")), save=True)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie, grinning at the camera", shot_type="selfie")
+        refs = ai_client.generate_image.call_args.kwargs["references"]
+        self.assertEqual(len(refs), 2)  # the portrait + the happy face
+        self.assertIn("EXPRESSION REFERENCE ONLY (happy)", ai_client.generate_image.call_args.args[1])
+        messenger.generate_messenger_photo(self.user, self.rose, "No people: my lunch")
+        self.assertNotIn("EXPRESSION REFERENCE", ai_client.generate_image.call_args.args[1])
+
+    def test_daily_photos_show_their_day(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, photo_mood="daily")
+        thread = MessengerThread.objects.get(id=tid)
+        messenger.generate_messenger_photo(self.user, self.rose, "the flower market this morning", kind="tease", thread=thread)
+        prompt = ai_client.generate_image.call_args.args[1]
+        self.assertIn("NO PEOPLE", prompt)
+        self.assertNotIn("HOW FAR IT GOES", prompt)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie at the market", thread=thread)
+        self.assertNotIn("NO PEOPLE", ai_client.generate_image.call_args.args[1])  # asked for one: a selfie
+
+
+class SuggestTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_bulba_suggests_replies_and_pictures(self):
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="the market was packed today")
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["ugh, crowds", "bring me a peony?", "dinner later?", "4th"]}) as ask:
+            out = self.post(action="suggest", thread_id=tid, what="reply").json()
+        self.assertEqual(out["ideas"], ["ugh, crowds", "bring me a peony?", "dinner later?"])
+        prompt = ask.call_args.args[1]
+        self.assertIn("the market was packed today", prompt)
+        self.assertIn("Never write for the other characters", prompt)
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["Rose's stall from above"]}) as ask:
+            self.post(action="suggest", thread_id=tid, what="their_picture")
+        self.assertIn("ask Rose for a photo", ask.call_args.args[1])
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": []}):
+            self.assertEqual(self.post(action="suggest", thread_id=tid, what="my_picture").status_code, 400)
+
+
+class RemindersPlusOneStyleTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_reading_when(self):
+        import datetime as dt
+        from django.utils import timezone
+        from mainapp import messenger
+        now = timezone.localtime(timezone.now()).replace(hour=10, minute=0, second=0, microsecond=0)
+        ts = now.timestamp()
+        at = lambda text: timezone.localtime(dt.datetime.fromtimestamp(messenger.parse_when(text, ts), dt.timezone.utc))
+        self.assertEqual((at("dinner at 20:00").hour, at("dinner at 20:00").date()), (20, now.date()))
+        self.assertEqual(at("call at 9am").date(), (now + dt.timedelta(days=1)).date())  # past today: tomorrow
+        self.assertEqual(at("tomorrow 8pm").hour, 20)
+        self.assertEqual(messenger.parse_when("in 30 minutes", ts), ts + 1800)
+        self.assertEqual(at("Friday 19:30 — the pier").weekday(), 4)
+        self.assertIsNone(messenger.parse_when("someday soon", ts))
+
+    def test_a_due_reminder_is_texted_once(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, events=[{"title": "dinner in 1 minute", "when": "in 1 minute"}])
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual(data["events"][0]["by"], "you")
+        self.assertTrue(data["events"][0]["at"])
+        self.assertFalse(messenger.due_events(data))
+        with mock.patch("mainapp.messenger.time.time", return_value=time.time() + 120):
+            self.client.get(self.url + "?action=poll")
+            self.client.get(self.url + "?action=poll")  # not twice
+        reminders = [c for c in ai_client.complete.call_args_list if "A reminder is due" in json.dumps(c.args[2])]
+        self.assertEqual(len(reminders), 1)
+        self.assertIn("dinner in 1 minute", json.dumps(reminders[0].args[2]))
+        self.assertTrue(messenger.thread_data(MessengerThread.objects.get(id=tid))["events"][0]["done"])
+
+    def test_a_plus_one_in_the_photo(self):
+        from django.core.files.base import ContentFile
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        self.rose.photo_neutral.save("r.png", ContentFile(png("red")), save=True)
+        self.sam.photo_neutral.save("s.png", ContentFile(png("blue")), save=True)
+        group = MessengerThread.objects.create(user=self.user, title="Shop", is_group=True)
+        group.characters.add(self.rose, self.sam)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie with Sam at the till", thread=group, shot_type="selfie")
+        self.assertIn("SAM IS IN THE PHOTO TOO: reference picture 2", ai_client.generate_image.call_args.args[1])
+        self.assertEqual(len(ai_client.generate_image.call_args.kwargs["references"]), 2)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie with Sam", thread=group, shot_type="selfie", also=False)
+        self.assertNotIn("IS IN THE PHOTO TOO", ai_client.generate_image.call_args.args[1])  # "nobody else"
+        one = MessengerThread.objects.create(user=self.user, title="Rose")
+        one.characters.add(self.rose)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie", thread=one, shot_type="selfie", also=self.sam)
+        self.assertIn("SAM IS IN THE PHOTO TOO", ai_client.generate_image.call_args.args[1])
+
+    def test_style_from_their_picture(self):
+        from django.core.files.base import ContentFile
+        self.rose.photo_neutral.save("r.png", ContentFile(png("red")), save=True)
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("Soft painted anime, warm light.", "x")) as d:
+            out = self.post(action="style_from_pictures", char_slug=self.rose.slug).json()
+        self.assertEqual(out["style"], "Soft painted anime, warm light.")
+        self.assertIn("ART STYLE", d.call_args.kwargs["prompt"])
+        self.assertEqual(self.post(action="style_from_pictures", char_slug=self.sam.slug).status_code, 400)  # no picture
+
+
+class ContinuityTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_every_few_replies_a_contradiction_is_pointed_out_and_fixed(self):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        self.rose.messenger_profile = {"scenario": "They met at the night pharmacy."}
+        self.rose.save()
+        tid = self.thread()
+        with mock.patch("mainapp.messenger._watch_on", return_value=True):
+            for _ in range(messenger.CONTINUITY_EVERY):
+                out = self.post(action="send_user_message", thread_id=tid, text="hey", generate=True).json()
+                self.post(action="generate_reply", thread_id=tid)
+            thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+            self.assertTrue(thread["continuity_due"])
+            mid = [m for m in thread["messages"] if m["role"] == "assistant"][-1]["id"]
+            answer = {"problem": {"message_id": f"[{mid}]", "what": "she says they met at work", "fix": "the pharmacy"}}
+            with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+                note = self.post(action="continuity_check", thread_id=tid).json()["note"]
+            self.assertIn("night pharmacy", ask.call_args.args[1])
+            self.assertEqual((note["message_id"], note["kind"]), (mid, "continuity"))
+            thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+            self.assertFalse(thread["continuity_due"])
+            self.assertEqual(thread["watch"]["text"], "continuity: she says they met at work")
+            self.post(action="redo_message", thread_id=tid, message_id=mid, note=note["note"])
+            self.assertIsNone(messenger.thread_data(MessengerThread.objects.get(id=tid))["continuity_note"])
+        with mock.patch("mainapp.messenger.ask_json", return_value={"problem": {"message_id": "nope", "what": "x"}}):
+            self.assertIsNone(self.post(action="continuity_check", thread_id=tid).json()["note"])  # not one of theirs
+
+
+class TextingLoreTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_worldbook_adapted_from_their_lorebook_and_read_when_it_matters(self):
+        from mainapp import ai_client, lorebook, messenger
+        from mainapp.models import Worldbook
+        wb = Worldbook.objects.create(title="Teyvat", slug="teyvat-msg", author=self.user)
+        lorebook.save_worldbook(wb, {"entries": [{"comment": "The Fatui", "keys": ["Fatui"], "content": "Snezhnaya's army of agents."}]})
+        self.rose.worldbook = wb
+        self.rose.messenger_profile = {"mode": "modern_au", "modern_persona": "Runs a flower shop."}
+        self.rose.save()
+        answer = {"lore": [{"title": "Fatui Holdings", "keys": ["Fatui"], "content": "A shady logistics company.", "always": False},
+                           {"title": "The shop", "keys": ["shop"], "content": "Rose's flower shop on Pier Street.", "always": True}]}
+        with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+            prof = self.post(action="make_lore", char_slug=self.rose.slug).json()["profile"]
+        sent = ask.call_args.args[1]
+        self.assertIn("Snezhnaya's army of agents", sent)  # their lorebook is the source
+        self.assertIn("Translate their world into today's", sent)
+        self.assertEqual([e["title"] for e in prof["lore"]], ["Fatui Holdings", "The shop"])
+        self.assertEqual(len(lorebook.load_worldbook(wb)["entries"]), 1)  # the roleplay lorebook stays as it is
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="how's work?")
+        self.post(action="generate_reply", thread_id=tid)
+        sys = ai_client.complete.call_args.args[2][0]["content"]
+        self.assertIn("Pier Street", sys)  # always on
+        self.assertNotIn("logistics company", sys)  # its word didn't come up
+        self.post(action="send_user_message", thread_id=tid, text="are the Fatui bothering you again?")
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("logistics company", ai_client.complete.call_args.args[2][0]["content"])
+        prof = self.post(action="save_lore", char_slug=self.rose.slug, lore=prof["lore"][1:]).json()["profile"]
+        self.assertEqual(len(prof["lore"]), 1)
+
+
+class SceneTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_right_now_is_kept_and_every_picture_uses_it(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        for text in ("home finally", "changing into my hoodie", "you?", "still at the shop"):
+            self.post(action="send_user_message", thread_id=tid, text=text)
+        thread = self.post(action="load_thread", thread_id=tid).json()["thread"]
+        self.assertTrue(thread["scene_due"])
+        answer = {"scene": {"texter": {"where": "their flat", "around": "a sofa, a lamp", "wearing": "a grey hoodie"},
+                            "Rose": {"where": "the flower shop", "doing": "closing up", "around": "buckets of tulips", "wearing": "a green apron"},
+                            "Stranger": {"where": "nowhere"}},
+                  "places": {"The flower shop": "A narrow shop with a tiled floor and a brass bell over the door."}}
+        with mock.patch("mainapp.messenger.ask_json", return_value=answer) as ask:
+            scene = self.post(action="update_scene", thread_id=tid).json()["scene"]
+        self.assertIn("changing into my hoodie", ask.call_args.args[1])
+        self.assertEqual(set(scene), {"texter", "Rose"})  # only people of this chat
+        self.assertFalse(self.post(action="load_thread", thread_id=tid).json()["thread"]["scene_due"])
+        thread_obj = MessengerThread.objects.get(id=tid)
+        messenger.generate_messenger_photo(self.user, self.rose, "a selfie", thread=thread_obj, shot_type="selfie")
+        self.assertIn("Rose is at/in the flower shop", ai_client.generate_image.call_args.args[1])
+        self.assertIn("wearing a green apron", ai_client.generate_image.call_args.args[1])
+        self.assertIn("brass bell over the door", ai_client.generate_image.call_args.args[1])  # the place, as remembered
+        self.assertIn("closing up", ai_client.generate_image.call_args.args[1])
+        with mock.patch("mainapp.messenger.ask_json", return_value={"scene": {}, "places": {"the flower shop": "Something else."}}) as ask:
+            self.post(action="update_scene", thread_id=tid)
+        self.assertIn("brass bell", ask.call_args.args[1])  # known places are passed on…
+        self.assertIn("brass bell", messenger.thread_data(MessengerThread.objects.get(id=tid))["places"]["the flower shop"])  # …and kept
+        self.post(action="user_picture", thread_id=tid, prompt="me on the sofa", with_me=True)
+        self.assertIn("wearing a grey hoodie", ai_client.generate_image.call_args.args[1])
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("RIGHT NOW (where everyone is", ai_client.complete.call_args.args[2][0]["content"])
+        self.post(action="thread_settings", thread_id=tid, scene={"Rose": {"where": "the pier", "around": "", "wearing": "a raincoat"}})
+        self.assertEqual(messenger.scene_line(messenger.thread_data(MessengerThread.objects.get(id=tid)), "Rose"),
+                         "at/in the pier; wearing a raincoat")
+
+
+class TypoNudgeTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_fast_texters_are_invited_to_a_typo_now_and_then(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        with mock.patch("random.random", return_value=0.1):
+            self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("ONE small natural typo", json.dumps(ai_client.complete.call_args.args[2]))
+        self.rose.messenger_profile = {"texting_style": "Formal, full punctuation, never rushes."}
+        self.rose.save()
+        with mock.patch("random.random", return_value=0.1):
+            self.post(action="generate_reply", thread_id=tid)
+        self.assertNotIn("ONE small natural typo", json.dumps(ai_client.complete.call_args.args[2]))
+
+
+class CustomStickerTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_sticker_from_an_idea(self):
+        from mainapp import ai_client
+        out = self.post(action="custom_sticker", idea="facepalming", who=self.rose.slug).json()["sticker"]
+        self.assertEqual((out["pack"], out["name"]), ("My Stickers", "facepalming"))
+        self.assertIn("It shows Rose", ai_client.generate_image.call_args.args[1])
+        page = self.post(action="load_thread", thread_id=self.thread()).json()["thread"]
+        self.assertIn(out["url"], [s.get("url") for s in page["stickers"]])
+        self.assertEqual(self.post(action="custom_sticker", idea="").status_code, 400)
+
+
+class ClockAndZoneTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_the_browser_time_zone_and_a_clock_locked_to_the_last_message(self):
+        import time
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        self.client.cookies["na_tz"] = "Pacific/Auckland"
+        tid = self.thread()
+        page = self.post(action="load_thread", thread_id=tid).json()["thread"]
+        self.assertEqual(messenger.user_profile(self.user)["tz"], "Pacific/Auckland")
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        now = time.time()
+        data["messages"] = [{"id": "a", "role": "user", "text": "night", "ts": now - 86400},
+                            {"id": "b", "role": "user", "text": "later", "ts": now - 3600}]
+        messenger.save_thread_data(thread, data)
+        self.post(action="thread_settings", thread_id=tid, clock="resume")
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual(data["clock_mode"], "resume")
+        self.assertAlmostEqual(messenger.chat_now(data), now - 3600 + 60, delta=5)
+        self.post(action="delete_message", thread_id=tid, message_id="b")  # re-locks to the one before
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertAlmostEqual(messenger.chat_now(data), now - 86400 + 60, delta=5)
+
+
+class LinkedChatTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_chat_remembers_another(self):
+        from mainapp import ai_client
+        first = self.thread()
+        self.post(action="send_user_message", thread_id=first, text="the cat ate my homework")
+        new = self.post(action="new_chat", thread_id=first).json()["thread"]
+        self.assertEqual(new["linked"], [first])  # a new chat continues from the one it came from
+        self.post(action="send_user_message", thread_id=new["id"], text="hi again")
+        self.post(action="generate_reply", thread_id=new["id"])
+        sys = ai_client.complete.call_args.args[2][0]["content"]
+        self.assertIn("OTHER CHATS THIS ONE REMEMBERS", sys)
+        self.assertIn("the cat ate my homework", sys)
+        self.post(action="thread_settings", thread_id=new["id"], linked=[])
+        self.post(action="generate_reply", thread_id=new["id"])
+        self.assertNotIn("the cat ate my homework", ai_client.complete.call_args.args[2][0]["content"])
+        out = self.post(action="thread_settings", thread_id=new["id"], linked=[first, new["id"], 99999]).json()["thread"]
+        self.assertEqual(out["linked"], [first])  # not itself, not someone else's
+
+
+class SetupIdeasTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_ideas_for_the_first_step(self):
+        with mock.patch("mainapp.messenger.ask_json", return_value={"ideas": ["She runs a night florist.", "b", "c"]}) as ask:
+            out = self.post(action="setup_ideas", char_slug=self.rose.slug, mode="modern_au", hint="we're neighbours").json()
+        self.assertEqual(out["ideas"][0], "She runs a night florist.")
+        self.assertIn("A florist with a sharp tongue", ask.call_args.args[1])
+        self.assertIn("we're neighbours", ask.call_args.args[1])
+
+
+class StoriesTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_in_character_varied_answerable_stories(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        self.rose.messenger_profile = {"status_habit": "rarely", "stories": [
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+        self.rose.save()
+        self.assertTrue(messenger.status_due(self.rose))
+        self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [{"id": "s0", "text": "x", "ts": time.time() - 20 * 3600}]}
+        self.rose.save()
+        self.assertFalse(messenger.status_due(self.rose))  # "rarely": not again after 20 hours
+        self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+        self.rose.save()
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        long_text = "The tulips came in wrong. " * 20
+        with mock.patch("mainapp.messenger.ask_json", return_value={"emoji": "🌷", "text": long_text, "photo": ""}) as ask:
+            story = messenger.post_own_status(self.user, self.rose, thread=thread)
+        sent = ask.call_args.args[1]
+        self.assertIn("Coffee. Again.", sent)  # their last statuses, so it doesn't repeat them
+        self.assertIn("No motivational quotes", sent)
+        self.assertTrue(story["text"].endswith("."))  # cut at a full sentence, never mid-word
+        self.assertLessEqual(len(story["text"]), 280)
+        self.assertEqual(story["thread_id"], tid)
+        # a reply goes to that chat, and they answer there
+        out = self.post(action="answer_story", owner=self.rose.slug, story_id=story["id"], text="which ones??").json()
+        self.assertEqual(out["thread_id"], tid)
+        self.assertEqual(out["messages"][0]["story_ref"]["text"], story["text"])
+        self.assertIn("About Rose's story", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertGreater(len(out["messages"]), 1)
+        react = self.post(action="answer_story", owner=self.rose.slug, story_id=story["id"], emoji="😂").json()
+        self.assertEqual(len(react["messages"]), 1)  # a reaction alone gets no reply right away
+        self.assertIn("😂", next(s for s in react["profile"]["stories"] if s["id"] == story["id"])["reactions"])
+
+    def test_statuses_inside_replies_keep_the_habit(self):
+        import time
+        from mainapp import ai_client, messenger
+        self.rose.messenger_profile = {"status_habit": "sometimes", "stories": [{"id": "s0", "text": "Coffee first, always", "ts": time.time() - 3600}]}
+        self.rose.save()
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "ugh [STATUS: ☕ | coffee again, the only constant]"
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertEqual(len(messenger.char_profile(self.rose.__class__.objects.get(id=self.rose.id))["stories"]), 1)  # too soon
+
+
+class AvatarTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_the_user_changes_it_and_they_change_it_rarely(self):
+        import time
+        from mainapp import ai_client, messenger
+        from mainapp.models import Character
+        up = self.client.post(self.url, {"kind": "char_avatar", "char_slug": self.rose.slug, "file": upload()}).json()
+        self.assertTrue(up["profile"]["avatar_url"])
+        prof = self.post(action="char_profile", char_slug=self.rose.slug, profile={"avatar_url": "/media/other.png"}).json()
+        self.assertEqual((prof.get("profile") or prof)["avatar_url"], "/media/other.png")
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "new haircut [AVATAR: Rose with a fresh bob, smirking]"
+        self.post(action="generate_reply", thread_id=tid)
+        rose = Character.objects.get(id=self.rose.id)
+        p = messenger.char_profile(rose)
+        self.assertNotEqual(p["avatar_url"], "/media/other.png")
+        self.assertEqual(p["avatar_history"][0], "/media/other.png")
+        self.assertIn("fresh bob", ai_client.generate_image.call_args.args[1])
+        notice = [m for m in messenger.thread_data(rose.messenger_threads.first())["messages"] if m.get("role") == "system"][-1]
+        self.assertIn("changed their profile picture", notice["text"])
+        changed = p["avatar_url"]
+        self.post(action="generate_reply", thread_id=tid)  # again right away: too soon, nothing changes
+        self.assertEqual(messenger.char_profile(Character.objects.get(id=self.rose.id))["avatar_url"], changed)

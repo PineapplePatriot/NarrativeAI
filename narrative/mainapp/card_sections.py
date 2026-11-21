@@ -22,6 +22,20 @@ import re
 
 VERSION = 1
 KINDS = ("character", "ensemble", "simulation")
+# 🎯 What the story is mainly about (any number of them): tells Bulba where a card's words go, on top of its kind
+FOCUSES = {
+    "general": ("General", "a rounded person: every section in balance"),
+    "plot": ("Plot", "goals, conflicts, secrets and knowledge, the forces around them and hooks that start things "
+                     "moving; less on daily habits"),
+    "relationship": ("Relationship", "temperament, how they treat {{user}} and how that changes, what wins them over "
+                                     "and what wounds them, their history with {{user}}; less world detail"),
+    "slice_of_life": ("Slice of life", "routines, habits, likes and dislikes with reasons, small quirks, their home and "
+                                       "the people around them"),
+    "adventure": ("Adventure", "skills, gear, how they act in danger, the places and enemies around them"),
+    "horror": ("Horror", "what they fear and hide, what is wrong in their world, how dread builds around them"),
+    "erotica": ("Erotica", "adult characters only: attraction, what draws them in, their desires, preferences and "
+                           "limits, how intimacy changes them; kept consistent with their personality"),
+}
 
 # A person's sections, in the order they're composed (the order models weigh them: who, looks, how they act)
 PERSON = [
@@ -112,7 +126,17 @@ def clean(data):
              for e in (data.get("extra") or [])[:20] if isinstance(e, dict) and str(e.get("text") or "").strip()]
     if kind != "simulation" and not people:
         people = empty(kind)["people"]
-    return {"kind": kind, "version": VERSION, "shared": shared, "people": people, "extra": extra}
+    focus = [f for f in (data.get("focus") or []) if f in FOCUSES][:4]
+    return {"kind": kind, "version": VERSION, "shared": shared, "people": people, "extra": extra, "focus": focus}
+
+
+def focus_note(data):
+    """🎯 What to give the words to, from the card's focus ("" without one)."""
+    focus = [f for f in ((data or {}).get("focus") or []) if f in FOCUSES]
+    if not focus:
+        return ""
+    return ("This card's focus: " + ", ".join(FOCUSES[f][0] for f in focus) + ". Give the words to: "
+            + "; ".join(FOCUSES[f][1] for f in focus) + ".")
 
 
 def _temper_line(p):
@@ -389,7 +413,8 @@ def fill_empty(user, data, words=80):
             asked.append(f"{p['name'] or 'The character'}: " + ", ".join(f'"{k}" ({names[k][0]}: {names[k][1]})' for k in p["empty"]))
     answer = ai_client.complete(user, "bulba", [
         {"role": "system", "content": FILL_PROMPT.format(words=words)},
-        {"role": "user", "content": f"The card so far:\n{compose(data) or '(nothing yet)'}\n\nFill these:\n" + "\n".join(asked)}],
+        {"role": "user", "content": f"The card so far:\n{compose(data) or '(nothing yet)'}\n\n"
+                                    + (focus_note(data) + "\n\n" if focus_note(data) else "") + "Fill these:\n" + "\n".join(asked)}],
         max_tokens=8000, temperature=0.6, response_format={"type": "json_object"})
     m = re.search(r"\{.*\}", answer or "", re.S)
     try:

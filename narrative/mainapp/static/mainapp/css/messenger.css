@@ -20,10 +20,12 @@ body.tg-screen-body {
   color: var(--tg-text);
   font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   height: 100vh;
+  height: 100dvh;  /* phones: the visible screen, not the one behind the browser's toolbar (the bottom bar hid there) */
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+@media (max-width: 860px) { .screen-dock { padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important; height: auto !important; min-height: 58px; } }
 
 /* Digital Screen Outer Frame */
 .screen-hub-shell {
@@ -1502,8 +1504,17 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-redo .tg-regen-box { margin-top: -2px; }
 .tg-regen-x { background: none; border: 1px solid var(--tg-border); color: var(--tg-muted); border-radius: 10px; padding: 0 10px; cursor: pointer; }
 .tg-msg-row.show-actions .tg-msg-actions { display: inline-flex; }
-@media (max-width: 860px) { .tg-msg-actions { flex-wrap: wrap; max-width: calc(100vw - 70px); } }
-@media (max-width: 860px) { .tg-msg-actions { top: calc(100% + 4px); z-index: 6; } }
+/* Phones: the tapped message's actions sit in a strip at the bottom of the screen (like Telegram's menu), so they
+   never cover the next message of a burst; hover doesn't open them on touch screens */
+@media (hover: none) { .tg-msg-row:hover .tg-msg-actions { display: none; } }
+@media (max-width: 860px) {
+  .tg-msg-row .tg-msg-actions, .tg-msg-row.assistant .tg-msg-actions {
+    position: fixed; top: auto; left: 8px; right: 8px; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    max-width: none; flex-wrap: wrap; justify-content: center; border-radius: 16px; padding: 6px 8px; z-index: 60; }
+  .tg-msg-row.show-actions .tg-msg-actions { display: inline-flex; }
+  .tg-msg-row.show-actions .tg-bubble { outline: 2px solid var(--tg-accent, #8b5cf6); outline-offset: 2px; }
+  .tg-msg-actions .tg-act-btn { font-size: 19px; padding: 6px 7px; }
+}
 .tg-seen { margin-left: 6px; font-size: 11px; color: var(--tg-muted); font-style: italic; }
 /* Medium screens: the header keeps the name (icon-only buttons), as with Bulba open */
 @media (max-width: 1180px) {
@@ -1637,3 +1648,97 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-theme-rose .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #1c0e17, #2b1522) !important; }
 .tg-theme-sepia { --tg-out-bubble: #6b4a2b; --tg-in-bubble: #2e2620; --tg-accent: #e8b86b; }
 .tg-theme-sepia .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #17110c, #261c14) !important; }
+
+/* 🌐 a message's translation, under the original */
+.tg-translation { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--tg-border, rgba(127,127,127,.35));
+  font-size: .93em; opacity: .9; }
+.tg-translation span { opacity: .7; margin-right: 2px; }
+.tg-translating .tg-bubble { opacity: .6; }
+/* ✍️ "typing…" in the header, like Telegram */
+.tg-typing-sub { color: var(--tg-accent, #8b5cf6) !important; font-style: italic; }
+/* ✨ a status's picture in Moments */
+.moment-pic { display: block; margin-top: 8px; max-width: min(100%, 360px); max-height: 420px; border-radius: 12px; cursor: zoom-in; object-fit: cover; }
+.moment-pic-btn { margin-top: 8px; }
+/* 🖼️ Gallery */
+.tg-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 16px; }
+.tg-gallery-item { margin: 0; background: var(--tg-panel, #1c2135); border: 1px solid var(--tg-border); border-radius: 12px; overflow: hidden; }
+.tg-gallery-item img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; cursor: zoom-in; }
+.tg-gallery-item figcaption { position: relative; padding: 6px 30px 7px 8px; font-size: 12px; color: var(--tg-muted); }
+.tg-gallery-item figcaption b { color: var(--tg-text); }
+.tg-gallery-item figcaption span { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-gallery-item figcaption button { position: absolute; right: 4px; top: 4px; }
+@media (max-width: 860px) { .tg-gallery-grid { grid-template-columns: repeat(2, 1fr); } .dock-app-btn { min-width: 0; flex: 1; } }
+.tg-style-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tg-setup-fresh { font-size: 12px; color: var(--tg-accent, #8b5cf6); margin-left: 6px; }
+/* 🥔 Bulba's ideas */
+.tg-suggest { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.tg-suggest:empty { display: none; }
+.tg-suggest button { text-align: left; background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.35); color: var(--tg-text);
+  border-radius: 12px; padding: 8px 10px; font: inherit; font-size: 13.5px; cursor: pointer; }
+.tg-suggest button:hover { background: rgba(167,139,250,.2); }
+.tg-suggest-reply { padding: 6px 12px 0; max-height: 40vh; overflow-y: auto; }
+/* Phones: the text box and Send on the first line, the small buttons (📎 🎭 🎨 🥔 🎤) in a row under it */
+@media (max-width: 860px) {
+  .tg-composer-row { flex-wrap: wrap; row-gap: 6px; }
+  .tg-composer-row .tg-composer-input { order: 0; flex: 1 1 0; min-width: 0; }
+  .tg-composer-row .tg-icon-btn { flex: 0 0 auto; }
+  .tg-composer-row::after { content: ""; order: 1; flex-basis: 100%; height: 0; }
+  .tg-composer-row .tg-send-btn { padding-left: 14px; padding-right: 14px; }
+  .tg-composer-row .tg-send-btn { order: 0; }
+  .tg-composer-row .tg-icon-btn { order: 2; width: 36px; height: 36px; font-size: 17px; }
+}
+/* 📚 texting worldbook */
+.tg-lore { margin: 6px 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.tg-lore small { color: var(--tg-muted); }
+/* 📍 right now */
+.tg-scene { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 8px; font-size: 13px; }
+/* ⬇ back to the latest */
+.tg-main { position: relative; }
+.tg-down-btn { position: absolute; right: 18px; bottom: 150px; z-index: 20; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--tg-border); background: var(--tg-panel, #232842); color: var(--tg-text); font-size: 24px; line-height: 1;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer; display: none; padding-bottom: 6px; }
+.tg-down-btn.show { display: block; }
+@media (max-width: 860px) { .tg-down-btn { bottom: 190px; right: 12px; } }
+/* ✨ a sticker from an idea · 😀 emoji panel */
+.tg-sticker-idea { display: flex; gap: 6px; padding: 6px 10px; flex-wrap: wrap; }
+.tg-sticker-idea .tg-input { flex: 1 1 220px; }
+.tg-emoji-panel { display: none; max-height: 240px; overflow-y: auto; padding: 8px 12px; border-top: 1px solid var(--tg-border); }
+.tg-emoji-panel.open { display: block; }
+.tg-emoji-set small { color: var(--tg-muted); font-size: 11px; }
+.tg-emoji-set div { display: flex; flex-wrap: wrap; gap: 2px; margin: 2px 0 6px; }
+.tg-emoji-set button { background: none; border: 0; font-size: 22px; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; }
+.tg-emoji-set button:hover { background: rgba(167,139,250,.18); }
+.tg-places summary { cursor: pointer; font-size: 12.5px; color: var(--tg-muted); margin: 4px 0; }
+.tg-place { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; margin-bottom: 6px; }
+.tg-linked { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+/* ✨ react or reply to a story (above the tap zones) */
+.tg-stories-text { overflow-wrap: anywhere; }
+.tg-stories-answer { position: relative; z-index: 3; padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+.tg-stories-reacts { display: flex; gap: 6px; justify-content: center; }
+.tg-stories-reacts button { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 50%; width: 42px; height: 42px; font-size: 20px; cursor: pointer; }
+.tg-stories-reacts button.on { background: rgba(167,139,250,.45); border-color: #a78bfa; }
+.tg-stories-answer form { display: flex; gap: 6px; }
+.tg-stories-answer input { flex: 1; min-width: 0; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 20px; padding: 10px 14px; font: inherit; }
+.tg-stories-answer form button { background: #8b5cf6; color: #fff; border: 0; border-radius: 50%; width: 42px; height: 42px; font-size: 16px; cursor: pointer; }
+.tg-stories-sent { font-size: 12.5px; color: rgba(255,255,255,.7); text-align: center; min-height: 1em; }
+.tg-stories-sent a { color: #c4b5fd; }
+/* ✨ a message that answers a story */
+.tg-story-quote { display: flex; gap: 8px; align-items: center; border-left: 3px solid var(--tg-accent, #8b5cf6); padding: 4px 8px; margin-bottom: 6px;
+  background: rgba(139,92,246,.12); border-radius: 6px; font-size: 12.5px; }
+.tg-story-quote img { width: 34px; height: 46px; object-fit: cover; border-radius: 4px; }
+.tg-story-quote small { display: block; color: var(--tg-muted); }
+.moment-memo { opacity: .75; }
+/* 🖼️ profile picture picker */
+.tg-avatar-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.tg-avatar-pick button { width: 52px; height: 52px; border-radius: 50%; padding: 0; overflow: hidden; border: 2px solid transparent; background: #2a2f4a; cursor: pointer; color: var(--tg-text); font-size: 20px; }
+.tg-avatar-pick button.on { border-color: var(--tg-accent, #8b5cf6); }
+.tg-avatar-pick img { width: 100%; height: 100%; object-fit: cover; }
+.tg-sys-pill img { display: block; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin: 6px auto 0; }
+.tg-emoji-open .tg-down-btn { display: none !important; }
+/* ✏️ editing a message in place */
+.tg-edit-box { margin: 2px 0 8px 46px; max-width: min(620px, 92%); background: var(--tg-panel, #1c2135); border: 1px solid var(--tg-accent, #8b5cf6);
+  border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.tg-edit-box.user { align-self: flex-end; margin: 2px 46px 8px 0; }
+.tg-edit-box textarea { width: 100%; box-sizing: border-box; resize: none; background: transparent; color: var(--tg-text); border: 0; outline: 0;
+  font: inherit; font-size: 15px; line-height: 1.45; min-height: 60px; }
+@media (max-width: 860px) { .tg-edit-box, .tg-edit-box.user { margin-left: 0; margin-right: 0; max-width: 100%; } }

@@ -1,5 +1,7 @@
 /* Digital Screen Hub & Telegram Messenger Frontend (Phase F) */
 (function () {
+  // 🌍 the browser's time zone, so times in the chats are theirs (the server runs on UTC)
+  try { document.cookie = "na_tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone + ";path=/;max-age=31536000;samesite=lax"; } catch (e) { /* UTC then */ }
   var rawInit = document.getElementById("tgInitialData");
   var STATE = rawInit ? JSON.parse(rawInit.textContent) : {};
   STATE.threads = STATE.threads || [];
@@ -49,6 +51,17 @@
   }
   setInterval(updateClock, 15000);
   updateClock();
+  // 🟢 every 90 s, while the tab is open and nothing is happening, the chat refreshes quietly: their status dot
+  // (online / away / busy) changes as their day goes on, and a reply that arrived meanwhile shows up
+  setInterval(function () {
+    var T = window.TG, t = STATE.active_thread;
+    if (!T || !t || document.hidden || T._typing || T._busy || editFor) return;
+    var before = (t.messages || []).map(function (m) { return m.id; });
+    apiPost({ action: "load_thread", thread_id: t.id }).then(function (r) {
+      if (!STATE.active_thread || STATE.active_thread.id !== t.id || T._typing) return;
+      T.showTurn(r, before);
+    }).catch(function () { /* next time */ });
+  }, 90000);
 
   function isOnlyEmoji(str) {
     var s = (str || "").trim();
@@ -115,11 +128,16 @@
     try { var a = JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]"); if (a.indexOf(id) === -1) { a.push(id); localStorage.setItem("na-tg-seen-stories", JSON.stringify(a.slice(-400))); } } catch (e) { /* no memory here */ }
   }
 
+  // ✨ a story is up for 48 hours; after that it's a memo (kept in Moments, out of the story rings)
+  function liveStories(list) {
+    var cut = Date.now() / 1000 - 48 * 3600;
+    return (list || []).filter(function (s) { return (s.ts || 0) >= cut; });
+  }
   function renderStoriesStrip() {
     var strip = document.getElementById("tgStoriesStrip");
     if (!strip) return;
     var u = STATE.user_profile || {};
-    var uStories = u.stories || [];
+    var uStories = liveStories(u.stories);
     var html = [];
     html.push(
       '<div class="tg-story-item" onclick="TG.openStoryModal(\'user\')" title="Your Status / Story">' +
@@ -132,7 +150,8 @@
     );
 
     (STATE.characters || []).forEach(function (c) {
-      var hasStories = (c.stories || []).length > 0, unseen = (c.stories || []).some(function (s) { return !storySeen(s.id); });
+      var live = liveStories(c.stories);
+      var hasStories = live.length > 0, unseen = live.some(function (s) { return !storySeen(s.id); });
       html.push(
         '<div class="tg-story-item" onclick="' + (hasStories ? "TG.viewStories(\'" + esc(c.slug) + "\')" : "") + '" title="' + esc(c.display_name) + ': ' + esc(c.bio || "No status yet") + '">' +
           '<div class="tg-story-ring ' + (hasStories ? (unseen ? "unseen" : "seen") : "empty") + '">' +
@@ -252,7 +271,26 @@
     return bars.join("");
   }
 
+  // ⬇ a "back to the latest" button when they've scrolled up, like in Telegram
+  function updateDownBtn() {
+    var vp = document.getElementById("tgMessagesViewport"), btn = document.getElementById("tgDownBtn");
+    if (!vp || !btn) return;
+    var away = vp.scrollHeight - vp.scrollTop - vp.clientHeight > 300;
+    btn.classList.toggle("show", away);
+  }
+  (function () {
+    var vp = document.getElementById("tgMessagesViewport");
+    if (!vp) return;
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.id = "tgDownBtn"; btn.className = "tg-down-btn"; btn.title = "Latest messages"; btn.textContent = "⌄";
+    btn.onclick = function () { vp.scrollTo({ top: vp.scrollHeight, behavior: "smooth" }); };
+    vp.parentNode.insertBefore(btn, vp.nextSibling);
+    vp.addEventListener("scroll", updateDownBtn, { passive: true });
+  })();
+
   function renderActiveThread() {
+    var openEdit = document.getElementById("tgEditText");
+    if (openEdit) editDraft = openEdit.value;  // ✏️ (a redraw keeps what they've typed)
     var t = STATE.active_thread;
     var hdrTitle = document.getElementById("hdrTitle");
     var hdrSub = document.getElementById("hdrSub");
@@ -290,7 +328,9 @@
       if (t.handle) subParts.push(t.handle);
       if (t.subtitle) subParts.push(t.subtitle);
       if (rt.elapsed_text) subParts.push("Last text: " + rt.elapsed_text);
-      hdrSub.textContent = subParts.join(" · ") || "online";
+      TG._subLine = subParts.join(" · ") || "online";
+      hdrSub.textContent = (!t.is_group && TG._typing) || TG._subLine;
+      hdrSub.classList.toggle("tg-typing-sub", !t.is_group && !!TG._typing);
     }
     var am = (t && t.active_model) || STATE.active_model;
     var mdlLbl = document.getElementById("hdrModelLabel");
@@ -338,7 +378,8 @@
     msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
-        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
+        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) +
+          (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + "</div>");
         return;
       }
       var isUser = m.role === "user";
@@ -348,6 +389,12 @@
       var senderColor = isUser ? "#a78bfa" : (mem.color || "#f0abfc");
 
       var inner = [];
+      if (m.story_ref) {  // ✨ an answer to their story: the story, small, on top
+        var sr = m.story_ref;
+        inner.push('<div class="tg-story-quote">' + (sr.image_url ? '<img src="' + esc(sr.image_url) + '" alt="">' : "<span>" + esc(sr.emoji || "✨") + "</span>") +
+          "<div><small>" + (m.story_reaction ? "Reacted " + esc(m.story_reaction) + " to " : "Replying to ") + esc(sr.owner_name || "their") + "'s story</small>" +
+          esc(String(sr.text || "").slice(0, 120)) + "</div></div>");
+      }
       if (!isUser && (t.is_group || (t.members && t.members.length > 1))) {
         inner.push(
           '<div class="tg-bubble-sender" style="color:' + esc(senderColor) + '" onclick="TG.openCharProfile(\'' + esc(m.sender_slug || "") + '\')">' +
@@ -451,6 +498,8 @@
           "</div>"
         );
       }
+      var tr = TG._shownTr && TG._shownTr[m.id];  // 🌐 the translation, under the original
+      if (tr) inner.push('<div class="tg-translation"><span>🌐</span> ' + formatMessageHtml(tr) + "</div>");
 
       // Reactions under bubble
       var reacts = m.reactions || {};
@@ -494,6 +543,7 @@
         '<div class="tg-msg-actions">' +
           quickEmojis +
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
+          ((m.text || (m.voice && m.voice.transcript)) ? '<button type="button" class="tg-act-btn" onclick="TG.translateMessage(\'' + esc(m.id) + '\')" title="Translate (into your reading language from the profile; English if none)">🌐</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
           '<button type="button" class="tg-act-btn" onclick="TG.branchFrom(\'' + esc(m.id) + '\')" title="Branch: a new chat from here (this one stays as it is)">⑂</button>' +
@@ -514,6 +564,13 @@
         "</div>"
       );
       if (redoFor === m.id && !isUser) out.push(redoBox(m));
+      if (editFor === m.id) {  // ✏️ edited in place: the whole text, as long as it is
+        out.push('<div class="tg-edit-box ' + (isUser ? "user" : "") + '" id="tgEditBox"><textarea id="tgEditText" rows="3">' +
+          esc(editDraft != null ? editDraft : ((m.voice && m.voice.transcript) || m.text || "")) + "</textarea>" +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.saveEdit(\'' + esc(m.id) + '\')">✓ Save</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.cancelEdit()">Cancel</button>' +
+          '<small style="color:var(--tg-muted)">Ctrl+Enter saves · Esc cancels</small></div></div>');
+      }
     });
 
     // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
@@ -542,7 +599,7 @@
     var wnSkipped = function (id) { try { return localStorage.getItem("na-tg-watch-" + id) === "1"; } catch (e) { return false; } };
     if (wn && !wnSkipped(wn.message_id) && !(STATE.failed && STATE.failed.thread === t.id)) {
       out.push('<div class="tg-watch"><span>🥔 <b>Bulba noticed:</b> ' + esc(wn.text) + "</span>" +
-        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">↻ Rewrite without it</button>' +
+        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">' + (wn.kind === "continuity" ? "↻ Fix that message" : "↻ Rewrite without it") + "</button>" +
         '<button type="button" class="tg-watch-x" onclick="TG.watchSkip()">Not now</button></div>');
     }
 
@@ -552,8 +609,13 @@
         '<button type="button" onclick="TG.retryFailed()">↻ Try again</button></div>');
     }
 
+    // ⬇ stay where they were reading; follow new messages only when they were already at the bottom (or the chat changed)
+    var fromBottom = vp.scrollHeight - vp.scrollTop - vp.clientHeight;
+    var sameChat = vp.getAttribute("data-thread") === String(t.id), keep = vp.scrollTop;
     vp.innerHTML = out.join("");
-    vp.scrollTop = vp.scrollHeight;
+    vp.setAttribute("data-thread", String(t.id));
+    if (!sameChat || fromBottom < 160) vp.scrollTop = vp.scrollHeight; else vp.scrollTop = keep;
+    updateDownBtn();
     renderStickerTray();
   }
 
@@ -690,15 +752,28 @@
           '<div style="font-size:11.5px;color:#cbd5e1;">Nano Banana uses these to lock face, outfit & art style across varied-angle selfies, food shots, and scenery. For OCs without art yet, generate them from description below!</div>' +
           '<div class="tg-ref-grid">' + refSlotsHtml.join("") + "</div>" +
           '<input type="file" id="drwRefUploadInput" accept="image/*" style="display:none" onchange="TG.handleRefUploadFile(this)">' +
+          // 🖼️ the profile picture: one of their pictures (tap), an upload, or one they had before
+          '<div class="tg-field-group" style="margin-top:6px;"><label>🖼️ Profile picture <small style="font-weight:400;color:var(--tg-muted)">(tap one to use it; they may change it themselves now and then)</small></label>' +
+            '<div class="tg-avatar-pick">' + [cur.avatar_url].concat([cur.neutral_url], cur.extra_refs || [], cur.avatar_history || [])
+              .filter(function (u, i, all) { return u && all.indexOf(u) === i; }).map(function (u) {
+                return '<button type="button" class="' + (u === cur.avatar_url ? "on" : "") + '" onclick="TG.setCharAvatar(\'' + esc(u) + '\')"><img src="' + esc(u) + '" alt=""></button>';
+              }).join("") +
+              '<button type="button" class="tg-avatar-up" title="Upload a picture" onclick="TG.triggerRefUpload(\'char_avatar\', -1)">＋</button></div></div>' +
           '<div class="tg-field-group" style="margin-top:4px;">' +
             "<label>Appearance Description (used for photos & OC reference generation)</label>" +
             '<textarea class="tg-textarea" id="drwCharAppearance" style="min-height:54px;" placeholder="Face, hair, eyes, build, signature outfit…">' + esc(cur.appearance_notes || "") + "</textarea>" +
           "</div>" +
           '<div class="tg-field-group">' +
             "<label>Visual Art Style Lock (kept consistent on selfies, food & scenery photos)</label>" +
-            '<input type="text" class="tg-input" id="drwCharArtStyle" value="' + esc(cur.art_style_notes || "") + '" placeholder="e.g. semi-realistic painted anime illustration, warm cinematic light">' +
+            '<input type="text" class="tg-input" id="drwCharArtStyle" value="' + esc(cur.art_style_notes || "") + '" placeholder="Empty = anime realism, matching their pictures. Pick one below or write your own">' +
+            '<div class="tg-style-chips"><button type="button" class="tg-fmt-btn" onclick="TG.styleFromPictures(this)" title="Bulba looks at their picture and writes its style">🥔 Match their pictures</button>' + ART_STYLES.map(function (s) {
+              return '<button type="button" class="tg-fmt-btn" title="' + esc(s[1]) + '" onclick="document.getElementById(\'drwCharArtStyle\').value=this.title">' + esc(s[0]) + "</button>";
+            }).join("") + "</div>" +
           "</div>" +
           '<button type="button" class="tg-bulba-btn" onclick="TG.generateCharRefsFromDesc(this)">🍌 Generate Neutral + Reference Pics from Description</button>' +
+          '<div class="tg-field-group" style="margin-top:8px;"><label>📚 Worldbook for this setup <small style="font-weight:400;color:var(--tg-muted)">(read when its words come up; the roleplay lorebook stays as it is)</small></label>' +
+            ((cur.lore || []).length ? loreList(cur.lore, selectedDrawerCharSlug || cur.slug || "") : '<div style="font-size:12px;color:var(--tg-muted)">None yet.</div>') +
+            '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.loreFromDrawer(this)">📚 ' + ((cur.lore || []).length ? "Write it again with Bulba" : "Write it with Bulba") + "</button></div>" +
         "</div>" +
         '<div class="tg-bulba-box" style="background:rgba(167,139,250,0.06);border-color:rgba(167,139,250,0.25);">' +
           '<div style="font-weight:700;font-size:13px;">🎤 ElevenLabs Voice (on OpenRouter or Direct Key)</div>' +
@@ -744,6 +819,10 @@
         '<div class="tg-field-group">' +
           "<label>Telegram Bio / Status Line</label>" +
           '<input type="text" class="tg-input" id="drwCharBio" value="' + esc(cur.bio || "") + '" placeholder="In the lab. Do not disturb.">' +
+          "<label style=\"margin-top:8px\">✨ How often they post stories</label>" +
+          '<select class="tg-select" id="drwCharStatusHabit">' + [["rarely", "Rarely (every couple of days)"], ["sometimes", "Sometimes (about twice a day)"], ["often", "Often (several a day)"]].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((cur.status_habit || "sometimes") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+          }).join("") + "</select>" +
         "</div>" +
         '<div class="tg-field-group">' +
           "<label>Modern AU / Messenger Persona (separate from RP card)</label>" +
@@ -783,7 +862,10 @@
       var evHtml = ((t.events || []).map(function (ev, idx) {
         return (
           '<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;font-size:12px;">' +
-            "<div><strong>" + esc(ev.title) + "</strong>" + (ev.notes ? " — " + esc(ev.notes) : "") + "</div>" +
+            "<div>" + (ev.done ? "✓ " : "⏰ ") + "<strong>" + esc(ev.title) + "</strong>" + (ev.notes ? " — " + esc(ev.notes) : "") +
+              '<div style="color:var(--tg-muted);font-size:11px;">' +
+                (ev.at ? new Date(ev.at * 1000).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "no time: a note for them") +
+                (ev.by ? " · set by " + esc(ev.by) : "") + "</div></div>" +
             '<button type="button" class="tg-fmt-btn" onclick="TG.removeEvent(' + idx + ')">✕</button>' +
           "</div>"
         );
@@ -801,6 +883,10 @@
           '<div style="display:flex;gap:6px;margin-top:6px;">' +
             '<input type="text" class="tg-input" id="drwNewEventTitle" placeholder="e.g. Friday 20:00 — Dinner at the pier">' +
             '<button type="button" class="tg-fmt-btn" onclick="TG.addEvent()">+ Add</button>' +
+          "</div>" +
+          '<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">' +
+            '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'reminders\', this, function (x) { TG.addEvent(x); })">🥔 Find plans in the chat</button>' +
+            '<div class="tg-suggest" data-suggest-for="reminders"></div>' +
           "</div>" +
         "</div>" +
         '<div class="tg-field-group">' +
@@ -833,11 +919,33 @@
           '<div style="font-size:13px;margin-bottom:6px;">' + (t.clock_offset ? "Set: it's <b>" + esc((t.real_time || {}).clock || "") + "</b> in this chat (it runs on from there)."
             : "Real time: <b>" + esc((t.real_time || {}).clock || "") + "</b>.") + "</div>" +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
-            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The clock jumps back to just after the last message">🌙 Continue where we left off</button>' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The chat clock goes on from just after the last message, and stays locked to it: delete a message and it follows the one before">🌙 Continue where we left off</button>' +
             '<input type="datetime-local" class="tg-input" id="drwClockAt" style="width:auto">' +
             '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
             (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
           "</div></div>" +
+        '<div class="tg-field-group"><label>🔗 This chat remembers <small style="font-weight:400;color:var(--tg-muted)">(other chats: their memory and how they ended; up to 3. A new chat made from this one remembers it)</small></label>' +
+          '<div class="tg-linked">' + (STATE.threads || []).filter(function (x) { return x.id !== t.id; }).map(function (x) {
+            var on = (t.linked || []).indexOf(x.id) !== -1;
+            return '<label class="tg-start-opt' + (on ? " on" : "") + '"><input type="checkbox" data-linked="' + x.id + '"' + (on ? " checked" : "") + "> " + esc(x.title) + "</label>";
+          }).join("") + "</div></div>" +
+        '<div class="tg-field-group"><label>📍 Right now <small style="font-weight:400;color:var(--tg-muted)">(where everyone is, what\'s around them, what they\'re wearing; kept up to date as you text, used by every photo; edit freely)</small></label>' +
+          (Object.keys(t.scene || {}).length ? Object.keys(t.scene).map(function (name, i) {
+            var s = t.scene[name] || {};
+            return '<div class="tg-scene" data-scene-name="' + esc(name) + '"><b>' + esc(name) + "</b>" +
+              ["where", "doing", "around", "wearing"].map(function (k) {
+                return '<input type="text" class="tg-input" data-scene-k="' + k + '" value="' + esc(s[k] || "") + '" placeholder="' +
+                  { where: "where (e.g. their flat, the lab)", doing: "what they're doing", around: "what's around them", wearing: "what they're wearing" }[k] + '">';
+              }).join("") + "</div>";
+          }).join("") : '<div style="font-size:12px;color:var(--tg-muted)">Filled in after the first message.</div>') +
+          (Object.keys(t.places || {}).length ? '<details class="tg-places"><summary>🏠 Places (how each one looks, the same in every photo)</summary>' +
+            Object.keys(t.places).map(function (p) {
+              return '<label class="tg-place"><b>' + esc(p) + '</b><textarea class="tg-textarea" rows="2" data-place="' + esc(p) + '">' + esc(t.places[p]) + "</textarea></label>";
+            }).join("") + "</details>" : "") +
+        "</div>" +
+        '<div class="tg-field-group"><label>📸 Tease photos go this far <small style="font-weight:400;color:var(--tg-muted)">(Bulba can set it too)</small></label><select class="tg-select" id="drwThreadPhotoMood">' +
+          (t.photo_moods || []).map(function (o) { return '<option value="' + o[0] + '"' + (t.photo_mood === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") +
+        "</select></div>" +
         '<div class="tg-field-group"><label>🎨 Theme</label><select class="tg-select" id="drwThreadTheme">' +
           Object.keys(THEMES).map(function (k) { return '<option value="' + k + '"' + ((t.theme || "") === k ? " selected" : "") + ">" + esc(THEMES[k]) + "</option>"; }).join("") +
         "</select></div>" +
@@ -883,6 +991,7 @@
       '<div class="tg-field-group">' +
         "<label>Your Bio / Status (characters see when you change this!)</label>" +
         '<input type="text" class="tg-input" id="drwMeBio" value="' + esc(u.bio || "") + '" placeholder="Coffee first, questions later.">' +
+        (STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start;margin-top:4px" onclick="TG.suggestInto(\'bio\', this, function (x) { document.getElementById(\'drwMeBio\').value = x; })">🥔 Suggest a bio</button><div class="tg-suggest" data-suggest-for="bio"></div>' : "") +
       "</div>" +
       "<hr style='border:none;border-top:1px solid var(--tg-border);width:100%;'>" +
       '<div style="font-weight:700;font-size:13px;">🔔 Notifications & Rich Media</div>' +
@@ -925,6 +1034,25 @@
       '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
 
+  // 😀 the emoji panel: [label, "emoji emoji …"] (split on spaces, so ❤️ and 😮‍💨 stay whole)
+  var EMOJI_SETS = [
+    ["Faces", "😀 😁 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😜 🤪 🤨 🧐 😎 🥳 😏 😒 🙄 😬 😮‍💨 🤥 😌 😔 😪 😴 😷 🥵 🥶 🥴 😵 🤯 🤠 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 🤡 👻 🤖 🫠 🫡 🤫 🤭 🫢 🤔 🫣"],
+    ["Hands", "👍 👎 👌 🤌 ✌️ 🤞 🫶 🤟 🤘 👋 🙌 👏 🙏 🤝 💪 🫵 👉 👈 👆 👇 ✋ 🤚 🖐️ 🫰 ✍️ 💅"],
+    ["Hearts", "❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❤️‍🔥 💕 💞 💓 💗 💖 💘 💝 💋 ✨ 🔥 💯 💢 💥 💫 💤 💬 👀"],
+    ["Things", "☕ 🍵 🍷 🍺 🍕 🍜 🍣 🍰 🍫 🍓 🌹 🌸 🌙 ☀️ 🌧️ ⛈️ ❄️ 🎉 🎁 🎮 🎧 📚 📝 💻 📱 🔬 🧪 💊 🚗 ✈️ 🏠 🐱 🐶 🦊 🐍 🥔"],
+  ];
+
+  // 🎨 Picture styles to pick from (or write your own); empty = anime realism, matching their pictures
+  var ART_STYLES = [
+    ["✨ Anime realism", "semi-realistic anime illustration (anime realism): detailed painted rendering, natural proportions, soft cinematic light, lively expressive faces"],
+    ["🌸 Clean anime", "clean cel-shaded anime illustration: crisp lines, flat vivid colours, big readable expressions"],
+    ["🖌️ Painterly", "painterly digital illustration: visible brushwork, warm atmospheric light, expressive faces"],
+    ["📷 Photo-real", "photorealistic smartphone photo: natural skin texture, real-world lighting, candid expressions"],
+    ["💥 Comic", "western comic / graphic-novel style: bold inks, strong shadows, punchy expressions"],
+    ["💧 Watercolour", "soft watercolour illustration: gentle colours, light linework, airy light"],
+    ["🧸 3D animated", "stylized 3D animated-film look: soft lighting, appealing proportions, very expressive faces"],
+  ];
+
   function renderMomentsFeed() {
     var box = document.getElementById("momentsFeedList");
     if (!box) return;
@@ -939,6 +1067,7 @@
         text: s.text,
         at: s.at || "",
         ts: s.ts || 0,
+        id: s.id, owner_key: "user", image_url: s.image_url || "",
       });
     });
     (STATE.characters || []).forEach(function (c) {
@@ -951,27 +1080,35 @@
           text: s.text,
           at: s.at || "",
           ts: s.ts || 0,
+          id: s.id, owner_key: c.slug, image_url: s.image_url || "", photo_prompt: s.photo_prompt || "",
         });
       });
     });
     items.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+    var cut = Date.now() / 1000 - 48 * 3600;  // ✨ older than 48 hours: memos, under the live ones
+    items.forEach(function (it) { it.memo = (it.ts || 0) < cut; });
 
     if (!items.length) {
       box.innerHTML =
         '<div class="moment-card"><div style="color:var(--tg-muted);font-size:13.5px;">No status updates yet. Click <b>+ Post My Status</b> above or chat with your characters!</div></div>';
       return;
     }
+    var memoAt = items.findIndex(function (it) { return it.memo; });
     box.innerHTML = items
-      .map(function (it) {
+      .map(function (it, idx) {
         return (
-          '<div class="moment-card">' +
+          (idx === memoAt ? '<h3 style="margin:14px 0 4px;font-size:14px;color:var(--tg-muted)">🗂️ Memos <small style="font-weight:400">(stories older than 48 hours)</small></h3>' : "") +
+          '<div class="moment-card' + (it.memo ? " moment-memo" : "") + '">' +
             avatarHtml(it.avatar, it.owner, "tg-avatar") +
             '<div style="flex:1;">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;">' +
                 '<div><strong>' + esc(it.owner) + '</strong> <span style="color:var(--tg-muted);font-size:12px;">' + esc(it.handle) + "</span></div>" +
-                '<span style="color:var(--tg-muted);font-size:12px;">' + esc(it.at) + "</span>" +
+                '<span style="color:var(--tg-muted);font-size:12px;">' + esc(it.at) +
+                  (it.id ? ' <button type="button" class="tg-fmt-btn" title="Delete this status" onclick="TG.deleteStory(\'' + esc(it.owner_key) + '\', \'' + esc(it.id) + '\')">🗑</button>' : "") + "</span>" +
               "</div>" +
-              '<div style="margin-top:6px;font-size:14.5px;">' + esc(it.emoji) + " " + formatMessageHtml(it.text) + "</div>" +
+              (it.text ? '<div style="margin-top:6px;font-size:14.5px;">' + esc(it.emoji) + " " + formatMessageHtml(it.text) + "</div>" : "") +
+              (it.image_url ? '<img class="moment-pic" src="' + esc(it.image_url) + '" alt="" loading="lazy" onclick="TG.viewImage(this.src)">'
+                : it.photo_prompt ? '<button type="button" class="tg-setup-ghost moment-pic-btn" onclick="TG.momentPicture(this, \'' + esc(it.owner_key) + '\', \'' + esc(it.id) + '\')">🖼️ Show the picture</button>' : "") +
             "</div>" +
           "</div>"
         );
@@ -1044,6 +1181,8 @@
 
   // --- ↻ One message again: its text (or a voice note's words) rewritten, or its photo redrawn, with a note ---
   var redoFor = null;
+  var editFor = null;  // ✏️ the message being edited in place
+  var editDraft = null;  // (what's typed so far, kept when the chat redraws)
   function redoBox(m) {
     var hasText = !!((m.voice && m.voice.transcript) || m.text), hasPhoto = !!m.photo;
     var picks = hasPhoto && !hasText ? [["🎨 Other angle", "A different camera angle."], ["😏 Cheekier", "More playful."], ["🌙 Moodier light", "Moodier lighting."]]
@@ -1112,6 +1251,13 @@
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
   var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
   function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
+  function loreList(lore, slug) {  // 📚 the entries, short; with a slug, each can be removed
+    return '<ul class="tg-lore">' + lore.map(function (e, i) {
+      return "<li><b>" + (e.always ? "📌 " : "") + esc(e.title || (e.keys || []).join(", ")) + "</b>" +
+        (e.keys && e.keys.length ? ' <small>(' + esc(e.keys.join(", ")) + ")</small>" : "") + "<br>" + esc(e.content) +
+        (slug ? ' <button type="button" class="tg-fmt-btn" title="Remove" onclick="TG.dropLore(\'' + esc(slug) + '\', ' + i + ')">✕</button>' : "") + "</li>";
+    }).join("") + "</ul>";
+  }
   function bulbaSetupCard(t) {
     var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
             (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
@@ -1137,12 +1283,16 @@
           '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
         "</div>" +
         '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
+        '<button type="button" class="tg-setup-ghost" style="align-self:flex-start" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
+        (st.ideas && st.ideas.length ? '<div class="tg-suggest">' + st.ideas.map(function (x, i) {
+          return '<button type="button" onclick="TG.setupUseIdea(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
+        }).join("") + "</div>" : "") +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupRun(\'' + slug + '\')">🥔 Set them up</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupSkip(\'' + slug + '\')">Not now</button></div>';
     } else if (st.step === "busy") {
       body = "<p>Thinking about who " + n + " is on a phone… 🥔</p>";
     } else if (st.step === "review") {
-      body = "<p>Here's " + n + " for texting:</p><dl class=\"tg-setup-draft\">" +
+      body = "<p>Here's " + n + " for texting" + (st.bulbaUpdated ? ' <span class="tg-setup-fresh">🥔 updated with Bulba</span>' : "") + ":</p><dl class=\"tg-setup-draft\">" +
         "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
@@ -1155,8 +1305,20 @@
         '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
-        '<button type="button" class="tg-setup-ghost" onclick="TG.openBulba()">🥔 Talk it through</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.talkSetup(\'' + slug + '\')">🥔 Talk it through</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
+    } else if (st.step === "lore" || st.step === "loring") {  // 📚 a worldbook for this setup
+      var lore = m.lore || [];
+      body = st.step === "loring" ? "<p>Writing the worldbook… 📚🥔</p>"
+        : lore.length
+        ? "<p>📚 " + n + "'s worldbook for this setup (the chat reads an entry when its words come up):</p>" + loreList(lore) +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 Keep it</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupLore(\'' + slug + '\')">↻ Another take</button></div>'
+        : "<p>📚 Want a worldbook for this setup? Places, people, groups and terms the texts keep coming back to, so " + n +
+          " stays consistent. " + (m.mode === "modern_au" ? "I'll bring their world into today's (a guild becomes a company, a kingdom a city)." : "") +
+          (m.has_lorebook ? " I'll start from their roleplay lorebook (it stays as it is)." : "") + "</p>" +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupLore(\'' + slug + '\')">📚 Write it</button>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'look\')">Skip</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
         ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
@@ -1202,10 +1364,33 @@
       });
       if (appName === "moments") renderMomentsFeed();
       if (appName === "files") renderHubFilesAndNotes();
+      if (appName === "gallery") TG.renderGallery();
+    },
+
+    renderGallery: function () {
+      var box = document.getElementById("galleryGrid"); if (!box) return;
+      box.innerHTML = '<div style="color:var(--tg-muted)">Loading…</div>';
+      apiPost({ action: "gallery" }).then(function (res) {
+        var ph = res.photos || [];
+        if (!ph.length) { box.innerHTML = '<div style="grid-column:1/-1;color:var(--tg-muted);font-size:13.5px;">No photos yet. Ask them for a selfie, or send one with 🎨.</div>'; return; }
+        box.innerHTML = ph.map(function (p) {
+          return '<figure class="tg-gallery-item">' +
+            '<img src="' + esc(p.url) + '" alt="" loading="lazy" onclick="TG.viewImage(this.src)">' +
+            '<figcaption><b>' + esc(p.from) + '</b>' + (p.chat && p.chat !== p.from ? ' · ' + esc(p.chat) : "") +
+            (p.caption ? '<span>' + esc(p.caption) + "</span>" : "") +
+            '<button type="button" class="tg-fmt-btn" title="Open in the chat" onclick="TG.openFromGallery(' + p.thread_id + ', \'' + esc(p.message_id) + '\')">💬</button></figcaption></figure>';
+        }).join("");
+      }).catch(function (err) { box.innerHTML = '<div style="color:var(--tg-muted)">' + esc(err.message) + "</div>"; });
+    },
+    openFromGallery: function (threadId, msgId) {
+      TG.switchApp("messenger");
+      Promise.resolve(TG.selectThread(threadId)).then(function () {
+        setTimeout(function () { var el = document.getElementById("msg-" + msgId); if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("show-actions"); } }, 600);
+      });
     },
 
     selectThread: function (threadId) {
-      apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
+      return apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
         STATE.active_thread = res.thread;
         STATE.threads = (STATE.threads || []).map(function (t) {
           return t.id === threadId ? Object.assign({}, t, { unread: 0 }) : t;
@@ -1315,11 +1500,12 @@
       TG.clearReplyTo();
       TG.toggleStickerTray(false);
 
+      clearTimeout(TG._replyTimer);
       apiPost(payload)
         .then(function (res) {
           STATE.active_thread = res.thread;
           renderActiveThread();
-          return TG.triggerAiTurn();
+          TG.replySoon();
         })
         .catch(function (err) {
           alert(err.message);
@@ -1530,7 +1716,7 @@
     // the right side for the next one, the left for the one before
     viewStories: function (slug) {
       var c = (STATE.characters || []).find(function (x) { return x.slug === slug; }); if (!c) return;
-      var stories = (c.stories || []).slice().reverse();  // oldest first, like a story
+      var stories = liveStories(c.stories).slice().reverse();  // oldest first, like a story (only the last 48 hours)
       if (!stories.length) return;
       var i = Math.max(0, stories.findIndex(function (s) { return !storySeen(s.id); }));
       var box = document.getElementById("tgStories");
@@ -1543,12 +1729,44 @@
           '<div class="tg-stories-pic">' + (s.image_url ? '<img src="' + esc(s.image_url) + '" alt="">'
             : s.photo_prompt ? '<button type="button" class="tg-setup-go" data-pic>🖼️ Show the picture</button>' : '<div class="tg-stories-emoji">' + esc(s.emoji || "✨") + "</div>") + "</div>" +
           (s.text ? '<div class="tg-stories-text">' + esc(s.emoji || "") + " " + formatMessageHtml(s.text) + "</div>" : "") +
-          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>';
+          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>' +
+          // ❤️ react or reply: it goes to the chat this story came from
+          '<div class="tg-stories-answer">' +
+            '<div class="tg-stories-reacts">' + ["❤️", "🔥", "😂", "😮", "😢", "👏"].map(function (e) {
+              var on = s.reactions && s.reactions[e];
+              return '<button type="button" data-react="' + e + '" class="' + (on ? "on" : "") + '">' + e + "</button>";
+            }).join("") + "</div>" +
+            '<form data-reply><input type="text" placeholder="Reply to ' + esc(c.display_name || c.name) + '…" autocomplete="off"><button type="submit">➤</button></form>' +
+            '<div class="tg-stories-sent" data-sent></div>' +
+          "</div>";
         box.classList.add("open");
         renderStoriesStrip();
       };
+      var answer = function (payload, note) {
+        var sent = box.querySelector("[data-sent]"); if (sent) sent.textContent = note;
+        apiPost(Object.assign({ action: "answer_story", owner: slug, story_id: stories[i].id }, payload)).then(function (res) {
+          syncCharCatalog(slug, res.profile);
+          stories[i].reactions = ((res.profile.stories || []).find(function (x) { return x.id === stories[i].id; }) || {}).reactions;
+          var t = STATE.active_thread;
+          if (t && t.id === res.thread_id) { t.messages = (t.messages || []).concat(res.messages); renderActiveThread(); }
+          var sent2 = box.querySelector("[data-sent]");
+          if (sent2) sent2.innerHTML = (payload.text ? "Sent in “" + esc(res.thread_title) + "” · " : "Reacted · ") +
+            '<a href="#" data-goto="' + res.thread_id + '">open the chat</a>';
+          renderSidebar();
+        }).catch(function (err) { var s2 = box.querySelector("[data-sent]"); if (s2) s2.textContent = err.message; });
+      };
+      box.onsubmit = function (e) {
+        e.preventDefault();
+        var inp = box.querySelector("[data-reply] input"), text = inp.value.trim(); if (!text) return;
+        inp.value = ""; answer({ text: text }, "Sending… they'll answer in your chat");
+      };
       box.onclick = function (e) {
         if (e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-reply]")) return;
+        var go = e.target.closest("[data-goto]");
+        if (go) { e.preventDefault(); box.classList.remove("open"); TG.switchApp("messenger"); TG.selectThread(parseInt(go.getAttribute("data-goto"), 10)); return; }
+        var rb = e.target.closest("[data-react]");
+        if (rb) { rb.classList.add("on"); answer({ emoji: rb.getAttribute("data-react") }, "Reacting…"); return; }
         if (e.target.closest("[data-pic]")) {
           var b = e.target.closest("[data-pic]"); b.disabled = true; b.textContent = "📸 Making the picture…";
           apiPost({ action: "story_picture", owner: slug, story_id: stories[i].id }).then(function (res) {
@@ -1560,6 +1778,21 @@
         else if (e.target.closest("[data-prev]")) { if (i > 0) { i--; show(); } }
       };
       show();
+    },
+
+    // ✨ Moments: a status's picture made on demand, and deleting a status (yours or a character's)
+    momentPicture: function (btn, slug, storyId) {
+      btn.disabled = true; btn.textContent = "📸 Making the picture…";
+      apiPost({ action: "story_picture", owner: slug, story_id: storyId }).then(function (res) {
+        syncCharCatalog(slug, res.profile); renderMomentsFeed();
+      }).catch(function (err) { btn.disabled = false; btn.textContent = "🖼️ Show the picture"; alert(err.message); });
+    },
+    deleteStory: function (owner, storyId) {
+      if (!confirm("Delete this status?")) return;
+      apiPost({ action: "delete_story", owner: owner, story_id: storyId }).then(function (res) {
+        if (owner === "user") STATE.user_profile = res.user_profile; else syncCharCatalog(owner, res.profile);
+        renderMomentsFeed(); renderStoriesStrip();
+      }).catch(function (err) { alert(err.message); });
     },
 
     // 🎨 A picture to send: a photo of you (your persona picture as the reference) or of anything; up to 5
@@ -1584,6 +1817,7 @@
         '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
         "<h3>🎨 Make a picture to send</h3>" +
         '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
+        '<button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div>' +
         (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
           : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
         '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
@@ -1601,6 +1835,11 @@
         var d = document.getElementById("tgMakeDesc"); if (d) mk.desc = d.value;
         var c = document.getElementById("tgMakeCaption"); if (c) mk.caption = c.value;
         if (e.target === box || e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-suggest-btn]")) {
+          TG.suggestInto("my_picture", e.target.closest("[data-suggest-btn]"), function (x) { mk.desc = x; var dd = document.getElementById("tgMakeDesc"); if (dd) dd.value = x; });
+          return;
+        }
+        if (e.target.closest(".tg-suggest")) return;
         var r = e.target.closest("[data-ref]");
         if (r) {
           var u = r.getAttribute("data-ref"), at = mk.refs.indexOf(u);
@@ -1664,6 +1903,50 @@
           renderStickerTray(); i++; next();
         }).catch(function (e) { TG._packBusy = false; st.textContent = "Stopped at “" + todo[i] + "”: " + e.message; });
       })();
+    },
+    toggleStickerIdea: function () {
+      var box = document.getElementById("tgStickerIdea"), who = document.getElementById("tgStickerWho");
+      box.hidden = !box.hidden;
+      if (box.hidden) return;
+      var t = STATE.active_thread, seen = {}, people = [];
+      ((t && t.members) || []).concat(STATE.characters || []).forEach(function (c) { if (c.slug && !seen[c.slug]) { seen[c.slug] = 1; people.push(c); } });
+      who.innerHTML = people.map(function (c) { return '<option value="' + esc(c.slug) + '">' + esc(c.display_name || c.name) + "</option>"; }).join("") +
+        '<option value="me">Me (my persona picture)</option><option value="">Anything (no one in particular)</option>';
+      document.getElementById("tgStickerText").focus();
+    },
+    makeCustomSticker: function (btn) {
+      var idea = document.getElementById("tgStickerText").value.trim();
+      if (!idea) return alert("What should the sticker show?");
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false; st.textContent = "✨ Drawing the sticker…";
+      btn.disabled = true;
+      apiPost({ action: "custom_sticker", idea: idea, who: document.getElementById("tgStickerWho").value }).then(function (res) {
+        btn.disabled = false; st.textContent = "✨ Added to My Stickers.";
+        document.getElementById("tgStickerText").value = "";
+        var u = STATE.user_profile || (STATE.user_profile = {});
+        u.custom_stickers = (u.custom_stickers || []).concat([res.sticker]);
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).concat([res.sticker]);
+        renderStickerTray();
+      }).catch(function (e) { btn.disabled = false; st.textContent = "✨ " + e.message; });
+    },
+    // 😀 Emoji, for keyboards that don't have them (most PCs): tap one to put it where the cursor is
+    toggleEmoji: function () {
+      var box = document.getElementById("tgEmojiPanel");
+      if (!box) {
+        box = document.createElement("div"); box.id = "tgEmojiPanel"; box.className = "tg-emoji-panel";
+        box.innerHTML = EMOJI_SETS.map(function (set) {
+          return '<div class="tg-emoji-set"><small>' + set[0] + "</small><div>" +
+            set[1].split(" ").filter(Boolean).map(function (e) { return '<button type="button">' + e + "</button>"; }).join("") + "</div></div>";
+        }).join("");
+        box.addEventListener("click", function (ev) {
+          var b = ev.target.closest("button"); if (!b) return;
+          var inp = document.getElementById("tgMessageInput"), at = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+          inp.value = inp.value.slice(0, at) + b.textContent + inp.value.slice(inp.selectionEnd != null ? inp.selectionEnd : at);
+          inp.focus(); inp.selectionStart = inp.selectionEnd = at + b.textContent.length;
+        });
+        var comp = document.querySelector(".tg-composer-row"); comp.parentNode.insertBefore(box, comp);
+      }
+      box.classList.toggle("open");
+      document.body.classList.toggle("tg-emoji-open", box.classList.contains("open"));
     },
     importTelegramPack: function () {
       var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
@@ -1729,7 +2012,59 @@
       st.fix = "";
       TG.setupRun(slug);
     },
-    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
+    talkSetup: function (slug) {  // 🥔 the panel opens on this draft, with what's still open
+      var st = setupState[slug] || {}, t = STATE.active_thread;
+      var m = ((t && t.members) || []).find(function (x) { return x.slug === slug; }) || {};
+      TG.openBulba();
+      var q = (st.notes && st.notes.questions) || [];
+      var ask = "Let's go over " + (m.name || "their") + "'s texting setup draft together." +
+        (q.length ? " Your open questions were: " + q.join(" / ") : "");
+      var frame = document.getElementById("tgBulbaFrame");
+      var send = function () { try { frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin); } catch (e) { /* typed by hand */ } };
+      setTimeout(send, 900); frame.addEventListener("load", function once() { frame.removeEventListener("load", once); setTimeout(send, 300); });
+    },
+    setupIdeas: function (slug, btn) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      btn.disabled = true; btn.textContent = "💡 Thinking…";
+      apiPost({ action: "setup_ideas", char_slug: slug, mode: st.mode, hint: st.hint }).then(function (res) {
+        st.ideas = res.ideas; renderActiveThread();
+      }).catch(function (e) { btn.disabled = false; btn.textContent = "💡 Give me ideas"; alert(e.message); });
+    },
+    setupUseIdea: function (slug, i) {  // the idea goes into the box, to keep or change before "Set them up"
+      var st = setupState[slug]; if (!st || !st.ideas) return;
+      st.hint = st.ideas[i]; st.ideas = null; renderActiveThread();
+      var h = document.getElementById("tgSetupHint"); if (h) h.focus();
+    },
+    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "lore"; renderActiveThread(); } },
+    setupLore: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      st.step = "loring"; st.error = ""; renderActiveThread();
+      TG.makeLore(slug).then(function () { st.step = "lore"; renderActiveThread(); })
+        .catch(function (e) { st.step = "lore"; st.error = e.message; renderActiveThread(); });
+    },
+    makeLore: function (slug) {
+      return apiPost({ action: "make_lore", char_slug: slug }).then(function (res) {
+        if (res.error) throw new Error(res.error);
+        syncCharCatalog(res.char_slug, res.profile);
+        var t = STATE.active_thread;
+        ((t && t.members) || []).forEach(function (x) { if (x.slug === res.char_slug) x.lore = res.profile.lore; });
+      });
+    },
+    dropLore: function (slug, i) {
+      var t = STATE.active_thread, m = ((t && t.members) || []).find(function (x) { return x.slug === slug; }); if (!m) return;
+      var lore = (m.lore || []).slice(); lore.splice(i, 1);
+      apiPost({ action: "save_lore", char_slug: slug, lore: lore }).then(function (res) {
+        m.lore = res.profile.lore; syncCharCatalog(slug, res.profile); renderDrawer(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    loreFromDrawer: function (btn) {
+      var slug = selectedDrawerCharSlug || ((STATE.active_thread && STATE.active_thread.members && STATE.active_thread.members[0]) || {}).slug;
+      if (!slug) return;
+      var label = btn.innerHTML; btn.disabled = true; btn.innerHTML = "📚 Writing…";
+      TG.makeLore(slug).then(function () { renderDrawer(); renderActiveThread(); })
+        .catch(function (e) { btn.disabled = false; btn.innerHTML = label; alert(e.message); });
+    },
     setupDraw: function (slug) {
       var st = setupState[slug]; if (!st) return;
       var o = document.getElementById("tgSetupOutfit"); if (o) st.outfit = o.value;
@@ -1818,6 +2153,19 @@
 
     // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
     showTurn: function (res, oldIds) {
+      if (res.thread && res.thread.scene_due) {  // 📍 where everyone is and what they wear, kept up to date quietly
+        var stid = res.thread.id;
+        apiPost({ action: "update_scene", thread_id: stid }).then(function (r) {
+          if (STATE.active_thread && STATE.active_thread.id === stid) STATE.active_thread.scene = r.scene;
+        }).catch(function () { /* next time */ });
+      }
+      if (res.thread && res.thread.continuity_due) {  // 🧩 Bulba checks the story holds together (in the background)
+        var ctid = res.thread.id;
+        apiPost({ action: "continuity_check", thread_id: ctid }).then(function (r) {
+          var t = STATE.active_thread;
+          if (r.note && t && t.id === ctid && !t.watch) { t.watch = r.note; if (!TG._typing) renderActiveThread(); }
+        }).catch(function () { /* next time */ });
+      }
       if (res.thread && res.thread.memory_due) {  // 🧠 quietly bring the chat's memory up to date
         apiPost({ action: "update_memory", thread_id: res.thread.id }).catch(function () { /* next time */ });
       }
@@ -1833,7 +2181,7 @@
         }, full.waiting * 1000 + 500);
       }
       var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (fresh.length < 2 || calm) {
+      if (!fresh.length || calm) {
         STATE.active_thread = full; renderSidebar(); renderActiveThread(); return Promise.resolve();
       }
       var shown = (full.messages || []).filter(function (m) { return fresh.indexOf(m) === -1; });
@@ -1843,13 +2191,23 @@
       var i = 0;
       return new Promise(function (done) {
         (function next() {
-          if (!STATE.active_thread || STATE.active_thread.id !== full.id) return done();
-          if (i >= fresh.length) { if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
+          if (!STATE.active_thread || STATE.active_thread.id !== full.id) { TG.setTyping(""); return done(); }
+          if (i >= fresh.length) { TG.setTyping(""); if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
           var m = fresh[i], len = ((m.voice && m.voice.transcript) || m.text || "").length;
-          var typing = i === 0 ? 250 : Math.min(3200, 600 + len * 32);
-          if (typRow && i > 0) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          // ⌨️ how long typing this takes them: their own pace (from how they text), a little different each time;
+          // the first one minus the time already spent waiting for the reply
+          var mem = (full.members || []).find(function (x) { return x.slug === m.sender_slug; }) || {};
+          var style = (mem.texting_style || "").toLowerCase();
+          var pace = /quick|fast|rapid|burst|impulsive|double-text|spam/.test(style) ? 0.6 : /slow|careful|formal|full punctuation|deliberate|measured|long/.test(style) ? 1.5 : 1;
+          var typing = Math.min(7000, (500 + len * 45) * pace * (0.8 + Math.random() * 0.45));
+          if (m.voice) typing = Math.min(8000, typing * 1.3);  // recording a voice note
+          if (m.photo) typing = 1800;
+          if (i === 0) typing = Math.max(250, typing - (Date.now() - (TG._turnStart || Date.now())));
+          if (typRow && typing > 300) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          TG.setTyping(m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : "✍️ typing…");
           setTimeout(function () {
             if (typRow) typRow.classList.remove("visible");
+            if (i === fresh.length - 1) TG.setTyping("");
             STATE.active_thread.messages.push(m);
             renderActiveThread();
             i += 1;
@@ -1859,16 +2217,102 @@
       });
     },
 
+    translateMessage: function (msgId) {  // 🌐 tap again to hide it
+      var t = STATE.active_thread; if (!t) return;
+      TG._shownTr = TG._shownTr || {};
+      var m = (t.messages || []).filter(function (x) { return x.id === msgId; })[0];
+      if (!m) return;
+      if (TG._shownTr[msgId]) { delete TG._shownTr[msgId]; renderActiveThread(); return; }
+      var row = document.getElementById("msg-" + msgId);
+      if (row) row.classList.add("tg-translating");
+      apiPost({ action: "translate_message", thread_id: t.id, message_id: msgId }).then(function (res) {
+        TG._shownTr[msgId] = res.text;
+        renderActiveThread();
+      }).catch(function (err) {
+        if (row) row.classList.remove("tg-translating");
+        alert("Couldn't translate: " + err.message);
+      });
+    },
+
+    setTyping: function (label) {  // 🟢 the header says "typing…" (or "recording…") while they write, like Telegram
+      TG._typing = label || "";
+      var t = STATE.active_thread, hdrSub = document.getElementById("hdrSub");
+      if (hdrSub && t && !t.is_group) { hdrSub.textContent = TG._typing || TG._subLine || ""; hdrSub.classList.toggle("tg-typing-sub", !!TG._typing); }
+      var dot = document.querySelector(".tg-chat-item.active .tg-online-dot");
+      if (dot && TG._typing) dot.className = "tg-online-dot online";
+    },
+
+    // 💬 Like a real chat, you can send several messages in a row: they answer once you've stopped for a moment
+    // (a few seconds, longer while you're still typing). Sent while they're already writing: they answer it after.
+    styleFromPictures: function (btn) {
+      var slug = selectedDrawerCharSlug || ((STATE.active_thread && STATE.active_thread.members && STATE.active_thread.members[0]) || {}).slug;
+      if (!slug) return;
+      var label = btn.innerHTML; btn.disabled = true; btn.innerHTML = "🥔 Looking…";
+      apiPost({ action: "style_from_pictures", char_slug: slug }).then(function (res) {
+        btn.disabled = false; btn.innerHTML = label;
+        document.getElementById("drwCharArtStyle").value = res.style;
+      }).catch(function (err) { btn.disabled = false; btn.innerHTML = label; alert(err.message); });
+    },
+
+    // 🥔 Stuck? Bulba's ideas, as chips: tap one to use it (it can still be changed before sending)
+    suggestInto: function (what, btn, use) {
+      var t = STATE.active_thread; if (!t) return;
+      var box = (btn.parentNode && btn.parentNode.querySelector('.tg-suggest[data-suggest-for="' + what + '"]')) || document.querySelector('.tg-suggest[data-suggest-for="' + what + '"]');
+      var label = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "🥔 Thinking…";
+      apiPost({ action: "suggest", thread_id: t.id, what: what }).then(function (res) {
+        btn.disabled = false; btn.innerHTML = label;
+        if (!box) return;
+        box.innerHTML = res.ideas.map(function (x) { return '<button type="button">' + esc(x) + "</button>"; }).join("");
+        box.querySelectorAll("button").forEach(function (b, i) {
+          b.onclick = function (ev) { ev.stopPropagation(); use(res.ideas[i]); box.innerHTML = ""; };
+        });
+      }).catch(function (err) { btn.disabled = false; btn.innerHTML = label; alert(err.message); });
+    },
+    suggestReply: function (btn) {
+      var row = document.getElementById("tgSuggestReply");
+      if (!row) {
+        row = document.createElement("div"); row.id = "tgSuggestReply"; row.className = "tg-suggest tg-suggest-reply";
+        row.setAttribute("data-suggest-for", "reply");
+        var comp = document.querySelector(".tg-composer-row"); comp.parentNode.insertBefore(row, comp);
+      }
+      if (row.innerHTML) { row.innerHTML = ""; return; }  // tap 🥔 again to hide them
+      TG.suggestInto("reply", btn, function (x) { var inp = document.getElementById("tgMessageInput"); inp.value = x; inp.focus(); });
+    },
+
+    replySoon: function () {
+      clearTimeout(TG._replyTimer);
+      if (TG._busy) { TG._replyAfter = true; return; }
+      var inp = document.getElementById("tgMessageInput");
+      var wait = inp && inp.value.trim() ? 7000 : 3000;
+      TG._replyTimer = setTimeout(function () {
+        var still = document.getElementById("tgMessageInput");
+        if (still && still.value.trim() && Date.now() - (TG._lastKey || 0) < 6000) return TG.replySoon();  // still typing
+        TG.triggerAiTurn();
+      }, wait);
+    },
+
     triggerAiTurn: function (instruction) {
       var t = STATE.active_thread;
       if (!t) return;
+      clearTimeout(TG._replyTimer);
+      if (TG._busy) { TG._replyAfter = true; return Promise.resolve(); }
+      TG._busy = true; TG._replyAfter = false;
+      var tid = t.id;
+      var after = function () {
+        TG._busy = false;
+        if (TG._replyAfter && STATE.active_thread && STATE.active_thread.id === tid) { TG._replyAfter = false; TG.replySoon(); }
+      };
       var typRow = document.getElementById("tgTypingRow");
       var typTxt = document.getElementById("tgTypingText");
       if (typRow) {
         typTxt.textContent = t.title + " is typing…";
         typRow.classList.add("visible");
       }
+      TG.setTyping("✍️ typing…");
       var oldIds = (t.messages || []).map(function (m) { return m.id; });
+      TG._turnStart = Date.now();
+      clearTimeout(TG._reactTimer);
       return apiPost({
         action: "generate_reply",
         thread_id: t.id,
@@ -1876,12 +2320,15 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
+          TG.setTyping("");
           STATE.failed = null;
-          return TG.showTurn(res, oldIds);
+          return TG.showTurn(res, oldIds).then(after, after);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
+          TG.setTyping("");
           STATE.failed = { thread: t.id, error: err.message, instruction: instruction || "" };
+          TG._busy = false;
           renderActiveThread();
         });
     },
@@ -2103,6 +2550,19 @@
         var m = (t.messages || []).find(function (x) { return x.id === msgId; });
         if (m) m.reactions = res.reactions;
         renderActiveThread();
+        // 👍 A reaction to one of their latest messages is your answer: if you don't text within a few seconds,
+        // they respond to it (typing or sending cancels this)
+        var lastUser = -1;
+        (t.messages || []).forEach(function (x, i) { if (x.role === "user") lastUser = i; });
+        var idx = (t.messages || []).findIndex(function (x) { return x.id === msgId; });
+        clearTimeout(TG._reactTimer);
+        if (m && m.role !== "user" && idx > lastUser && ((res.reactions || {})[emoji] || []).indexOf("You") !== -1) {
+          TG._reactTimer = setTimeout(function () {
+            var inp = document.getElementById("tgMessageInput");
+            if ((inp && inp.value.trim()) || !STATE.active_thread || STATE.active_thread.id !== t.id) return;
+            TG.triggerAiTurn("The user reacted " + emoji + " to your message instead of texting back. Respond to that the way you would: a text, a reaction, or barely anything.");
+          }, 4000);
+        }
       });
     },
 
@@ -2131,18 +2591,33 @@
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
-    editMessagePrompt: function (msgId) {
-      var t = STATE.active_thread;
-      if (!t) return;
-      var m = (t.messages || []).find(function (x) { return x.id === msgId; });
-      if (!m) return;
-      var next = prompt("Edit message:", m.text || "");
-      if (next == null || !next.trim()) return;
-      apiPost({ action: "edit_message", thread_id: t.id, message_id: msgId, text: next.trim() }).then(function (res) {
+    editMessagePrompt: function (msgId) {  // ✏️ opens the edit box under the message
+      editFor = editFor === msgId ? null : msgId;
+      editDraft = null;
+      renderActiveThread();
+      var ta = document.getElementById("tgEditText");
+      if (!ta) return;
+      var grow = function () { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.5) + "px"; };
+      grow(); ta.addEventListener("input", grow);
+      ta.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); TG.saveEdit(msgId); }
+        if (e.key === "Escape") TG.cancelEdit();
+      });
+      ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+      document.getElementById("tgEditBox").scrollIntoView({ block: "nearest" });
+    },
+    cancelEdit: function () { editFor = null; editDraft = null; renderActiveThread(); },
+    saveEdit: function (msgId) {
+      var t = STATE.active_thread, ta = document.getElementById("tgEditText");
+      if (!t || !ta) return;
+      var next = ta.value.trim();
+      if (!next) return;
+      apiPost({ action: "edit_message", thread_id: t.id, message_id: msgId, text: next }).then(function (res) {
         var idx = t.messages.findIndex(function (x) { return x.id === msgId; });
         if (idx !== -1) t.messages[idx] = res.message;
+        editFor = null; editDraft = null;
         renderActiveThread();
-      });
+      }).catch(function (e) { alert(e.message); });
     },
 
     deleteMessage: function (msgId) {
@@ -2198,6 +2673,7 @@
         status_emoji: document.getElementById("drwCharEmoji").value,
         handle: document.getElementById("drwCharHandle").value,
         bio: document.getElementById("drwCharBio").value,
+        status_habit: (document.getElementById("drwCharStatusHabit") || {}).value || undefined,
         modern_persona: document.getElementById("drwCharPersona").value,
         texting_style: document.getElementById("drwCharStyle").value,
         scenario: document.getElementById("drwCharScenario").value,
@@ -2220,6 +2696,12 @@
       });
     },
 
+    setCharAvatar: function (url) {
+      var slug = selectedDrawerCharSlug; if (!slug || !url) return;
+      apiPost({ action: "char_profile", char_slug: slug, profile: { avatar_url: url } }).then(function (res) {
+        syncCharCatalog(slug, res.profile || res); renderSidebar(); renderActiveThread(); renderDrawer();
+      }).catch(function (e) { alert(e.message); });
+    },
     triggerRefUpload: function (kind, slot) {
       var inp = document.getElementById("drwRefUploadInput");
       if (!inp) return;
@@ -2406,6 +2888,21 @@
         memory: (document.getElementById("drwThreadMemory") || {}).value || "",
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
         theme: (document.getElementById("drwThreadTheme") || {}).value || "",
+        photo_mood: (document.getElementById("drwThreadPhotoMood") || {}).value || undefined,
+        linked: (function () {
+          var boxes = document.querySelectorAll("[data-linked]"); if (!boxes.length) return undefined;
+          var out = []; boxes.forEach(function (b) { if (b.checked) out.push(parseInt(b.getAttribute("data-linked"), 10)); }); return out;
+        })(),
+        scene: (function () {  // 📍 as edited in the panel (left out when the panel shows none)
+          var rows = document.querySelectorAll(".tg-scene[data-scene-name]"); if (!rows.length) return undefined;
+          var out = {};
+          rows.forEach(function (r) { var o = {}; r.querySelectorAll("[data-scene-k]").forEach(function (i) { o[i.getAttribute("data-scene-k")] = i.value; }); out[r.getAttribute("data-scene-name")] = o; });
+          return out;
+        })(),
+        places: (function () {
+          var rows = document.querySelectorAll("[data-place]"); if (!rows.length) return undefined;
+          var out = {}; rows.forEach(function (r) { out[r.getAttribute("data-place")] = r.value; }); return out;
+        })(),
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],
@@ -2419,16 +2916,16 @@
       });
     },
 
-    addEvent: function () {
+    addEvent: function (text) {
       var t = STATE.active_thread;
       if (!t) return;
       var inp = document.getElementById("drwNewEventTitle");
-      var val = inp ? inp.value.trim() : "";
+      var val = typeof text === "string" ? text : (inp ? inp.value.trim() : "");
       if (!val) return;
       t.events = t.events || [];
       t.events.push({ id: String(Date.now()), title: val, when: val, notes: "", done: false });
-      inp.value = "";
-      TG.saveThreadSettings();
+      if (inp) inp.value = "";
+      Promise.resolve(TG.saveThreadSettings()).then(function () { renderDrawer(); });
       renderDrawer();
     },
 
@@ -2567,6 +3064,15 @@
           return '<option value="' + esc(m.slug) + '">' + esc(m.display_name || m.name) + "</option>";
         })
         .join("");
+      // 👥 a +1 in the photo: in a group chat, whoever the photo mentions (on by default); or anyone picked
+      var also = document.getElementById("photoModalAlso");
+      if (also) {
+        var seen = {}, people = [];
+        (t.members || []).concat(STATE.characters || []).forEach(function (c) { if (c.slug && !seen[c.slug]) { seen[c.slug] = 1; people.push(c); } });
+        also.innerHTML = (t.is_group ? '<option value="">👥 Whoever the photo mentions (group chats)</option><option value="none">Nobody else</option>'
+                                     : '<option value="none">Nobody else</option>') +
+          people.map(function (c) { return '<option value="' + esc(c.slug) + '">' + esc(c.display_name || c.name) + "</option>"; }).join("");
+      }
       document.getElementById("photoModalPrompt").value = "";
       document.getElementById("modalPhoto").classList.add("open");
     },
@@ -2584,6 +3090,7 @@
         char_slug: document.getElementById("photoModalChar").value,
         kind: document.getElementById("photoModalKind").value,
         subject: (document.getElementById("photoModalSubject") || {}).value || "",
+        also: (document.getElementById("photoModalAlso") || {}).value || "",
         prompt: document.getElementById("photoModalPrompt").value,
       })
         .then(function (res) {
@@ -2681,6 +3188,8 @@
             '<input type="text" class="tg-input" id="storyModalEmoji" style="width:52px;text-align:center;" value="' + esc(target.status_emoji || "✨") + '">' +
             '<input type="text" class="tg-input" id="storyModalText" placeholder="What\'s happening right now?">' +
           "</div>" +
+          (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'status\', this, function (x) { var m = x.match(/^(\\S+)\\s+(.*)$/); var e = document.getElementById(\'storyModalEmoji\'), tx = document.getElementById(\'storyModalText\'); if (m && !/\\w/.test(m[1])) { e.value = m[1]; tx.value = m[2]; } else tx.value = x; })">🥔 Suggest from the chat</button>' +
+            '<div class="tg-suggest" data-suggest-for="status"></div>' : "") +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
             '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
               '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +
@@ -2749,10 +3258,18 @@
     if (row) row.classList.toggle("show-actions");
   });
 
+  // Typing in the message box cancels "they answer your reaction"
+  var inpEl = document.getElementById("tgMessageInput");
+  if (inpEl && window.matchMedia && matchMedia("(max-width: 860px)").matches) inpEl.placeholder = "Message…";
+  if (inpEl) inpEl.addEventListener("input", function () { clearTimeout(TG._reactTimer); TG._lastKey = Date.now(); });
+
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {
     if (e.origin !== window.location.origin || !e.data) return;
     if (e.data.quickBulba === "close") { TG.closeBulba(); return; }
+    if (e.data.bulba === "apply" || e.data.bulba === "undo") {  // a card applied: the setup card shows the new draft
+      Object.keys(setupState).forEach(function (k) { var st = setupState[k]; if (st.step === "review") { st.notes = {}; st.bulbaUpdated = true; } });
+    }
     if ((e.data.bulba || e.data.quickBulba === "changed") && STATE.active_thread) TG.selectThread(STATE.active_thread.id);
   });
 })();

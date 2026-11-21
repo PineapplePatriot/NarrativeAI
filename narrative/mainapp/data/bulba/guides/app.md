@@ -40,16 +40,38 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   characters (short messages, voice notes, photos, stickers, reactions, ↻ Try again with a note under their last
   reply), separate from the roleplay chats. Each character has a **texting profile** apart from their roleplay
   card (how you met, who they are here, how they text, their look, their voice): Bulba sets it up the first time
-  (Modern AU or their own world), and the chat header's 🥔 Bulba helps with that chat. Also **Moments** (status
-  posts) and **Files** (notes and files sent in chats).
+  (Modern AU or their own world; 💡 Give me ideas offers directions), then a 📚 worldbook step (their lorebook
+  brought into the setup) and new pictures in their new look. The chat header's 🥔 Bulba helps with that chat
+  (and can find cards on Chub or Janitor). The bottom bar on phones / the dock on the left: **Chats**, **Moments**
+  (status posts; replies and reactions go to the chat the story came from; after 48 hours they become 🗂️ Memos),
+  **Gallery** (every photo from the chats; deleting the message removes it), **Files** (notes and files sent in
+  chats), **Alerts** (notifications, texts while you're on other pages).
+  In a TeleChat chat:
+  - Message box: 📎 attach (pictures and .txt/.md files are read), 🎭 stickers (✨ Make a sticker from an idea, 🎨
+    a pack in their look, 📥 a Telegram pack by link), 😀 emoji, 🎨 make a picture to send (🥔 Suggest from the
+    chat), 🥔 three replies you could send, 🎤 voice. You can send several messages in a row; they answer once you
+    stop. Tap a message (phones) or hover it: reactions (a reaction counts as a reply), ↩ reply, 🌐 translate, 🔊
+    voice, ↻ rewrite that one message with a note, ⑂ branch, 📌 pin, ✏️ edit (in place), 🗑 delete. ⌄ jumps to the
+    latest. 📸 in the header asks them for a photo (who's in it, 👥 someone else too, 🥔 Suggest).
+  - The header says "typing…" or "recording a voice note…"; the status dot follows their day. 🥔 Bulba Watch
+    (when on) flags repeated phrases, therapy-speak and story contradictions ("continuity"), with a one-tap fix.
+  - ⚙ (chat settings): title, scenario, ⏰ reminders (they text you when one is due; 🥔 Find plans in the chat),
+    🔗 This chat remembers (up to 3 other chats), 📍 Right now (where everyone is, what they're doing and wearing,
+    and 🏠 Places, how each place looks: kept up to date and used by every photo), 📸 photo mood (📷 Daily, 💗
+    Sweet, 😏 Playful, 🌹 Flirty, 🔥 Bold with mature content on), theme, background, 🧠 memory, how many recent
+    messages are read, leave on read, the chat's own clock (🌙 Continue where we left off stays locked to the last
+    message), who you are in this chat.
+  - The character panel: their texting profile, 🖼️ profile picture, picture style (✨ Anime realism and others, or
+    🥔 Match their pictures), references, 📚 worldbook, how often they post stories, voice.
 - **🍅 Tomato Pit** (in the menu once found): throw tomatoes at slow replies, here or while waiting in a chat. The
   tomatoes thrown at chats and Bulba count on a leaderboard and buy spins on the **Sauce-o-Matic**, a prize machine
   (skins for the thrown thing, cursor trails, badges, Bulba's hats, seeds, garden decorations, gardeners; a
   seasonal banner each month with its own featured prizes; Bulba's Promise picks the legendary you're after). A
   **splat wall** to paint on with tomatoes, and a gallery.
 - **🌻 Garden**: plant the machine's seeds; plants grow over real hours (faster while you chat); harvests make
-  compost (10 = a spin). Gardeners help (three at work); an order board pays tomatoes toward spins; 1 harvest in 20
-  mutates (an almanac to fill); a cottage gets built in stages by Il Dattore with Pantaleone's money.
+  compost (10 = a spin) and go onto 🧺 the shelf, from where you give them to orders (🧺 Give). Gardeners help (three
+  at work); the order board pays tomatoes toward spins; 1 harvest in 20 mutates (an almanac to fill); a cottage gets
+  built in stages by Il Dattore with Pantaleone's money (give him the crops, then 🔨 Build it).
 - **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, Log out and Delete account, plus the persona (who they are in stories) and its pictures. Bulba can make the persona (setup, or in a chat), and each chat can use another one from the pen menu.
 
 **The chat page**
@@ -68,7 +90,19 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   Pinned note (kept in mind for the whole chat), Story memory (summary, trackers, lore used, What the AI saw),
   Actions (continue, spellcheck), This chat (persona here, dialogue colour, chat or book layout, Bulba Watch for
   this chat, spending this month).
-- The picture on the right: the character's sprite, which changes with the mood of each reply when sprites are on.
+- The picture on the right: the character's sprite, which changes with the mood of each reply when sprites are on
+  (your persona picture stands beside it when you have one).
+- Pen menu → ⚙ This chat → 🎨 **Speech colours**: "Story colours" (the AI colours each speaker's lines itself, and
+  you can change each speaker's colour; "Tone marks" make whispers and shouts look different) or "One colour"
+  (all speech the same colour; the AI isn't told about colours). Also 🙂 your own speech colour.
+- Pen menu → ⚙ This chat → 📖 **Underline lore in replies**: the first mention of a lorebook keyword in a reply is
+  underlined; hover or tap it to see what the lorebook says.
+- Regenerating or swiping a reply puts the trackers back to before it; they update from the version shown.
+- The character's Edit page → 🧩 **Sections**: the card as sections (one person, several, or a world), each with its
+  cost; 🎯 **Focus** (General, Plot, Relationship, Slice of life, Adventure, Horror, Erotica) tells Bulba where the
+  card's words go; ✨ Fill empty ones.
+- Bulba can find cards: "find me a … card" searches Chub; a Chub or Janitor link brings that card in (adult cards
+  only with mature content on); RisuRealm cards come in as a file via 📎.
 
 **Words people ask about**
 - Persona: who you are in the story (name and a description the AI reads).

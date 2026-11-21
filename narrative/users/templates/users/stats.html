@@ -57,7 +57,12 @@
         {% endfor %}
     </div>
 
-    <h2>Week by week <small class="note">(everyone added up; a session counts in the week it started)</small></h2>
+    <h2>Week by week <small class="note">(everyone added up, times in {{ data.time_zone }}; a session counts once, in
+        the week it started, but its minutes are split at midnight: 23:00 to 04:00 gives 1 hour to one day and 4 to
+        the next)</small></h2>
+    <p class="note">Weeks start on:
+        {% if data.week_starts == "monday" %}<a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=sunday">Sunday</a> · <b>Monday</b>
+        {% else %}<b>Sunday</b> · <a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=monday">Monday</a>{% endif %}</p>
     <div class="table-wrap"><table>
         <tr><th>Week of</th><th>Time on the site</th><th>Sessions</th><th>People active</th><th>Minutes per person</th></tr>
         {% for w in data.weekly %}<tr><td>{{ w.week }}</td><td>{{ w.hours }} h <span class="note">({{ w.minutes }} min)</span></td><td>{{ w.sessions }}</td><td>{{ w.people }}</td><td>{{ w.per_person }}</td></tr>{% endfor %}
@@ -79,8 +84,8 @@
         <div>
             <h2>Active users by day</h2>
             <div class="table-wrap"><table>
-                <tr><th>Day</th><th>Users</th></tr>
-                {% for day, n in data.active_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="note">No activity yet.</td></tr>{% endfor %}
+                <tr><th>Day</th><th>Users</th><th>Time on the site</th></tr>
+                {% for day, n, mins in data.active_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td><td>{{ mins }} min</td></tr>{% empty %}<tr><td colspan="3" class="note">No activity yet.</td></tr>{% endfor %}
             </table></div>
         </div>
         <div>

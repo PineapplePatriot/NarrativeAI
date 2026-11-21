@@ -472,6 +472,7 @@ def chat(request, slug):
         "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
         "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
         "summary_paused": False,  # automatic summaries are paused for this chat
+        "out_of_view": 0,  # the oldest messages the last reply's request couldn't hold (they need the summary)
         "memory": {},  # story memory (mainapp/story_memory.py)
         "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
@@ -503,6 +504,7 @@ def chat(request, slug):
             "parts": chat_state["summary_parts"],
             "total": len(messages),
             "first_uncovered": chats.first_uncovered(chat_state["summary_parts"], len(messages)),
+            "out_of_view": min(chat_state["out_of_view"], len(messages)),
             "paused": chat_state["summary_paused"],
             "auto": task.mode == task.MODE_AUTO,
             "interval": task.interval,
@@ -524,6 +526,7 @@ def chat(request, slug):
                 chat_state["trackers"] = data.get("trackers") or {}
                 chat_state["tracker_history"] = data.get("tracker_history") or []
                 chat_state["summary_paused"] = bool(data.get("summary_paused"))
+                chat_state["out_of_view"] = int(data.get("out_of_view") or 0)
                 chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
                 chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
@@ -534,6 +537,8 @@ def chat(request, slug):
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+                if "persona" not in data and isinstance((character.theme or {}).get("story_persona"), dict):
+                    chat_state["persona"] = dict(character.theme["story_persona"])  # 🎭 a new chat: their story's persona
                 chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                 chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                 chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
@@ -641,6 +646,7 @@ def chat(request, slug):
             "summary_upto": chat_state["summary_upto"],
             "summary_parts": chat_state["summary_parts"],
             "summary_paused": chat_state["summary_paused"],
+            "out_of_view": chat_state["out_of_view"],
             "memory": chat_state["memory"],
             "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
@@ -1472,6 +1478,9 @@ def chat(request, slug):
             # The old reply is only replaced once the new one arrives (and is kept as a swipe)
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
+                # the trackers go back to before the reply being rewritten (the new one updates them again)
+                chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
+                    chat_state["tracker_history"], chat_state["trackers"], len(messages))
                 watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
                 rec = chats.polish_of(regen_from)
                 if rec:  # a polished reply thrown away: did the polish miss? (the card shows with the new reply)
@@ -1484,6 +1493,11 @@ def chat(request, slug):
                 messages[-1] = chats.choose_version(messages[-1], int(data.get("to")))
             except (TypeError, ValueError, IndexError):
                 return JsonResponse({"success": False, "error": "No such version."})
+            # another version of the reply: the trackers go back to before it, then update from the one shown
+            chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
+                chat_state["tracker_history"], chat_state["trackers"], len(messages) - 1)
+            swipe_config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+                                                     "keepsakes" in extra_kinds)
             if chat_state["memory"]:
                 chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], len(messages) - 1)
             save_messages(messages)
@@ -1506,6 +1520,9 @@ def chat(request, slug):
                 "swipes": chats.version_info(messages),
                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
                 "directed": chats.directed_of(messages[-1]),
+                "trackers": trackers.normalize_state(chat_state["trackers"], swipe_config),
+                "trackers_due": bool(trackers.ai_trackers(swipe_config))
+                and ai_client.get_task_setting(request.user, "trackers").mode == ai_client.get_task_setting(request.user, "trackers").MODE_AUTO,
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -1769,6 +1786,7 @@ def chat(request, slug):
                         presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                         history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
+                    chat_state["out_of_view"] = context_dropped  # (the summary panel offers to summarize these)
                     chat_state["last_recall"] = recalled  # shown in "What the AI saw"
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
@@ -2121,6 +2139,7 @@ def chat(request, slug):
         "appearance": _appearance(request.user, character),
         "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
+        "lore_terms": _lore_terms(character),  # 📖 lore terms highlighted in replies
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
@@ -3668,6 +3687,23 @@ def get_media_resources(request):
 # Bulba, the setup assistant
 # ---------------------------------------------------------------------------
 
+def _lore_terms(character):
+    """📖 The character's lorebook as a glossary for the chat page ([] without one)."""
+    from . import lorebook
+    if not character.worldbook_id:
+        return []
+    try:
+        return lorebook.glossary(lorebook.load_worldbook(character.worldbook))
+    except Exception:
+        return []
+
+
+def _has_chatted(user):
+    """They have a story chat or a messenger chat: set up, whichever way they got there."""
+    from .models import Chat, MessengerThread
+    return Chat.objects.filter(character__author=user).exists() or MessengerThread.objects.filter(user=user).exists()
+
+
 def _bulba_state(session):
     from .bulba import agent, editing, lore, progress
     profile = agent.target_profile(session)
@@ -3677,6 +3713,8 @@ def _bulba_state(session):
         "needs_portrait": bool(character and not character.photo_neutral),
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
         "progress": progress.progress(session, agent.STAGES) if session.mode == "setup" else None,
+        # already chatting (the quick setup, or set up before): the guided steps fold away instead of nagging
+        "already_set_up": session.mode == "setup" and session.stage != "done" and _has_chatted(session.user),
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
         "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
         "mode": session.mode,
@@ -4599,6 +4637,7 @@ def screen_hub(request):
     """The Digital Screen Hub: launches with Telegram Messenger as the main app, plus Moments & Notes."""
     from . import messenger
     from .models import MessengerThread
+    messenger.use_browser_time_zone(request)
 
     chars = _user_characters(request.user)
     char_by_slug = {c.slug: c for c in chars}
@@ -4665,6 +4704,7 @@ def messenger_api(request):
     from django.utils import timezone
     from . import messenger
     from .models import MessengerThread
+    messenger.use_browser_time_zone(request)  # 🌍 the browser's time zone, not the server's UTC
 
     if request.method == "GET":
         action = request.GET.get("action") or "poll"
@@ -4700,6 +4740,14 @@ def messenger_api(request):
                         except Exception:
                             pass
                         break
+
+            # ⏰ reminders that are due: the character texts about them (one chat per poll)
+            for t in threads:
+                try:
+                    if messenger.due_events(messenger.thread_data(t)) and messenger.send_reminders(request.user, t):
+                        break
+                except Exception as e:
+                    log.info("messenger: reminder failed: %s", e)
 
             # ✨ now and then a character posts a status of their own (one per poll at most)
             if u_prof.get("auto_statuses", True) and threads:
@@ -4769,6 +4817,12 @@ def messenger_api(request):
             stickers.append(st_item)
             messenger.save_user_profile(request.user, {"custom_stickers": stickers})
             return JsonResponse({"sticker": st_item, "url": url})
+
+        if kind == "char_avatar":  # 🖼️ their profile picture, uploaded by the user
+            c_obj = next((c for c in _user_characters(request.user) if c.slug == (request.POST.get("char_slug") or "")), None)
+            if not c_obj:
+                return JsonResponse({"error": "Character not found."}, status=404)
+            return JsonResponse({"profile": messenger.save_char_profile(c_obj, {"avatar_url": url}), "char_slug": c_obj.slug})
 
         if kind in ("char_neutral", "char_extra_ref"):
             slug = request.POST.get("char_slug") or ""
@@ -5144,6 +5198,7 @@ def messenger_api(request):
             target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
+        messenger.touch_memory(td, mid)
         if target_m.get("voice"):
             target_m["voice"]["transcript"] = new_text
         messenger.save_thread_data(thread, td)
@@ -5156,10 +5211,12 @@ def messenger_api(request):
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
         td = messenger.thread_data(thread)
+        messenger.touch_memory(td, mid, removed=True)
         td["messages"] = [m for m in td["messages"] if m.get("id") != mid]
         if td.get("pinned_id") == mid:
             td["pinned_id"] = None
         messenger.save_thread_data(thread, td)
+        messenger.relock_clock(thread)  # 🕰️ a clock locked to the last message follows the new last one
         return JsonResponse({"deleted": mid, "pinned_id": td["pinned_id"]})
 
     if action == "pin_message":
@@ -5194,8 +5251,18 @@ def messenger_api(request):
         if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)
             try:
                 td["clock_offset"] = messenger.set_clock(thread, body["clock"])
+                td["clock_mode"] = messenger.thread_data(thread)["clock_mode"]
             except ValueError:
                 return JsonResponse({"error": "That isn't a date and time."}, status=400)
+        if isinstance(body.get("linked"), list):  # 🔗 other chats this one remembers (only their own)
+            mine = set(MessengerThread.objects.filter(user=request.user).values_list("id", flat=True))
+            td["linked"] = [int(x) for x in body["linked"] if str(x).isdigit() and int(x) in mine and int(x) != thread.id][:messenger.LINKED_MAX]
+        if isinstance(body.get("scene"), dict):  # 📍 "Right now", edited by hand
+            td["scene"] = messenger.clean_scene(body["scene"])
+        if isinstance(body.get("places"), dict):
+            td["places"] = messenger.clean_places(body["places"])
+        if "photo_mood" in body and body["photo_mood"] in messenger.PHOTO_MOODS:  # 📸 how far tease photos go
+            td["photo_mood"] = body["photo_mood"]
         if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
             td["theme"] = body["theme"] or ""
         if "memory" in body:  # 🧠 the chat's memory, edited by hand
@@ -5206,6 +5273,7 @@ def messenger_api(request):
             td["started"] = True
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
+            messenger.tidy_events(td, by="you")
         if "title" in body and str(body["title"]).strip():
             thread.title = str(body["title"]).strip()[:200]
             thread.save(update_fields=["title"])
@@ -5283,6 +5351,91 @@ def messenger_api(request):
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
 
+    if action == "update_scene":  # 📍 in the background, every few messages
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            return JsonResponse({"scene": messenger.update_scene(request.user, thread)})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    if action == "continuity_check":  # 🧩 in the background, every few replies (Bulba Watch on)
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            note = messenger.continuity_check(request.user, thread)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"note": note})
+
+    if action == "suggest":  # 🥔 ideas when they're stuck: a reply, a photo to send, a photo to ask for
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio") else "reply"
+        try:
+            ideas = messenger.suggest(request.user, thread, what, body.get("hint") or "")
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"ideas": ideas})
+
+    if action == "setup_ideas":  # 🥔 directions for the first setup step
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            return JsonResponse({"ideas": messenger.setup_ideas(request.user, c_obj, body.get("mode") or "modern_au", body.get("hint") or "")})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    if action == "custom_sticker":  # ✨ a sticker from their own idea
+        who = body.get("who") or ""
+        try:
+            item = messenger.custom_sticker(request.user, body.get("idea"), character=char_by_slug.get(who), of_me=(who == "me"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"sticker": item})
+
+    if action in ("make_lore", "save_lore"):  # 📚 the texting worldbook: Bulba writes it, or edited by hand
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            if action == "make_lore":
+                messenger.make_texting_lore(request.user, c_obj)
+            else:
+                messenger.save_char_profile(c_obj, {"lore": body.get("lore") or []})
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": messenger.char_profile(c_obj), "char_slug": c_obj.slug})
+
+    if action == "style_from_pictures":  # 🥔🎨 the art style read from their pictures
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            return JsonResponse({"style": messenger.style_from_pictures(request.user, c_obj)})
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    if action == "gallery":  # 🖼️ the photos of every chat
+        return JsonResponse({"photos": messenger.gallery(request.user)})
+
+    if action == "delete_story":  # ✨ a status taken down (the user's own or a character's)
+        owner, sid = body.get("owner") or "user", str(body.get("story_id") or "")
+        if owner == "user":
+            u_prof = messenger.user_profile(request.user)
+            saved_u = messenger.save_user_profile(request.user, {"stories": [s for s in u_prof.get("stories") or [] if s.get("id") != sid]})
+            return JsonResponse({"user_profile": saved_u})
+        c_obj = char_by_slug.get(owner)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        c_prof = messenger.char_profile(c_obj)
+        saved_c = messenger.save_char_profile(c_obj, {"stories": [s for s in c_prof.get("stories") or [] if s.get("id") != sid]})
+        return JsonResponse({"profile": saved_c, "char_slug": c_obj.slug})
+
     if action == "post_story":
         owner = body.get("owner") or "user"
         text = str(body.get("text") or "").strip()[:280]
@@ -5325,6 +5478,16 @@ def messenger_api(request):
         return JsonResponse({"title": title, "added": added, "skipped": skipped,
                              "user_profile": messenger.user_profile(request.user)})
 
+    if action == "translate_message":  # 🌐 one message in the user's reading language
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            text, lang = messenger.translate_message(request.user, thread, body.get("message_id"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"message_id": body.get("message_id"), "text": text, "language": lang})
+
     if action == "update_memory":  # 🧠 the chat's memory brought up to date (quietly after a turn, or "now")
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
@@ -5355,6 +5518,17 @@ def messenger_api(request):
         except (ValueError, ai_client.AIError) as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"url": url, "seen": seen})
+
+    if action == "answer_story":  # ✨ a reply or a reaction to a character's story, into the chat it came from
+        c_obj = char_by_slug.get(body.get("owner") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            thread, new = messenger.answer_story(request.user, c_obj, body.get("story_id"), body.get("text"), body.get("emoji"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"thread_id": thread.id, "thread_title": thread.title, "messages": new,
+                             "profile": messenger.char_profile(c_obj), "char_slug": c_obj.slug})
 
     if action == "story_picture":  # 🖼️ a status's picture, made when it's first viewed
         c_obj = char_by_slug.get(body.get("owner") or "")
@@ -5435,13 +5609,16 @@ def messenger_api(request):
                 thread=thread,
                 shot_type=shot_type,
                 camera_angle=camera_angle,
+                also=(None if not body.get("also") else False if body.get("also") == "none"
+                      else char_by_slug.get(body.get("also")) or None),  # 👥 who else is in it (auto in groups)
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
 
+        seen = messenger.see_photo(request.user, img_url)  # 👁️ what really came out, for the chat to read
         if target_m:
             p_dict = dict(target_m.get("photo") or {})
-            p_dict.update({"kind": kind, "prompt": prompt_desc, "url": img_url})
+            p_dict.update({"kind": kind, "prompt": prompt_desc, "url": img_url, "seen": seen})
             target_m["photo"] = p_dict
             messenger.save_thread_data(thread, td)
             return JsonResponse({"message": target_m, "url": img_url, "cost": cost})
@@ -5454,7 +5631,7 @@ def messenger_api(request):
                 "sender_slug": c_obj.slug,
                 "sender_name": c_prof["display_name"],
                 "text": cap,
-                "photo": {"kind": kind, "prompt": prompt_desc, "caption": cap, "url": img_url},
+                "photo": {"kind": kind, "prompt": prompt_desc, "caption": cap, "url": img_url, "seen": seen},
                 "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
                 "ts": time.time(),
                 "reactions": {},

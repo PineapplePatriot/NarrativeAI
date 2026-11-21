@@ -289,6 +289,45 @@ Batch D as planned:
 - (19) A few ready chat themes (no custom ones yet).
 - (17) Trackers: not in the messenger (relationship and mood live in memory); the user checks with a few users.
 
+### The user's iteration-3 list (19 November, after onboarding a user), first 5
+
+1. Attachments: check text files are read; the characters' photos should be described from the actual picture
+   (not the prompt it was made from), for consistency.
+2. Older requests that didn't land: typing speed (single messages too), leaving on read (rarely happens),
+   the user's reaction to a message counting as their reply (the character responds), editing earlier messages
+   of a burst, a live status dot (typing…), translation of messages.
+3. Bulba: suggest the photo description from the scene; suggest replies when the user is stuck; ask about the
+   look after modernizing (old references stay otherwise); the setup card and the Bulba panel out of sync (the
+   card shows a stale draft); Bulba can't change the chat persona (and points to a pen menu that isn't there);
+   Bulba should offer answer options (and help with setup) in the messenger; check elsewhere too.
+4. Continuity monitoring (not only slop; slop never seen triggering); tease photos far too explicit; "Botox"
+   faces in realistic anime style (expressions too flat).
+5. Scene and clothes tracking for pictures on both sides; a modern lorebook for the texting setup.
+Backgrounds: the green screen is risky for sprites (contrast); maybe the rembg cut-out tool later.
+
+Done so far (pushed): 1 (photos read by the vision model; txt/md files), 2 (reactions count as a reply, typing
+pace, leave-on-read nudge, 🌐 translate, "typing…" in the header and a quiet 90 s refresh).
+
+Added on 19 November (second message):
+- Character bursts couldn't be edited or rewritten past the last one: on phones the actions bar covered the next
+  message (fixed: a strip at the bottom of the screen). Open question: should rewriting one message of a burst
+  touch the ones around it?
+- The user couldn't send several messages in a row (fixed: the reply waits a few seconds after the last one).
+- Moments: status pictures weren't shown, statuses couldn't be deleted (fixed). Open: should chat photos go to
+  Moments, and what happens to them when the chat message is deleted? Moments on a phone (only in the chat list's
+  bottom bar; hidden inside a chat).
+- Memory after deletion (fixed: a remembered message deleted/edited → the memory is rebuilt).
+- Attachments: txt/md + photos/screenshots are enough (no PDF/Word).
+- Reminder: the worldbook (lorebook) as a step of the texting setup; scene tracking for pictures (place and
+  surroundings + clothes, both sides).
+
+Done on 20 November: Gallery; photo mood (daily / sweet / playful / flirty / bold) and livelier faces (expression
+references from mood pictures); picture styles with anime realism as the default; Bulba suggestions (reply, both
+picture windows, status, bio, plans → reminders, art style from their picture); real reminders texted when due;
+a +1 in photos (on by default in groups); the continuity check (with Bulba Watch); the texting worldbook (a setup
+step, adapted from the roleplay lorebook); "📍 Right now" scene tracking used by every photo and the replies.
+Visual Novel moments: parked (another branch).
+
 ## Later / parked
 
 - The guided tours in more languages.

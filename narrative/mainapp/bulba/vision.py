@@ -54,6 +54,8 @@ def looker(user):
     """(model id, its name for people) that will look at the picture."""
     from users.models import ConnectionProfile
     profile, model = ai_client.resolve(user, "bulba")
+    if profile is None:
+        raise ai_client.AIError("No AI connection is set up to look at pictures.")
     if not profile.hosted:  # a custom server: its own model
         return model, model
     if "image" in _input_modalities().get(model, []):
@@ -81,10 +83,11 @@ def prepare(raw):
     return encoded(MAX_SIDE, 88), encoded(THUMB_SIDE, 70)
 
 
-def describe(user, data_url, their_words=""):
-    """(what the picture shows, in words; the model that looked, for people). Raises ai_client.AIError."""
+def describe(user, data_url, their_words="", prompt=None):
+    """(what the picture shows, in words; the model that looked, for people). `prompt` replaces the usual
+    instruction (e.g. "describe only the art style"). Raises ai_client.AIError."""
     model, who = looker(user)
-    text = [{"type": "text", "text": PROMPT + (f"\n\nWhat they said with it: {their_words}" if their_words else "")},
+    text = [{"type": "text", "text": (prompt or PROMPT) + (f"\n\nWhat they said with it: {their_words}" if their_words else "")},
             {"type": "image_url", "image_url": {"url": data_url}}]
     # Room for a thinking model's thoughts before the description (900 tokens could all go to thinking, leaving
     # nothing), and as little thinking as it allows: describing a picture doesn't need it

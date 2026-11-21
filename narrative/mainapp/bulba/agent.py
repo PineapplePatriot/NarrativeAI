@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
-from mainapp.bulba import control, doctor, library, lore, rules, tune
+from mainapp.bulba import cardsearch, control, doctor, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -270,6 +270,9 @@ TOOLS = [
     _fn("propose_persona", "Propose who the user is in the story. Prefer `sections` (the description is made "
         "from them); a plain description works too.",
         {"name": STR, "description": STR, "why": STR,
+         "scope": {"type": "string", "enum": ["account", "story"], "description": "\"story\": only in chats with "
+                   "the character you're working on (their usual persona stays); \"account\": their usual persona, "
+                   "for every story. Ask them which."},
          "sections": {"type": "object", "description": "{key: text}, the seven core elements: pronouns (name & "
                       "pronouns), appearance, background (background & lore), connection (how they're tied to the "
                       "card's characters or its world), traits (core traits, as behaviour), likes (likes & dislikes), "
@@ -292,10 +295,12 @@ TOOLS = [
              "A person's keys: identity, appearance (never empty), personality, temperament, goals, voice, "
              "background, relationships, knowledge. Shared keys: ensemble: setting, between; simulation: world, "
              "places, factions, tone, start, new_people (how new people are made and introduced). Leave a "
-             "section out rather than pad it.")},
+             "section out rather than pad it. \"focus\": what the story is mainly about, any of general, plot, "
+             "relationship, slice_of_life, adventure, horror, erotica (it decides where the words go).")},
          "why": STR},
         ["name", "greeting"]),
     *library.tool_defs(_fn, STR),
+    *cardsearch.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
     *control.tool_defs(_fn, STR),
@@ -997,7 +1002,17 @@ def tool_propose_persona(session, args):
         or str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
         return {"error": "Need a name and the persona (sections, or a description)."}, []
-    p = _proposal(session, "persona", f"You: {name}", [desc], {"name": name, "description": desc})
+    story = args.get("scope") == "story"
+    character = None
+    if story:  # 🎭 just for this story: the character Bulba is working on
+        from mainapp.bulba import lore
+        character = lore.target_character(session)
+        if character is None:
+            return {"error": "No character to tie it to yet: make or pick the character first, or use scope \"account\"."}, []
+    p = _proposal(session, "persona", f"You in {character.name}'s story: {name}" if story else f"You: {name}",
+                  [desc, f"Only in chats with {character.name}; your usual persona stays as it is." if story
+                   else "Your usual persona, for every story."],
+                  {"name": name, "description": desc, **({"character_id": character.id} if story else {})})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -1052,7 +1067,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
+    **library.HANDLERS, **cardsearch.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
     "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
                                                   [{"type": "preset_upload"}]),

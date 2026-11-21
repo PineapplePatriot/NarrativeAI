@@ -5,7 +5,7 @@ characters, the pompous Doctor and the miserly merchant.
 
 How a stage goes
 - It starts with Il Dattore buying the seeds it needs (with Pantaleone's money): they go into the basket.
-- Its builder's order is pinned to the order board: harvests of those crops go to it first (they still make compost).
+- Its builder's order is pinned to the order board: crops are handed over from the shelf (🧺 Give).  
   The porch asks for something else: different mutations found (the almanac).
 - When the order is complete they pay the compost (the "build" action) and Il Dattore builds for some hours.
 - Done: the stage's unlock works from then on, the two have a word, and the next stage starts.
@@ -148,7 +148,7 @@ def ready(g, m):
         return False, f"{BUILDER} is building."
     missing = {k: n - h["have"].get(k, 0) for k, n in stage["needs"].items() if h["have"].get(k, 0) < n}
     if missing:
-        return False, f"Still to harvest: {G.describe(missing)}."
+        return False, f"Still to give from the shelf: {G.describe(missing)}."
     if _found(g) < stage.get("mutations", 0):
         return False, f"{BUILDER} needs {stage['mutations']} different mutations for it ({_found(g)} found so far)."
     if m["compost"] < stage["compost"]:

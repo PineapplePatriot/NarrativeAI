@@ -1,5 +1,7 @@
 /* Global Messenger Notification Poller (In-App Toast + Outside-Site Browser Notification) */
 (function () {
+  // 🌍 the browser's time zone, so times in the chats are theirs (the server runs on UTC)
+  try { document.cookie = "na_tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone + ";path=/;max-age=31536000;samesite=lax"; } catch (e) { /* UTC then */ }
   var scriptEl = document.currentScript;
   if (!scriptEl) return;
   var pollUrl = scriptEl.getAttribute("data-poll");

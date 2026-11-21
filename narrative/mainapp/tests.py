@@ -1571,6 +1571,25 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertNotIn("One", call["messages"][1]["content"])
         self.assertIn("Two", call["messages"][1]["content"])
 
+    def test_the_panel_knows_what_the_ai_no_longer_sees(self):
+        self.build_story()
+        data = self.chat_file()
+        self.assertIn("out_of_view", data)  # the last reply's request: what didn't fit (0 here: all fits)
+        resp = self.post({"action": "summary_pause", "paused": False}).json()
+        self.assertEqual(resp.get("summary_data", resp).get("out_of_view", 0), 0)
+
+    def test_regenerate_and_swipe_rewind_the_trackers(self):
+        self.build_story()
+        self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it
+        data = self.chat_file()
+        self.assertEqual(data["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertEqual([s["at"] for s in data["tracker_history"]], [3])
+        self.tracker_reply = '{"world": {"location": "Garden"}}'
+        self.post({"action": "update_trackers"})
+        resp = self.post({"action": "swipe", "to": 0}).json()  # back to the first version: back to before it too
+        self.assertEqual(resp["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertIn("trackers_due", resp)
+
     def test_delete_drops_summary_pieces_and_rewinds_trackers(self):
         self.build_story()
         resp = self.post({"action": "delete", "index": 4}).json()  # removes the second reply
@@ -3420,6 +3439,19 @@ class LightReasoningTests(SimpleTestCase):
         self.assertIsNone(self.payload("trackers", "xiaomi/mimo-v2.6-pro", provider="openai"))
         self.assertIsNone(self.payload("trackers", "someone/unknown-model"))
         self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
+
+    def test_a_refused_thinking_setting_is_dropped_and_tried_again(self):
+        import types
+        from unittest import mock
+        from mainapp import ai_client
+        bad = mock.Mock(status_code=400, text='{"error": "reasoning effort low is not supported"}')
+        good = mock.Mock(status_code=200, text="{}")
+        profile = types.SimpleNamespace(api_url="https://x", provider="openrouter", api_key="k", name="Main")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=[bad, good]) as post, \
+                mock.patch("mainapp.ai_client._headers", return_value={}):
+            out = ai_client._post(profile, {"model": "x/y", "messages": [], "reasoning": {"effort": "low"}})
+        self.assertIs(out, good)
+        self.assertNotIn("reasoning", post.call_args.kwargs["json"])
 
 
 class ThinkingLevelTests(ChatPromptTests):
@@ -9930,15 +9962,23 @@ class OrderBoardTests(TestCase):
         self.assertEqual(len(g["orders"]), 1)  # three gave up waiting, one new went up
         self.assertIn("gave up waiting", " ".join(x["text"] for x in g["log"]))
 
-    def test_harvests_fill_orders_which_pay_tomatoes_toward_spins(self):
+    def test_harvests_go_to_the_shelf_and_are_given_to_orders_which_pay_tomatoes(self):
         from mainapp import tomato_machine as M, tomato_garden as G
         m, g = M._state(self.score), G._state(self.score)
         g["orders"] = [{"id": 1, "needs": {"seed_tomato": 2}, "have": {"seed_tomato": 0}, "reward": 160,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
-        for i in range(2):
+        for i in range(3):
             g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
             self.assertEqual(G._harvest(g, m, f"{i},0", rng=self.Rolls()), 2)  # compost as usual
-        self.assertEqual((g["orders"], m["earned"], g["filled"]), ([], 160, 1))
+        self.assertEqual((g["shelf"], g["orders"][0]["have"]), ({"seed_tomato": 3}, {"seed_tomato": 0}))  # nothing given yet
+        self.assertEqual(G.give(g, m, 1), 2)  # handed over: only what the order needs
+        self.assertEqual((g["orders"], m["earned"], g["filled"], g["shelf"]), ([], 160, 1, {"seed_tomato": 1}))
+        with self.assertRaises(ValueError):
+            G.give(g, m, 1)  # gone
+        g["shelf"] = {"seed_carrot": G.SHELF_MAX}
+        g["tiles"]["5,0"] = {"kind": "plant", "seed": "seed_carrot", "at": 0, "boost": 0}
+        G._harvest(g, m, "5,0", rng=self.Rolls())
+        self.assertEqual(g["shelf"]["seed_carrot"], G.SHELF_MAX)  # a full shelf: composted
         self.score.machine, self.score.garden = m, g
         self.score.wild = 200
         self.score.save()
@@ -9985,6 +10025,7 @@ class OrderBoardTests(TestCase):
         spins = m["bonus"]
         G._harvest(g, m, "1,1", rng=self.Rolls(.2))  # kept (rare: 25%): golden again, a spin and its seed back
         self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"], g["almanac"]["golden_tomato"]), (spins + 1, 1, 2))
+        G.give(g, m, 1)
         self.assertEqual(m["earned"], 100)  # it still counts as a tomato for orders
         g["tiles"]["1,1"] = {"kind": "plant", "seed": "seed_golden_tomato", "at": 0, "boost": 0}
         m["items"]["seed_golden_tomato"] = 0
@@ -10025,6 +10066,7 @@ class CottageQuestTests(TestCase):
             G.act(self.user, {"action": "build"})  # nothing harvested yet
         m, g = self.fresh()
         self.harvest(g, m, "seed_tomato", 5)
+        G.give(g, m, "house")  # 🧺 from the shelf
         self.assertEqual(g["house"]["have"], {"seed_tomato": 5})
         m["compost"] = 20
         self.score.machine, self.score.garden = m, g
@@ -10048,6 +10090,8 @@ class CottageQuestTests(TestCase):
         g["orders"] = [{"id": 9, "needs": {"seed_tomato": 1}, "have": {"seed_tomato": 0}, "reward": 100,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
         self.harvest(g, m, "seed_tomato", 6)
+        G.give(g, m, "house")
+        G.give(g, m, 9)
         self.assertEqual((g["house"]["have"]["seed_tomato"], g["orders"], m["earned"]), (5, [], 100))  # 5 to the house, 1 to the bakery
         g["house"]["stage"] = 4  # everything up to the kitchen built
         self.assertTrue(all(H.has(g, u) for u in ("mailbox", "plot", "barrel", "kitchen")))
@@ -10074,6 +10118,7 @@ class CottageQuestTests(TestCase):
         self.assertTrue(200 <= order["reward"] <= 600)
         self.harvest(g, m, "seed_tomato", 3)
         self.harvest(g, m, "seed_carrot", 1)
+        G.give(g, m, order["id"])
         self.assertEqual((g["orders"], m["earned"]), ([], order["reward"]))
         m["compost"] = 500
         self.assertEqual(H.ready(g, m), (False, "Il Dattore needs 3 different mutations for it (0 found so far)."))
@@ -10170,7 +10215,53 @@ class BulbaTextingTests(BulbaTests):
         self.thread.refresh_from_db()
         self.assertNotIn("scenario_override", self.thread.data)
 
+    def test_the_chat_persona_and_photo_mood_card(self):
+        self.client.get(reverse("bulba_texting", args=[self.thread.id]))
+        self.script = [("Here.", [self.call("propose_texting_chat", persona={"name": "Mika", "description": "A night-shift nurse."},
+                                            photo_mood="sweet")])]
+        data = self.tapi(action="say", text="in this chat I'm Mika, a nurse; and keep the photos cute").json()
+        self.assertIn("offer_choices", {t["function"]["name"] for t in self.bulba_calls[0]["tools"]})
+        p = data["state"]["proposals"][-1]
+        self.tapi(action="apply", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["persona"]["name"], "Mika")
+        self.assertEqual(self.thread.data["photo_mood"], "sweet")
+        self.tapi(action="undo", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertNotIn("photo_mood", self.thread.data)
 
+class BulbaStoryPersonaTests(BulbaTests):
+    """🎭 A persona just for one character's story (their usual persona stays)."""
+    def test_story_persona_goes_to_that_characters_chats_only(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.user.persona_name, self.user.persona_description = "Anya", "Herself."
+        self.user.save()
+        self.script = [("Here.", [self.call("propose_character", name="Dottore", description="A scholar first. Tall, masked, pale hair.",
+                                            scenario="A lab.", greeting="Hello there.")])]
+        made = self.api(action="say", text="make Dottore").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=made["id"])
+        dottore = Character.objects.get(author=self.user, name="Dottore")
+        old_chat = chats.current(dottore)
+        self.script = [("Here.", [self.call("propose_persona", name="Mira", description="His lab assistant.", scope="story")])]
+        p = self.api(action="say", text="just for this story I'm his assistant Mira").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_name, "Anya")  # the usual one stays
+        self.assertEqual(chats.read(old_chat)["persona"]["name"], "Mira")
+        dottore.refresh_from_db()
+        self.assertEqual(dottore.theme["story_persona"]["name"], "Mira")  # new chats start with it
+        self.api(action="undo", id=p["id"])
+        dottore.refresh_from_db()
+        self.assertNotIn("story_persona", dottore.theme)
+        self.assertEqual(chats.read(old_chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaStoryPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaStoryPersonaTests, _name, None)
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaTextingTests, _name, None)
@@ -10207,6 +10298,19 @@ class WeeklyAndRetentionTests(TestCase):
         cohort = data["retention"]["cohorts"][0]
         # signed up on a Saturday: day 8 falls in calendar week 2 after the signup week (ann, not bob)
         self.assertEqual((cohort["people"], cohort["weeks"]), (2, [0, 50, 0, 0]))
+        with mock.patch("users.usage.timezone.now", return_value=now):
+            monday = usage.report(week_starts="monday")
+        self.assertEqual(monday["weekly"][0]["week"].weekday(), 0)  # 📅 Monday weeks, when asked
+
+    def test_a_late_night_session_splits_its_minutes_at_midnight(self):
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from users import usage
+        late = timezone.make_aware(datetime(2026, 11, 21, 23, 0))  # a Saturday, 23:00, to Sunday 04:00
+        mins = usage.minutes_by_day((late, late + timedelta(hours=5)))
+        self.assertEqual(sorted(mins.values()), [60, 240])
+        rows = usage.weekly({1: [(late, late + timedelta(hours=5))]}, late + timedelta(days=1), weeks=2)
+        self.assertEqual([(r["minutes"], r["sessions"]) for r in rows], [(240, 0), (60, 1)])  # the session: once, where it began
 
 
 class PersonaMoodUploadTests(TestCase):
@@ -10224,3 +10328,106 @@ class PersonaMoodUploadTests(TestCase):
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "sad", "file": bad}).status_code, 400)
         buf.seek(0)
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "hungry", "file": buf}).status_code, 400)
+
+
+class LoreGlossaryTests(TestCase):
+    """📖 Lore terms underlined in replies: the glossary the chat page gets."""
+    def test_glossary_keeps_plain_keys(self):
+        from mainapp import lorebook
+        book = lorebook.normalize_book({"entries": [
+            {"comment": "Voynich Guild", "keys": ["Voynich Guild", "/guild\\s+\\w+/", "VG"], "content": "The merchant guild. " * 30},
+            {"comment": "Off", "keys": ["Hidden"], "content": "x", "enabled": False}]})
+        g = lorebook.glossary(book)
+        self.assertEqual(len(g), 1)
+        self.assertEqual(g[0]["keys"], ["Voynich Guild"])  # no regexes, nothing under 3 letters
+        self.assertTrue(g[0]["text"].endswith("…"))
+
+
+class CardFocusTests(TestCase):
+    """🎯 What a card is mainly about: kept on its sections, and Bulba gives the words to it."""
+    def test_focus_is_kept_and_guides_filling(self):
+        from unittest import mock
+        from mainapp import card_sections
+        data = card_sections.clean({"kind": "character", "focus": ["plot", "relationship", "nonsense"],
+                                    "people": [{"name": "Ann", "sections": {"identity": "A spy."}}]})
+        self.assertEqual(data["focus"], ["plot", "relationship"])
+        self.assertIn("goals, conflicts, secrets", card_sections.focus_note(data))
+        user = get_user_model().objects.create_user(username="focus", password="pw12345!")
+        with mock.patch("mainapp.ai_client.complete", return_value='{"people": [{"name": "Ann", "sections": {}}]}') as c:
+            card_sections.fill_empty(user, data)
+        self.assertIn("This card's focus: Plot, Relationship", c.call_args.args[2][1]["content"])
+        self.assertEqual(card_sections.focus_note(card_sections.clean({"kind": "character"})), "")
+
+
+class CardSearchTests(TestCase):
+    """🔎 Cards from Chub and Janitor (the sites answered by stand-ins here)."""
+    def setUp(self):
+        from mainapp.models import BulbaSession
+        self.user = get_user_model().objects.create_user(username="seeker", password="pw12345!")
+        self.session = BulbaSession.objects.create(user=self.user, target_model="x")
+
+    @staticmethod
+    def answer(data, status=200, content=b""):
+        from unittest import mock
+        r = mock.Mock(status_code=status, ok=status < 400, content=content)
+        r.json.return_value = data
+        return r
+
+    def test_search_hides_adult_cards_unless_mature_is_on(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        nodes = {"data": {"nodes": [{"fullPath": "anon/dottore", "name": "Dottore", "tagline": "Mad scientist", "nTokens": 1800},
+                                    {"fullPath": "anon/spicy", "name": "Spicy", "nsfw": True}]}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)) as get, \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            found = cardsearch.search_chub(self.user, "dottore")
+        self.assertEqual([f["name"] for f in found], ["Dottore"])
+        self.assertEqual(get.call_args.kwargs["params"]["nsfw"], "false")
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)), \
+                mock.patch("mainapp.mature.wanted", return_value=True):
+            self.assertEqual(len(cardsearch.search_chub(self.user, "dottore")), 2)
+
+    def test_a_chub_card_comes_in_with_its_lorebook_and_undo_removes_it(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        from mainapp.models import Character
+        node = {"node": {"name": "Dottore", "topics": ["Genshin"], "definition": {
+            "name": "Dottore", "personality": "{{char}} is a scientist with a mask.", "first_message": "Ah. You.",
+            "scenario": "His lab.", "embedded_lorebook": {"entries": [{"keys": ["Fatui"], "content": "An army.", "enabled": True}]}}}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(node)), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, events = cardsearch.tool_bring_in_card(self.session, {"where": "https://chub.ai/characters/anon/dottore"})
+        self.assertTrue(out.get("done"), out)
+        made = Character.objects.get(author=self.user, name="Dottore")
+        self.assertEqual(made.initial_message, "Ah. You.")
+        self.assertTrue(out["has_lorebook"])
+        self.assertTrue(made.worldbook_id)
+
+    def test_janitor_hidden_cards_risu_and_adult_cards_say_why(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        link = "https://janitorai.com/characters/0b1e2f3a-1111-2222-3333-444455556666_character-dottore"
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "showdefinition": False})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("hid this card's definition", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "is_nsfw": True,
+                                                                                           "personality": "x"})), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("marked as adult", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"chat_name": "Dottore", "personality": "Masked.",
+                                                                                           "first_message": "Hm."})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertEqual(out["character"], "Dottore")
+        out, _ = cardsearch.tool_bring_in_card(self.session, {"where": "https://realm.risuai.net/character/abc"})
+        self.assertIn("Download (PNG)", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_find_card(self.session, {"query": "x"})
+        self.assertIn("turned the request away", out["error"])
+
+    def test_every_bulba_mode_has_it(self):
+        from mainapp.bulba import agent, doctor, texting
+        names = lambda tools: {t["function"]["name"] for t in tools}
+        self.assertTrue({"find_card", "bring_in_card"} <= names(agent.TOOLS))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(doctor.tools()))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(texting.tools()))
