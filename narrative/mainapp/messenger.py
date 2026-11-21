@@ -874,7 +874,7 @@ def thread_data(thread):
         "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
         # 🧭 the "Before you start" card was answered; 🎭 who the user is in this chat only (else their usual persona)
         "started": bool(raw.get("started", False)),
-        "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 3000}[k]]
+        "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 8000}[k]]
                     for k in ("name", "description")} if isinstance(raw.get("persona"), dict) else {},
         # 🧠 the chat's memory: a running summary of what fell out of view, and how many recent messages are read
         "memory": str(raw.get("memory") or "")[:6000],
@@ -3053,14 +3053,23 @@ def touch_memory(data, message_id, removed=False):
             data["memory_upto"] -= 1
 
 
-def update_memory(user, thread, force=False):
+def memory_counts(data):
+    """(messages the replies no longer read and the memory doesn't hold yet, messages the memory doesn't hold)."""
+    n = len(delivered(data["messages"]))
+    start = 0 if data.get("memory_stale") else data["memory_upto"]
+    return max(0, n - data["context_size"] - start), max(0, n - start)
+
+
+def update_memory(user, thread, force=False, everything=False):
     """🧠 The chat's memory brought up to date: the messages that fell out of view since the last time, folded into
     the running summary (on the background model). Returns the summary."""
     data = thread_data(thread)
     msgs = delivered(data["messages"])
     end = max(0, len(msgs) - data["context_size"])
-    if force:
-        end = max(end, len(msgs) - 6)  # "update it now": everything but the last few
+    if everything:  # "all of it": the messages still read as they are too
+        end = len(msgs)
+    elif force and end <= data["memory_upto"]:
+        end = max(end, len(msgs) - 6)  # "update it now" with nothing out of view: everything but the last few
     stale = data.get("memory_stale")
     start = 0 if stale else data["memory_upto"]  # changed in the past: everything is read again, the old summary set aside
     new = msgs[start:end]
@@ -3440,6 +3449,7 @@ def serialize_thread_full(thread, user):
         "scene": data["scene"], "places": data["places"], "scene_due": scene_due(data),
         "linked": data["linked"],
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
+        "memory_counts": memory_counts(data),
         "theme": data["theme"],
         "photo_mood": photo_mood(user, data),
         "photo_moods": [[k, v[0]] for k, v in PHOTO_MOODS.items() if k != "bold" or _mature_on(user)],

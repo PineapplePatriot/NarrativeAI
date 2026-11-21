@@ -1871,7 +1871,11 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     const form = document.getElementById('personaForm');
     if (!form) return;
     const line = document.getElementById('personaLine');
-    document.getElementById('personaEdit').onclick = () => { form.hidden = !form.hidden; };
+    document.getElementById('personaEdit').onclick = () => {
+        form.hidden = !form.hidden;
+        // 🧩 the same seven-part persona as the profile's, for this chat too
+        if (!form.hidden && window.PersonaParts) PersonaParts.attach(document.getElementById('personaDesc'), { remember: 'na-chat-persona-parts', inputClass: 'tool-input' });
+    };
     const save = async (name, description, action = 'chat_persona') => {
         try {
             const resp = await fetch(window.location.href, {

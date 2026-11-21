@@ -1750,3 +1750,7 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-sticker-tabs img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
 .tg-sticker-tabs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tg-pack-remove { grid-column: 1 / -1; justify-self: start; margin-top: 6px; }
+/* 🎨 picture windows: a little room around the suggest button; a picture made for a status */
+.tg-make-suggest { margin: 8px 0 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.tg-story-made img { max-width: 180px; max-height: 180px; border-radius: 10px; display: block; margin-top: 8px; cursor: zoom-in; }
+.tg-story-made small { color: var(--tg-muted); font-size: 12px; }

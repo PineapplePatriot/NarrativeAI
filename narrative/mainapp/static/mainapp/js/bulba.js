@@ -496,7 +496,7 @@ async function run(body, label) {
             const changed = (data.state.proposals || []).find(x => x.id === body.id);
             // A fixed message changes what the chat shows: the page reloads with Bulba still open
             // (a new chat look too: its styles come with the page)
-            window.parent.postMessage({ bulba: changed && ['message_fix', 'chat_look'].includes(changed.kind) ? 'reply' : body.action },
+            window.parent.postMessage({ bulba: changed && ['message_fix', 'chat_look', 'persona'].includes(changed.kind) ? 'reply' : body.action },
                                       window.location.origin);
         }
         if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);

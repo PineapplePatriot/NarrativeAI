@@ -672,6 +672,8 @@
   function renderDrawer() {  // redrawn in place: the drawer keeps where they had scrolled to
     var drw = document.getElementById("tgDrawer"), keep = drw ? drw.scrollTop : 0;
     renderDrawerNow();
+    var pd = document.getElementById("drwThreadPersonaDesc");  // 🧩 the seven-part persona, as on the profile
+    if (pd && window.PersonaParts) PersonaParts.attach(pd, { remember: "na-tg-persona-parts", inputClass: "tg-textarea" });
     if (drw) drw.scrollTop = keep;
   }
   function renderDrawerNow() {
@@ -977,7 +979,11 @@
           "<label>🧠 Memory of this chat <small style=\"font-weight:400;color:var(--tg-muted)\">(what happened before the recent messages; kept up to date as the chat grows; edit freely)</small></label>" +
           '<textarea class="tg-textarea" id="drwThreadMemory" style="min-height:90px" placeholder="Nothing yet: it starts once older messages fall out of view.">' + esc(t.memory || "") + "</textarea>" +
           '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">' +
-            '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)">🧠 Update it now</button>' +
+            (function () {  // 🧠 what the replies no longer read (out of view), or everything not in the memory yet
+              var mc = t.memory_counts || [0, 0];
+              return (mc[0] ? '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)" title="The messages the replies no longer read">🧠 Remember ' + mc[0] + " out of view</button>" : "") +
+                (mc[1] ? '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this, true)" title="Including the recent ones the replies still read">🧠 Remember all ' + mc[1] + "</button>" : '<span style="font-size:12px;color:var(--tg-muted)">Everything is in the memory.</span>');
+            })() +
             '<label style="font-size:12.5px;">Recent messages the model reads <select class="tg-select" id="drwThreadContext" style="width:auto;display:inline-block">' +
               [20, 30, 60, 100].map(function (n) { return '<option value="' + n + '"' + ((t.context_size || 30) === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
             "</select></label></div>" +
@@ -1851,7 +1857,7 @@
         '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
         "<h3>🎨 Make a picture to send</h3>" +
         '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
-        '<button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div>' +
+        '<div class="tg-make-suggest"><button type="button" class="tg-fmt-btn" data-suggest-btn>🥔 Suggest from the chat</button><div class="tg-suggest" data-suggest-for="my_picture"></div></div>' +
         (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
           : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
         '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
@@ -2017,14 +2023,14 @@
         .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
         .catch(function (e) { alert(e.message); });
     },
-    updateMemory: function (btn) {
+    updateMemory: function (btn, all) {
       var t = STATE.active_thread; if (!t) return;
+      var label = btn ? btn.textContent : "";
       if (btn) { btn.disabled = true; btn.textContent = "🧠 Updating…"; }
-      apiPost({ action: "update_memory", thread_id: t.id, now: true }).then(function (res) {
+      apiPost({ action: "update_memory", thread_id: t.id, now: true, all: !!all }).then(function (res) {
         STATE.active_thread = res.thread;
-        var box = document.getElementById("drwThreadMemory"); if (box) box.value = res.memory || "";
-        if (btn) { btn.disabled = false; btn.textContent = "✓ Updated"; }
-      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = "🧠 Update it now"; } alert(e.message); });
+        renderDrawer();
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = label; } alert(e.message); });
     },
     setClock: function (how) {
       var t = STATE.active_thread; if (!t || !how) return;
@@ -3212,6 +3218,7 @@
     },
 
     openStoryModal: function (owner) {
+      TG._storyMade = "";  // (a picture made for an earlier status isn't this one's)
       var box = document.getElementById("modalStoryBody");
       var isUser = owner === "user";
       var target = isUser
@@ -3251,20 +3258,40 @@
           (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" style="align-self:flex-start" onclick="TG.suggestInto(\'status\', this, function (x) { var m = x.match(/^(\\S+)\\s+(.*)$/); var e = document.getElementById(\'storyModalEmoji\'), tx = document.getElementById(\'storyModalText\'); if (m && !/\\w/.test(m[1])) { e.value = m[1]; tx.value = m[2]; } else tx.value = x; })">🥔 Suggest from the chat</button>' +
             '<div class="tg-suggest" data-suggest-for="status"></div>' : "") +
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            '<span style="display:flex;gap:6px;flex-wrap:wrap;">' +
+            (isUser && STATE.active_thread ? '<button type="button" class="tg-fmt-btn" onclick="TG.storyPictureMake(this)" title="Make a picture for this status (from what you wrote, or the chat)">🎨 Make a picture</button>' : "") +
             '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
-              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +
+              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label></span>' +
+            '<div id="storyModalMade" class="tg-story-made"></div>' +
             '<button type="button" class="tg-send-btn" onclick="TG.submitStory(\'' + esc(owner) + '\')">Post Status</button>' +
           "</div>" +
         "</div>";
       document.getElementById("modalStory").classList.add("open");
     },
 
+    storyPictureMake: function (btn) {  // 🎨 a picture for the status: from what they wrote (or the chat), them in it
+      var t = STATE.active_thread; if (!t) return;
+      var text = (document.getElementById("storyModalText") || {}).value || "";
+      var box = document.getElementById("storyModalMade");
+      var label = btn.textContent; btn.disabled = true; btn.textContent = "🎨 Making it…";
+      var describe = text.trim() ? Promise.resolve(text.trim())
+        : apiPost({ action: "suggest", thread_id: t.id, what: "my_picture" }).then(function (r) { return (r.ideas || [])[0] || "me today"; });
+      describe.then(function (what) {
+        return apiPost({ action: "user_picture", thread_id: t.id, prompt: what, with_me: !!STATE.persona_photo });
+      }).then(function (res) {
+        TG._storyMade = res.url;
+        btn.disabled = false; btn.textContent = "↻ Another picture";
+        if (box) box.innerHTML = '<img src="' + esc(res.url) + '" alt="" onclick="TG.viewImage(this.src)"><small>Posted with the status. ↻ for another.</small>';
+      }).catch(function (e) { btn.disabled = false; btn.textContent = label; alert(e.message); });
+    },
     submitStory: function (owner) {
       var emoji = document.getElementById("storyModalEmoji").value.trim() || "✨";
       var text = document.getElementById("storyModalText").value.trim();
       var pic = document.getElementById("storyModalPic"), file = pic && pic.files && pic.files[0];
-      if (!text && !file) return;
-      var upload = file ? (function () {  // the picture first (as any upload), then the status with it
+      var made = TG._storyMade || "";  // 🎨 a picture made for it
+      if (!text && !file && !made) return;
+      TG._storyMade = "";
+      var upload = made && !file ? Promise.resolve(made) : file ? (function () {  // the picture first (as any upload), then the status with it
         var fd = new FormData(); fd.append("kind", "image"); fd.append("file", file);
         return fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
           .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return r.url; });

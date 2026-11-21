@@ -222,8 +222,12 @@ def tool_propose_texting_chat(session, args):
         probe = {"events": changes["events"], "clock_offset": messenger.thread_data(thread)["clock_offset"]}
         messenger.tidy_events(probe)  # each gets its time now, so the card can show it
     if isinstance(args.get("persona"), dict):
+        from mainapp import card_sections
+        parts = card_sections.compose_persona(args["persona"].get("sections")) if isinstance(args["persona"].get("sections"), dict) else ""
+        if parts:
+            args["persona"]["description"] = parts
         changes["persona"] = {"name": str(args["persona"].get("name") or "").strip()[:80],
-                              "description": str(args["persona"].get("description") or "").strip()[:3000]}
+                              "description": str(args["persona"].get("description") or "").strip()[:8000]}
     if args.get("photo_mood"):
         if args["photo_mood"] not in messenger.PHOTO_MOODS:
             return {"error": f"photo_mood is one of {', '.join(messenger.PHOTO_MOODS)}."}, []
@@ -305,7 +309,9 @@ def tool_defs():
             "usual persona), and/or how far tease photos go (photo_mood). Give only what changes.",
             {"scenario_override": STR,
              "events": {"type": "array", "items": {"type": "object", "properties": {"text": STR, "when": STR}}},
-             "persona": {"type": "object", "properties": {"name": STR, "description": STR}},
+             "persona": {"type": "object", "properties": {"name": STR, "description": STR, "sections": {
+                 "type": "object", "description": "Optional, the seven core elements instead of a description: pronouns, "
+                 "appearance, background, connection, traits, likes, temperament"}}},
              "photo_mood": {"type": "string", "enum": ["sweet", "playful", "flirty", "bold"]},
              "why": STR}),
         _fn("propose_texting_look", "New pictures of a character for this setup (a portrait and an outfit shot), with "

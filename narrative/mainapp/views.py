@@ -1595,7 +1595,7 @@ def chat(request, slug):
                                  "polish_due": False})  # the new part is cleaned already; the rest stays
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
-            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
+            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:8000]}
                                      if name else {})
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
@@ -5499,7 +5499,7 @@ def messenger_api(request):
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
         try:
-            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")))
+            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")), everything=bool(body.get("all")))
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"memory": memory, "thread": messenger.serialize_thread_full(thread, request.user)})

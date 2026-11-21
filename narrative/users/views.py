@@ -414,6 +414,7 @@ def _extras_state(user):
         "sprites": settings_["emotion"].enabled,
         "game": game_default(user),
         "story_extras": story_extras(user),
+        "custom_object": _custom_object(user),  # ✨ "My own object" (a preset module the AI designs)
         "ideas": ideas_on(user),
         "watch": get_task_setting(user, "watch").enabled,
         "watch_memory": _watch_memory(user),
@@ -426,6 +427,17 @@ def _extras_state(user):
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.hosted),
     }
+
+
+def _custom_object(user):
+    """{"on", "text"}: the active preset's "My own object" module."""
+    from mainapp import experiences, presets
+    try:
+        item = next((m for m in experiences.module_states(presets.normalize(presets.get_active(user).data))
+                     if m["key"] == experiences.CUSTOM_OBJECT), None)
+    except Exception:
+        item = None
+    return {"on": bool(item and item["on"]), "text": (item or {}).get("custom") or ""}
 
 
 def _thinking_now(user):
@@ -498,6 +510,14 @@ def apply_extras(user, data):
         if isinstance(data.get("story_extras"), list):
             from mainapp import extras
             extras.set_kinds(user, data["story_extras"])
+        if isinstance(data.get("custom_object"), dict):  # ✨ "My own object", in the active preset
+            from mainapp import experiences, presets
+            active = presets.get_active(user)
+            text = str(data["custom_object"].get("text") or "").strip()[:1500]
+            on = bool(data["custom_object"].get("on")) and bool(text)
+            active.data = experiences.set_modules(presets.normalize(active.data), {experiences.CUSTOM_OBJECT: on},
+                                                  custom=text)
+            active.save(update_fields=["data"])
         if isinstance(data.get("ideas"), bool):
             from mainapp import extras
             extras.set_ideas(user, data["ideas"])

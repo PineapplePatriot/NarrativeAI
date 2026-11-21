@@ -270,9 +270,9 @@ TOOLS = [
     _fn("propose_persona", "Propose who the user is in the story. Prefer `sections` (the description is made "
         "from them); a plain description works too.",
         {"name": STR, "description": STR, "why": STR,
-         "scope": {"type": "string", "enum": ["account", "story"], "description": "\"story\": only in chats with "
-                   "the character you're working on (their usual persona stays); \"account\": their usual persona, "
-                   "for every story. Ask them which."},
+         "scope": {"type": "string", "enum": ["account", "story", "chat"], "description": "\"chat\": only in the "
+                   "chat you were opened from; \"story\": every chat with the character you're working on; "
+                   "\"account\": their usual persona, for every story (theirs to keep). Ask them which."},
          "sections": {"type": "object", "description": "{key: text}, the seven core elements: pronouns (name & "
                       "pronouns), appearance, background (background & lore), connection (how they're tied to the "
                       "card's characters or its world), traits (core traits, as behaviour), likes (likes & dislikes), "
@@ -1002,6 +1002,12 @@ def tool_propose_persona(session, args):
         or str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
         return {"error": "Need a name and the persona (sections, or a description)."}, []
+    if args.get("scope") == "chat":  # 🎭 just this chat (Bulba opened from a chat page)
+        if not session.chat_id:
+            return {"error": "There's no chat open here: use scope \"story\" or \"account\"."}, []
+        p = _proposal(session, "persona", f"You in this chat: {name}", [desc, "Only in this chat; your usual persona stays as it is."],
+                      {"name": name, "description": desc, "chat_id": session.chat_id})
+        return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
     story = args.get("scope") == "story"
     character = None
     if story:  # 🎭 just for this story: the character Bulba is working on

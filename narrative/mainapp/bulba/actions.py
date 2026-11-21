@@ -63,6 +63,17 @@ def apply(session, pid):
             p["undo"]["layout"] = _appearance(user)["layout"]
             set_layout(user, "book")
             note += " Chats now read as a book (Book/Chat switch in the pen menu)."
+    elif p["kind"] == "persona" and data.get("chat_id"):  # 🎭 just this chat
+        from mainapp import chats
+        from mainapp.models import Chat
+        chat = Chat.objects.filter(id=data["chat_id"], character__author=user).first()
+        if chat is None:
+            raise ValueError("That chat is gone.")
+        d = chats.read(chat)
+        p["undo"] = {"chat_id": chat.id, "persona": d.get("persona") or {}}
+        d["persona"] = {"name": data["name"], "description": data["description"]}
+        chats.write(chat, d)
+        note = "Your persona for this chat is saved (your usual persona stays). The page reloads with it."
     elif p["kind"] == "persona" and data.get("character_id"):  # 🎭 just for this story
         from mainapp import chats
         character = Character.objects.filter(author=user, id=data["character_id"]).first()
@@ -185,6 +196,14 @@ def undo(session, pid):
         if before.get("layout"):
             from mainapp.views import set_layout
             set_layout(user, before["layout"])
+    elif p["kind"] == "persona" and before.get("chat_id"):
+        from mainapp import chats
+        from mainapp.models import Chat
+        chat = Chat.objects.filter(id=before["chat_id"], character__author=user).first()
+        if chat:
+            d = chats.read(chat)
+            d["persona"] = before.get("persona") or {}
+            chats.write(chat, d)
     elif p["kind"] == "persona" and before.get("character_id"):
         from mainapp import chats
         character = Character.objects.filter(author=user, id=before["character_id"]).first()

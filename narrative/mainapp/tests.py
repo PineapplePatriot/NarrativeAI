@@ -10476,3 +10476,43 @@ class ReadableLookTests(TestCase):
         self.assertEqual(good["colors"]["text"], "#2b2440")  # already readable: untouched
         css = L.css(bad)
         self.assertIn(".tracker-panel", css)  # the tracker cards take the look's own panel colour
+
+
+class ExtrasCustomObjectTests(TestCase):
+    """✨ "My own object" from the Extras page, saved in the active preset."""
+    def test_switched_on_with_a_description(self):
+        from mainapp import experiences, presets
+        user = get_user_model().objects.create_user(username="maker", password="pw12345!")
+        self.client.force_login(user)
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": True, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertEqual(resp["state"]["custom_object"], {"on": True, "text": "A quest log card"})
+        item = next(m for m in experiences.module_states(presets.normalize(presets.get_active(user).data)) if m["key"] == experiences.CUSTOM_OBJECT)
+        self.assertTrue(item["on"])
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": False, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertFalse(resp["state"]["custom_object"]["on"])
+
+
+class BulbaChatPersonaTests(BulbaTests):
+    """🎭 Bulba on the chat page: a persona just for this chat."""
+    def test_chat_scope(self):
+        from mainapp import chats
+        from mainapp.models import BulbaSession, Character
+        dottore = Character.objects.create(name="Dottore", slug="dott-chatp", author=self.user, initial_message="Hm.")
+        chat = chats.current(dottore)
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        from mainapp.bulba import agent, actions
+        out, _ = agent.tool_propose_persona(session, {"name": "Mira", "scope": "chat",
+                                                      "sections": {"pronouns": "Mira, she/her", "appearance": "Tall, ink-stained."}})
+        session.save()
+        actions.apply(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"]["name"], "Mira")
+        self.assertIn("[Appearance]", chats.read(chat)["persona"]["description"])
+        actions.undo(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaChatPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaChatPersonaTests, _name, None)

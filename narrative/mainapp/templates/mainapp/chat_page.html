@@ -628,6 +628,7 @@
     <script src="{% static 'mainapp/js/watch.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'users/js/persona_parts.js' %}?v=2"></script>
     <script src="{% static 'mainapp/js/memory_panel.js' %}?v={% now 'U' %}"></script>
     {% if look %}{{ look_data|json_script:"look-data" }}<script src="{% static 'mainapp/js/chat_look.js' %}?v={% now 'U' %}"></script>{% endif %}
     <script src="{% static 'mainapp/js/quick_card.js' %}?v={% now 'U' %}" data-url="{% url 'character_quick' character.slug %}?chat={{ chat.id }}"></script>
