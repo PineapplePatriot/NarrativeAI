@@ -4349,6 +4349,11 @@ def _bulba_api(request):
         link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
         if link:  # so Bulba can point to the right places (pictures go on the character's page)
             note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        if action == "apply" and proposal["kind"] == "connections":  # 🔁 a new chat model: does their preset still fit?
+            from .bulba import connections as conn_mod
+            after = conn_mod.after_model_change(request.user)
+            if after:
+                note_for_bulba += "\n\n" + after
         if action == "apply" and proposal["kind"] == "character":  # 🧭 and on to persona, world, extras
             from .bulba import lore as lore_mod
             note_for_bulba += "\n\n" + lore_mod.AFTER_NEW_CARD

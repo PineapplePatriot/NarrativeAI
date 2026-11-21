@@ -10538,3 +10538,18 @@ class AfterNewCardTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(AfterNewCardTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(AfterNewCardTests, _name, None)
+
+
+class BulbaModelChangeTests(TestCase):
+    """🔁 After Bulba changes the chat's model, it hears whether the preset still fits (as the chat page would)."""
+    def test_the_preset_offer_reaches_bulba(self):
+        from unittest import mock
+        from mainapp.bulba import connections, doctor
+        user = get_user_model().objects.create_user(username="switcher", password="pw12345!")
+        offer = {"kind": "offer_rebuild", "preset": "Drama · Gemini", "from": "Gemini 4 Argon", "to": "MiMo v2.6 Pro", "pair": "a>b"}
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=offer):
+            note = connections.after_model_change(user)
+        self.assertIn("rebuild it for MiMo v2.6 Pro", note)
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=None):
+            self.assertEqual(connections.after_model_change(user), "")
+        self.assertIn("propose_connection_change", {t["function"]["name"] for t in doctor.tools()})  # in chats too
