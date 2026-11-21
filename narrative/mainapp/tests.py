@@ -10461,3 +10461,18 @@ class LibraryUploadTests(TestCase):
         self.client.post(reverse("users:stats_library"), {"remove": path})
         self.assertNotIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
         media_library.remove(media_library.uploads()["radio"][0]["file"])  # (tidy up the test's files)
+
+
+class ReadableLookTests(TestCase):
+    """👓 A look Bulba makes is never unreadable: faint text is lightened or darkened until it reads."""
+    def test_dark_on_dark_is_fixed_and_good_colours_stay(self):
+        from mainapp import chat_looks as L
+        bad = L.clean({"base": "dark", "colors": {"surface": "#1b2a3a", "bubble_ai": "#22303f", "bubble_user": "#283545",
+                                                  "page": "#101820", "text": "#3b2a55", "muted": "#4a3a66"}})
+        c = bad["colors"]
+        self.assertGreaterEqual(min(L.contrast(c["text"], c[s]) for s in L.SURFACES), 4.5)
+        self.assertGreaterEqual(min(L.contrast(c["muted"], c[s]) for s in L.SURFACES), 3.6)
+        good = L.clean({"base": "light", "colors": {"text": "#2b2440"}})
+        self.assertEqual(good["colors"]["text"], "#2b2440")  # already readable: untouched
+        css = L.css(bad)
+        self.assertIn(".tracker-panel", css)  # the tracker cards take the look's own panel colour
