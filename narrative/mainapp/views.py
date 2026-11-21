@@ -325,10 +325,57 @@ def _summarize_pieces(user, messages, start, earlier=""):
 
 
 def _story_text(user, chat_state, count):
-    """What the model reads as the story so far: story memory or the manual summary (the chat's mode)."""
-    return story_memory.story_text(user, {"summary_mode": chat_state.get("summary_mode"), "memory": chat_state.get("memory"),
-                                          "summary_parts": chat_state.get("summary_parts"), "summary": chat_state.get("summary")},
-                                   chat_state.get("summary") or "", count)
+    """What the model reads as the story so far: story memory or the manual summary (the chat's mode), after what
+    the chats linked to this one remember (🔗, oldest first)."""
+    own = story_memory.story_text(user, {"summary_mode": chat_state.get("summary_mode"), "memory": chat_state.get("memory"),
+                                         "summary_parts": chat_state.get("summary_parts"), "summary": chat_state.get("summary")},
+                                  chat_state.get("summary") or "", count)
+    linked = [x for x in chat_state.get("linked") or [] if x.get("text")]
+    if not linked:
+        return own
+    before = "\n\n".join(f"[From another chat: “{x.get('title') or 'a chat'}” with {x.get('character') or 'someone'}. "
+                          f"It happened; the people who were there remember it]\n{x['text']}" for x in linked)
+    return before + ("\n\n[This chat]\n" + own if own else "")
+
+
+LINKED_CHATS = 3
+
+
+def _linkable_chats(user, current):
+    """🔗 Their other chats (any character), newest first: what bringing each one in would take."""
+    from .models import Chat
+    out = []
+    for chat in Chat.objects.filter(character__author=user).exclude(id=current.id).select_related("character").order_by("-time_update")[:40]:
+        try:
+            data = chats.read(chat)
+        except chats.ChatUnreadable:
+            continue
+        msgs = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+        if len(msgs) < 2:
+            continue
+        parts = chats.summary_parts(data, len(msgs))
+        upto = chats.summary_upto(parts)
+        out.append({"id": chat.id, "title": chat.title, "character": chat.character.name, "count": len(msgs),
+                    "tokens": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs),
+                    "has_summary": bool(parts), "summary_upto": upto,
+                    "tokens_rest": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs[upto:]),
+                    "updated": chat.time_update.strftime("%Y-%m-%d")})
+    return out
+
+
+def _link_chat(user, other, how):
+    """(text, how) of another chat, for this one to remember: summarized anew ("anew"), or its own summary with
+    the messages after it summarized onto it ("append"). Long chats go in pieces (the summary model's window)."""
+    data = chats.read(other)
+    msgs = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    parts = chats.summary_parts(data, len(msgs))
+    if how == "append" and parts:
+        earlier, start = chats.summary_text(parts), chats.summary_upto(parts)
+    else:
+        how, earlier, start = "anew", "", 0
+    new = _summarize_pieces(user, msgs[start:], start, earlier) if msgs[start:] else []
+    text = "\n\n".join(filter(None, [earlier, *[p["text"] for p in new]]))
+    return text.strip()[:12000], how
 
 
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
@@ -474,6 +521,7 @@ def chat(request, slug):
         "summary_paused": False,  # automatic summaries are paused for this chat
         "out_of_view": 0,  # the oldest messages the last reply's request couldn't hold (they need the summary)
         "memory": {},  # story memory (mainapp/story_memory.py)
+        "linked": [],  # 🔗 up to 3 other chats this one remembers: [{chat_id, character, title, text, how, count}]
         "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
         "current_bg": "",
@@ -528,6 +576,7 @@ def chat(request, slug):
                 chat_state["summary_paused"] = bool(data.get("summary_paused"))
                 chat_state["out_of_view"] = int(data.get("out_of_view") or 0)
                 chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
+                chat_state["linked"] = [x for x in (data.get("linked") or []) if isinstance(x, dict) and x.get("text")][:LINKED_CHATS]
                 chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
@@ -648,6 +697,7 @@ def chat(request, slug):
             "summary_paused": chat_state["summary_paused"],
             "out_of_view": chat_state["out_of_view"],
             "memory": chat_state["memory"],
+            "linked": chat_state["linked"],
             "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
             "tracker_history": chat_state["tracker_history"],
@@ -1372,6 +1422,32 @@ def chat(request, slug):
             return JsonResponse({"success": True, **payload, "total": len(messages),
                                  "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"]),
                                  "spending": ai_client.spending(request.user)})
+        elif action in ("linkable_chats", "link_chat", "unlink_chat"):  # 🔗 other chats this one remembers
+            from .models import Chat
+            if action == "linkable_chats":
+                taken = {x.get("chat_id") for x in chat_state["linked"]}
+                return JsonResponse({"success": True, "linked": chat_state["linked"], "max": LINKED_CHATS,
+                                     "chats": [c for c in _linkable_chats(request.user, chat_obj) if c["id"] not in taken]})
+            if action == "unlink_chat":
+                chat_state["linked"] = [x for x in chat_state["linked"] if x.get("chat_id") != data.get("chat_id")]
+            else:
+                if len(chat_state["linked"]) >= LINKED_CHATS:
+                    return JsonResponse({"success": False, "error": f"Up to {LINKED_CHATS} chats: take one out first."})
+                other = Chat.objects.filter(id=data.get("chat_id"), character__author=request.user).select_related("character").first()
+                if other is None or other.id == chat_obj.id:
+                    return JsonResponse({"success": False, "error": "That chat is gone."})
+                try:
+                    text, how = _link_chat(request.user, other, data.get("how"))
+                except ai_client.AIError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
+                if not text:
+                    return JsonResponse({"success": False, "error": "That chat has nothing to remember yet."})
+                chat_state["linked"] = [x for x in chat_state["linked"] if x.get("chat_id") != other.id] + [
+                    {"chat_id": other.id, "character": other.character.name, "title": other.title, "text": text, "how": how,
+                     "at": datetime.now().strftime("%Y-%m-%d")}]
+            save_messages(messages)
+            return JsonResponse({"success": True, "linked": chat_state["linked"]})
+
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
             parts = list(chat_state["summary_parts"])
             total = len(messages)
@@ -4349,6 +4425,11 @@ def _bulba_api(request):
         link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
         if link:  # so Bulba can point to the right places (pictures go on the character's page)
             note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        if action == "apply" and proposal["kind"] == "connections":  # 🔁 a new chat model: does their preset still fit?
+            from .bulba import connections as conn_mod
+            after = conn_mod.after_model_change(request.user)
+            if after:
+                note_for_bulba += "\n\n" + after
         if action == "apply" and proposal["kind"] == "character":  # 🧭 and on to persona, world, extras
             from .bulba import lore as lore_mod
             note_for_bulba += "\n\n" + lore_mod.AFTER_NEW_CARD

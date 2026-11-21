@@ -2736,6 +2736,59 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this page only */ } });
 });
 
+// 🔗 Other chats this one remembers (pen menu → Story memory): pick up to 3, summarized anew or from their summary
+(function linkedChats() {
+    const box = document.getElementById('linkedBox'); if (!box) return;
+    const list = document.getElementById('linkedList'), pick = document.getElementById('linkedPick');
+    const call = body => fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                                                     body: JSON.stringify(body) }).then(r => r.json());
+    const k = n => n >= 1000 ? `${Math.round(n / 100) / 10}k` : String(n);
+    let state = null;
+    function draw() {
+        list.innerHTML = state.linked.length ? state.linked.map(x => `<div class="linked-row"><span>🔗 <b>${escapeHtml(x.title)}</b> · ${escapeHtml(x.character)}
+            <small>${x.how === 'append' ? 'its summary + the rest' : 'summarized anew'} · ${escapeHtml(x.at || '')}</small></span>
+            <button type="button" class="link-btn" data-unlink="${x.chat_id}" title="Forget it here">✕</button></div>`).join('')
+            : '<p class="tool-help">None yet.</p>';
+        if (state.linked.length >= state.max) { pick.innerHTML = ''; return; }
+        if (!state.chats.length) { pick.innerHTML = '<p class="tool-help">No other chats with a few messages yet.</p>'; return; }
+        pick.innerHTML = `<select class="tool-input" id="linkedChat">${state.chats.map(c => `<option value="${c.id}">${escapeHtml(c.character)} · ${escapeHtml(c.title)} (${c.count} messages)</option>`).join('')}</select>
+            <div class="linked-how" id="linkedHow"></div>
+            <p class="tool-help linked-warn" id="linkedWarn"></p>
+            <button type="button" class="tool-action-btn" id="linkedGo">🔗 Remember it here</button>`;
+        const sel = document.getElementById('linkedChat');
+        const how = () => {
+            const c = state.chats.find(x => String(x.id) === sel.value) || {};
+            document.getElementById('linkedHow').innerHTML =
+                `<label><input type="radio" name="linkedHow" value="anew" ${c.has_summary ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
+                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append" checked> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
+            const warn = () => {
+                const v = (box.querySelector('input[name=linkedHow]:checked') || {}).value;
+                const t = v === 'append' ? c.tokens_rest : c.tokens;
+                document.getElementById('linkedWarn').textContent = t > 30000
+                    ? `That's a long one (~${k(t)} tokens): it's summarized in pieces, which takes a while and costs more than a usual summary.` : '';
+            };
+            box.querySelectorAll('input[name=linkedHow]').forEach(r => r.addEventListener('change', warn)); warn();
+        };
+        sel.addEventListener('change', how); how();
+        document.getElementById('linkedGo').onclick = async (e) => {
+            const b = e.currentTarget; b.disabled = true; b.textContent = '🔗 Summarizing…';
+            const d = await call({ action: 'link_chat', chat_id: Number(sel.value), how: (box.querySelector('input[name=linkedHow]:checked') || {}).value || 'anew' }).catch(() => ({}));
+            if (!d.success) { b.disabled = false; b.textContent = '🔗 Remember it here'; alert(d.error || "Couldn't bring it in."); return; }
+            load();
+        };
+    }
+    async function load() {
+        const d = await call({ action: 'linkable_chats' }).catch(() => null);
+        if (!d || !d.success) { list.innerHTML = '<p class="tool-help">Couldn\'t load your chats.</p>'; return; }
+        state = d; draw();
+    }
+    box.addEventListener('toggle', () => { if (box.open) load(); });
+    list.addEventListener('click', async e => {
+        const b = e.target.closest('[data-unlink]'); if (!b) return;
+        await call({ action: 'unlink_chat', chat_id: Number(b.dataset.unlink) }); load();
+    });
+})();
+
 // ↕ Each picture beside the chat can be made bigger or smaller (− / + on hover, or tap it on a touch screen);
 // remembered per character in this browser
 (function spriteSizes() {

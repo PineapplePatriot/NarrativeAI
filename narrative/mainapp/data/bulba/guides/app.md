@@ -95,6 +95,9 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - Pen menu → ⚙ This chat → 🎨 **Speech colours**: "Story colours" (the AI colours each speaker's lines itself, and
   you can change each speaker's colour; "Tone marks" make whispers and shouts look different) or "One colour"
   (all speech the same colour; the AI isn't told about colours). Also 🙂 your own speech colour.
+- Pen menu → 🎬 Steer the story → 🧠 Story memory → 🔗 **Other chats this one remembers** (up to 3, any character):
+  a chat is summarized anew, or its own summary plus the newer messages, and the AI reads it as part of the story
+  so far. Long chats are summarized in pieces (it warns first). Good for a new chat that continues an old one.
 - Pen menu → ⚙ This chat → 📖 **Underline lore in replies**: the first mention of a lorebook keyword in a reply is
   underlined; hover or tap it to see what the lorebook says.
 - Regenerating or swiping a reply puts the trackers back to before it; they update from the version shown.

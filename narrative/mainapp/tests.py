@@ -1578,6 +1578,29 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         resp = self.post({"action": "summary_pause", "paused": False}).json()
         self.assertEqual(resp.get("summary_data", resp).get("out_of_view", 0), 0)
 
+    def test_a_chat_remembers_other_chats(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.build_story()  # this chat: summary 1 + 2
+        old = self.character.chats.first()
+        new = chats.create(self.character, title="Chat 2")
+        self.url = self.url + f"?chat={new.id}"  # (the helper's stand-in AI, on the new chat)
+        url = self.url
+        listing = self.client.post(url, json.dumps({"action": "linkable_chats"}), content_type="application/json").json()
+        mine = next(c for c in listing["chats"] if c["id"] == old.id)
+        self.assertTrue(mine["has_summary"])
+        self.assertEqual(mine["summary_upto"], 5)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "append"}).json()
+        self.assertTrue(out["success"], out)
+        self.assertEqual(out["linked"][0]["how"], "append")
+        self.assertIn("Summary 1.", out["linked"][0]["text"])  # its own summary, kept
+        reply = self.post({"action": "chat", "message": "Remember?"})
+        self.assertEqual(reply.status_code, 200, reply.content[:300])
+        sent = json.dumps([c["messages"] for c in self.all_calls])
+        self.assertIn("From another chat", sent)  # the reply reads it
+        self.client.post(url, json.dumps({"action": "unlink_chat", "chat_id": old.id}), content_type="application/json")
+        self.assertEqual(chats.read(new).get("linked"), [])
+
     def test_regenerate_and_swipe_rewind_the_trackers(self):
         self.build_story()
         self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it
@@ -10538,3 +10561,18 @@ class AfterNewCardTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(AfterNewCardTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(AfterNewCardTests, _name, None)
+
+
+class BulbaModelChangeTests(TestCase):
+    """🔁 After Bulba changes the chat's model, it hears whether the preset still fits (as the chat page would)."""
+    def test_the_preset_offer_reaches_bulba(self):
+        from unittest import mock
+        from mainapp.bulba import connections, doctor
+        user = get_user_model().objects.create_user(username="switcher", password="pw12345!")
+        offer = {"kind": "offer_rebuild", "preset": "Drama · Gemini", "from": "Gemini 4 Argon", "to": "MiMo v2.6 Pro", "pair": "a>b"}
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=offer):
+            note = connections.after_model_change(user)
+        self.assertIn("rebuild it for MiMo v2.6 Pro", note)
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=None):
+            self.assertEqual(connections.after_model_change(user), "")
+        self.assertIn("propose_connection_change", {t["function"]["name"] for t in doctor.tools()})  # in chats too
