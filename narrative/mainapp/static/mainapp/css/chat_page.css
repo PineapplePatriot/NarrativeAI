@@ -2580,3 +2580,8 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
     color: #fff; font-size: 15px; line-height: 1; cursor: pointer; padding: 0; }
 .sprite-size button:hover { background: rgba(139, 92, 246, .6); }
 @media (hover: none) { .character-image-container:hover .sprite-size { display: none; } .character-image-container.show-size .sprite-size { display: flex; } }
+/* 🔗 other chats this one remembers */
+.linked-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.linked-row small { display: block; color: var(--text-muted); font-size: .78rem; }
+.linked-how { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: .86rem; }
+.linked-warn { color: #fbbf24 !important; }

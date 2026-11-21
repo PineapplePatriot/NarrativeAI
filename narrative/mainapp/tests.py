@@ -1578,6 +1578,29 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         resp = self.post({"action": "summary_pause", "paused": False}).json()
         self.assertEqual(resp.get("summary_data", resp).get("out_of_view", 0), 0)
 
+    def test_a_chat_remembers_other_chats(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.build_story()  # this chat: summary 1 + 2
+        old = self.character.chats.first()
+        new = chats.create(self.character, title="Chat 2")
+        self.url = self.url + f"?chat={new.id}"  # (the helper's stand-in AI, on the new chat)
+        url = self.url
+        listing = self.client.post(url, json.dumps({"action": "linkable_chats"}), content_type="application/json").json()
+        mine = next(c for c in listing["chats"] if c["id"] == old.id)
+        self.assertTrue(mine["has_summary"])
+        self.assertEqual(mine["summary_upto"], 5)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "append"}).json()
+        self.assertTrue(out["success"], out)
+        self.assertEqual(out["linked"][0]["how"], "append")
+        self.assertIn("Summary 1.", out["linked"][0]["text"])  # its own summary, kept
+        reply = self.post({"action": "chat", "message": "Remember?"})
+        self.assertEqual(reply.status_code, 200, reply.content[:300])
+        sent = json.dumps([c["messages"] for c in self.all_calls])
+        self.assertIn("From another chat", sent)  # the reply reads it
+        self.client.post(url, json.dumps({"action": "unlink_chat", "chat_id": old.id}), content_type="application/json")
+        self.assertEqual(chats.read(new).get("linked"), [])
+
     def test_regenerate_and_swipe_rewind_the_trackers(self):
         self.build_story()
         self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it

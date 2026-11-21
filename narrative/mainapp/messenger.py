@@ -1000,6 +1000,7 @@ def use_browser_time_zone(request):
     for when there's no cookie. The server itself runs on UTC."""
     import zoneinfo
     from urllib.parse import unquote
+    timezone.deactivate()  # (the worker thread may still hold the previous request's zone)
     name = unquote(request.COOKIES.get("na_tz") or "")[:64]
     try:
         zone = zoneinfo.ZoneInfo(name) if name else None
