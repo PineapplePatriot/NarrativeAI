@@ -625,7 +625,11 @@ Rules:
 - If mode is "modern_au": adapt their fantasy/historical/sci-fi background and occupation into a fitting modern-day
   equivalent (e.g., an alchemist or mad scholar becomes a biomedical lab director or underground researcher; a knight
   becomes private security or a detective), while keeping their relationships and conflicts recognizable.
-- If mode is "canon": keep their original world, just explain how/why they and {user} are texting on a device/communicator.
+- If mode is "canon": keep them as the card has them: their own world, or today's if the card is already modern (then
+  nothing needs translating). Still write a fresh `scenario` for this chat: why they and {user} text, and what's
+  going on now (in another world, how they text there: a device, a communicator, letters by raven if that's the
+  joke). When the directions drop them somewhere unexpected (a Victorian child at a fast-food place, a villain in a
+  group chat for parents), go with it: they stay exactly themselves in that situation; that's the point.
 - Write a distinct `texting_style`: how they punctuate, capitalize, whether they send short bursts or dry single lines,
   whether they use emojis (or hate them), and their typical texting habits.
 - CARD AUDIT SAFEGUARDS:
@@ -2906,6 +2910,10 @@ def suggest(user, thread, what, hint=""):
                 "something one of them said they'd do at a time). For each, one line: the day and time first, then "
                 "what it is, e.g. \"Friday 20:00 — dinner at the pier\" or \"tomorrow 9am — call about the flat\". "
                 "Up to 3; only real plans from the chat, none invented.")
+    elif what == "persona":
+        task = (f"Suggest 3 different people {me} could be in this chat, fitting what's set up (the scenario, how they "
+                f"know each other): each as \"Name — one or two sentences: who they are here and what they're to "
+                f"{names}\". Vary them (one close and familiar, one with some friction, one surprising).")
     elif what == "status":
         task = (f"Suggest 3 statuses {me} could post on their messenger profile right now (one emoji, a space, then "
                 "a short line, like a real status), from what's going on in the chat and their day.")

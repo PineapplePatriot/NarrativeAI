@@ -619,13 +619,37 @@
     renderStickerTray();
   }
 
+  // 🎭 The tray: one tab per pack (theirs first, then the ones you added, then the built-in ones)
+  var stickerPack = null;
+  try { stickerPack = localStorage.getItem("na-tg-sticker-pack"); } catch (e) { /* this visit */ }
   function renderStickerTray() {
     var grid = document.getElementById("tgStickerGrid");
     if (!grid) return;
     var t = STATE.active_thread;
     var list = (t && t.stickers) ? t.stickers : STATE.built_in_stickers;
+    var packs = [];
+    list.forEach(function (s) { var p = s.pack || "Stickers"; if (packs.indexOf(p) === -1) packs.push(p); });
+    if (packs.indexOf(stickerPack) === -1) stickerPack = packs[0] || null;
+    var tabs = document.getElementById("tgStickerTabs");
+    if (!tabs) {
+      tabs = document.createElement("div"); tabs.id = "tgStickerTabs"; tabs.className = "tg-sticker-tabs";
+      grid.parentNode.insertBefore(tabs, grid);
+    }
+    tabs.innerHTML = packs.map(function (p) {
+      var first = list.find(function (s) { return (s.pack || "Stickers") === p; }) || {};
+      var icon = first.url ? (first.video || /\.webm$/i.test(first.url) ? "🎞️" : '<img src="' + esc(first.url) + '" alt="">') : esc((first.emoji || "🥔").slice(0, 2));
+      return '<button type="button" class="' + (p === stickerPack ? "on" : "") + '" data-pack="' + esc(p) + '" title="' + esc(p) + '">' + icon + "<span>" + esc(p) + "</span></button>";
+    }).join("");
+    tabs.onclick = function (e) {
+      var b = e.target.closest("[data-pack]"); if (!b) return;
+      stickerPack = b.getAttribute("data-pack");
+      try { localStorage.setItem("na-tg-sticker-pack", stickerPack); } catch (err) { /* this visit */ }
+      renderStickerTray();
+    };
+    var mine = list.some(function (s) { return (s.pack || "") === stickerPack && /^(custom_|tg_)/.test(s.id || ""); });
     grid.innerHTML = list
       .map(function (s, idx) {
+        if ((s.pack || "Stickers") !== stickerPack) return "";
         if (s.url) {
           return (
             '<div class="tg-tray-item" onclick="TG.sendStickerByIndex(' + idx + ')">' +
@@ -641,7 +665,7 @@
           "</div>"
         );
       })
-      .join("");
+      .join("") + (mine ? '<button type="button" class="tg-fmt-btn tg-pack-remove" onclick="TG.removeStickerPack()">🗑 Remove “' + esc(stickerPack) + '”</button>' : "");
   }
 
   // Drawer rendering
@@ -1280,7 +1304,7 @@
         "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
         '<div class="tg-setup-modes">' +
           '<button type="button" class="' + (st.mode === "modern_au" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'modern_au\')">🌆 Modern AU<small>today\'s world, a modern job</small></button>' +
-          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
+          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 As they are<small>their own world (or already modern): just a scenario</small></button>' +
         "</div>" +
         '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
         '<button type="button" class="tg-setup-ghost" style="align-self:flex-start" onclick="TG.setupIdeas(\'' + slug + '\', this)">💡 Give me ideas</button>' +
@@ -1312,13 +1336,23 @@
       body = st.step === "loring" ? "<p>Writing the worldbook… 📚🥔</p>"
         : lore.length
         ? "<p>📚 " + n + "'s worldbook for this setup (the chat reads an entry when its words come up):</p>" + loreList(lore) +
-          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 Keep it</button>' +
+          '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'persona\')">👍 Keep it</button>' +
           '<button type="button" class="tg-setup-ghost" onclick="TG.setupLore(\'' + slug + '\')">↻ Another take</button></div>'
         : "<p>📚 Want a worldbook for this setup? Places, people, groups and terms the texts keep coming back to, so " + n +
           " stays consistent. " + (m.mode === "modern_au" ? "I'll bring their world into today's (a guild becomes a company, a kingdom a city)." : "") +
           (m.has_lorebook ? " I'll start from their roleplay lorebook (it stays as it is)." : "") + "</p>" +
           '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupLore(\'' + slug + '\')">📚 Write it</button>' +
-          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'look\')">Skip</button></div>';
+          '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'persona\')">Skip</button></div>';
+    } else if (st.step === "persona") {  // 🎭 who the user is in this chat
+      var cp = t.persona || {};
+      body = "<p>🎭 Who are you in this chat? " + (cp.name ? "Right now: <b>" + esc(cp.name) + "</b> (this chat only)."
+                                                          : "Right now: your usual persona" + (STATE.user_profile && STATE.user_profile.display_name ? " (" + esc(STATE.user_profile.display_name) + ")" : "") + ".") + "</p>" +
+        (st.personas && st.personas.length ? '<div class="tg-suggest">' + st.personas.map(function (x, i) {
+          return '<button type="button" onclick="TG.setupPersona(\'' + slug + '\', ' + i + ')">' + esc(x) + "</button>";
+        }).join("") + "</div>" : "") +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupStep(\'' + slug + '\', \'look\')">👍 ' + (cp.name ? "Keep it" : "My usual persona") + "</button>" +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupPersonaIdeas(\'' + slug + '\', this)">💡 Someone for this chat</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'clock\')">✏️ Write it myself</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
         ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
@@ -1948,6 +1982,17 @@
       box.classList.toggle("open");
       document.body.classList.toggle("tg-emoji-open", box.classList.contains("open"));
     },
+    removeStickerPack: function () {  // a pack they added (from Telegram, or their own stickers)
+      if (!stickerPack || !confirm("Remove the pack “" + stickerPack + "” from your stickers?")) return;
+      apiPost({ action: "remove_sticker_pack", pack: stickerPack }).then(function (res) {
+        STATE.user_profile = res.user_profile;
+        var gone = stickerPack;
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).filter(function (s) {
+          return !((s.pack || "") === gone && /^(custom_|tg_)/.test(s.id || ""));
+        });
+        stickerPack = null; renderStickerTray();
+      }).catch(function (e) { alert(e.message); });
+    },
     importTelegramPack: function () {
       var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
       if (!link || !link.trim()) return;
@@ -2035,6 +2080,21 @@
       var st = setupState[slug]; if (!st || !st.ideas) return;
       st.hint = st.ideas[i]; st.ideas = null; renderActiveThread();
       var h = document.getElementById("tgSetupHint"); if (h) h.focus();
+    },
+    setupPersonaIdeas: function (slug, btn) {
+      var st = setupState[slug], t = STATE.active_thread; if (!st || !t) return;
+      btn.disabled = true; btn.textContent = "💡 Thinking…";
+      apiPost({ action: "suggest", thread_id: t.id, what: "persona" }).then(function (res) {
+        st.personas = res.ideas; renderActiveThread();
+      }).catch(function (e) { btn.disabled = false; btn.textContent = "💡 Someone for this chat"; alert(e.message); });
+    },
+    setupPersona: function (slug, i) {  // "Name — who they are": this chat's persona
+      var st = setupState[slug], t = STATE.active_thread; if (!st || !t || !st.personas) return;
+      var x = st.personas[i], cut = x.split(/\s+[—–-]\s+/);
+      var persona = { name: cut[0].trim().slice(0, 80), description: (cut.slice(1).join(" — ") || x).trim() };
+      apiPost({ action: "thread_settings", thread_id: t.id, persona: persona }).then(function (res) {
+        STATE.active_thread = res.thread; st.personas = null; st.step = "look"; renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "lore"; renderActiveThread(); } },
     setupLore: function (slug) {

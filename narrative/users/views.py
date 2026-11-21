@@ -701,10 +701,45 @@ def stats(request):
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'
         return response
+    from django.core.files.storage import default_storage
+    from mainapp import media_library
+    lib = media_library.uploads()
     return render(request, "users/stats.html", {
         "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
         "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
-        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})
+        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS],
+        # 🎵🖼️ what they uploaded for everyone (chat backgrounds, music, radio)
+        "library": {k: [{**i, "url": default_storage.url(i["file"])} for i in v] for k, v in lib.items()},
+        "radio_sets": [g["set"] for g in media_library.catalog().get("radio", [])] + sorted({i["set"] for i in lib["radio"]}),
+        "library_note": request.GET.get("library", "")})
+
+
+@login_required
+def stats_library(request):
+    """🎵🖼️ Upload a chat background, a track or a radio track for everyone (or take one out): the stats page's
+    owners only. Kept on the volume, so they survive deploys."""
+    from django.http import Http404
+    from django.shortcuts import redirect
+    from urllib.parse import quote
+    from mainapp import media_library
+    if not can_see_stats(request.user) or request.method != "POST":
+        raise Http404()
+    try:
+        if request.POST.get("remove"):
+            media_library.remove(request.POST["remove"])
+            note = "Removed."
+        else:
+            upload = request.FILES.get("file")
+            if not upload:
+                raise ValueError("Choose a file first.")
+            kind = request.POST.get("kind")
+            media_library.add("music" if kind == "radio" else kind, request.POST.get("name"), upload,
+                              radio_set=(request.POST.get("set") or request.POST.get("new_set") or "Uploads") if kind == "radio" else "")
+            note = "Added. It's in the pickers now."
+    except ValueError as e:
+        note = str(e)
+    from django.urls import reverse
+    return redirect(f"{reverse('users:stats')}?library={quote(note)}#library")
 
 
 @login_required

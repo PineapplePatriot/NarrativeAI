@@ -10431,3 +10431,33 @@ class CardSearchTests(TestCase):
         self.assertTrue({"find_card", "bring_in_card"} <= names(agent.TOOLS))
         self.assertTrue({"find_card", "bring_in_card"} <= names(doctor.tools()))
         self.assertTrue({"find_card", "bring_in_card"} <= names(texting.tools()))
+
+
+class LibraryUploadTests(TestCase):
+    """🎵🖼️ Backgrounds and music uploaded from the stats page, for everyone."""
+    def test_owner_uploads_a_background_and_a_radio_track(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from mainapp import media_library
+        User = get_user_model()
+        owner = User.objects.create_user(username="owner", password="pw12345!", is_staff=True)
+        other = User.objects.create_user(username="someone", password="pw12345!")
+        self.client.force_login(other)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.assertEqual(self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "file": pic}).status_code, 404)
+        self.client.force_login(owner)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "name": "Rainy lab", "file": pic})
+        self.assertIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        song = SimpleUploadedFile("night.mp3", b"ID3fake", content_type="audio/mpeg")
+        self.client.post(reverse("users:stats_library"), {"kind": "radio", "name": "🌙🎻", "set": "", "new_set": "Night shift", "file": song})
+        night = next(g for g in media_library.radio() if g["set"] == "Night shift")
+        self.assertEqual(night["tracks"][0]["name"], "🌙🎻")
+        bad = SimpleUploadedFile("x.exe", b"MZ", content_type="application/octet-stream")
+        resp = self.client.post(reverse("users:stats_library"), {"kind": "music", "file": bad})
+        self.assertIn("doesn", resp["Location"])
+        page = self.client.get(reverse("users:stats"))
+        self.assertContains(page, "Rainy lab")
+        path = media_library.uploads()["backgrounds"][0]["file"]
+        self.client.post(reverse("users:stats_library"), {"remove": path})
+        self.assertNotIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        media_library.remove(media_library.uploads()["radio"][0]["file"])  # (tidy up the test's files)

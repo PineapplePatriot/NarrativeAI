@@ -2731,3 +2731,30 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     try { const v = localStorage.getItem(key); if (v !== null) d.open = v === '1'; } catch (e) { /* private window */ }
     d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this page only */ } });
 });
+
+// ↕ Each picture beside the chat can be made bigger or smaller (− / + on hover, or tap it on a touch screen);
+// remembered per character in this browser
+(function spriteSizes() {
+    const page = location.pathname.replace(/\/+$/, '');
+    const ids = ['userContainer', 'char1Container', 'char2Container'];
+    const key = id => `na-sprite-size:${page}:${id}`;
+    const get = id => { try { return parseFloat(localStorage.getItem(key(id))) || 1; } catch (e) { return 1; } };
+    const apply = (box, s) => { box.style.setProperty('--sprite-size', s); box.classList.toggle('resized', s !== 1); };
+    ids.forEach(id => {
+        const box = document.getElementById(id); if (!box) return;
+        apply(box, get(id));
+        const bar = document.createElement('div');
+        bar.className = 'sprite-size';
+        bar.innerHTML = '<button type="button" data-d="-0.1" title="Smaller">−</button><button type="button" data-d="0" title="Back to normal">↺</button><button type="button" data-d="0.1" title="Bigger">+</button>';
+        box.appendChild(bar);
+        bar.addEventListener('click', e => {
+            const b = e.target.closest('button'); if (!b) return;
+            e.stopPropagation();
+            const d = parseFloat(b.dataset.d);
+            const s = d === 0 ? 1 : Math.round(Math.min(1.6, Math.max(0.5, get(id) + d)) * 10) / 10;
+            try { localStorage.setItem(key(id), String(s)); } catch (err) { /* this visit */ }
+            apply(box, s);
+        });
+        box.addEventListener('click', e => { if (!e.target.closest('.sprite-size')) box.classList.toggle('show-size'); });
+    });
+})();

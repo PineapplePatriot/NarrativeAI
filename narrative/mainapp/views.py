@@ -5374,7 +5374,7 @@ def messenger_api(request):
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
-        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio") else "reply"
+        what = body.get("what") if body.get("what") in ("reply", "my_picture", "their_picture", "reminders", "status", "bio", "persona") else "reply"
         try:
             ideas = messenger.suggest(request.user, thread, what, body.get("hint") or "")
         except ai_client.AIError as e:
@@ -5389,6 +5389,12 @@ def messenger_api(request):
             return JsonResponse({"ideas": messenger.setup_ideas(request.user, c_obj, body.get("mode") or "modern_au", body.get("hint") or "")})
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
+
+    if action == "remove_sticker_pack":  # 🗑 a pack they added (Telegram, or their own) out of their stickers
+        pack = str(body.get("pack") or "")
+        u_prof = messenger.user_profile(request.user)
+        kept = [s for s in u_prof.get("custom_stickers") or [] if (s.get("pack") or "") != pack]
+        return JsonResponse({"user_profile": messenger.save_user_profile(request.user, {"custom_stickers": kept})})
 
     if action == "custom_sticker":  # ✨ a sticker from their own idea
         who = body.get("who") or ""

@@ -11,11 +11,17 @@
   </button>
   <nav class="na-links" aria-label="Main">
     <a href="{% url 'characters_list' %}" class="{% if active == 'characters' %}active{% endif %}">Characters</a>
-    <a href="{% url 'worldbook_list' %}" class="{% if active == 'worldbooks' %}active{% endif %}">Worldbooks</a>
-    <a href="{% url 'presets' %}" class="{% if active == 'presets' %}active{% endif %}">Presets</a>
-    <a href="{% url 'samplers' %}" class="{% if active == 'samplers' %}active{% endif %}">Samplers</a>
-    <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
-    <a href="{% url 'users:extras' %}" class="{% if active == 'extras' %}active{% endif %}" title="Summaries, trackers, pictures, voices, Bulba Watch">Extras</a>
+    {# The setup pages, one menu (the bar fits on a laptop screen; on phones they're listed in the menu) #}
+    <details class="na-group{% if active == 'worldbooks' or active == 'presets' or active == 'samplers' or active == 'connections' or active == 'extras' %} active{% endif %}">
+      <summary title="Worldbooks, presets, samplers, connections, extras">⚙ Setup</summary>
+      <div class="na-group-menu">
+        <a href="{% url 'worldbook_list' %}" class="{% if active == 'worldbooks' %}active{% endif %}">Worldbooks</a>
+        <a href="{% url 'presets' %}" class="{% if active == 'presets' %}active{% endif %}">Presets</a>
+        <a href="{% url 'samplers' %}" class="{% if active == 'samplers' %}active{% endif %}">Samplers</a>
+        <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
+        <a href="{% url 'users:extras' %}" class="{% if active == 'extras' %}active{% endif %}" title="Summaries, trackers, pictures, voices, Bulba Watch">Extras</a>
+      </div>
+    </details>
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
     <a href="{% url 'screen_hub' %}" class="na-emoji-first{% if active == 'screen' %} active{% endif %}" title="Digital Screen Hub: Telegram Messenger, Group Chats, Moments & Files">📱 Screen <span id="naScreenUnreadBadge" style="display:none;background:#a78bfa;color:#0d1019;border-radius:99px;padding:0 5px;font-size:10px;font-weight:700;margin-left:3px;">0</span></a>
     <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
@@ -45,6 +51,14 @@
   document.addEventListener('click', function (e) { if (bar.classList.contains('open') && (!bar.contains(e.target) || e.target.closest('.na-links a'))) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   window.addEventListener('pageshow', close);
+  // ⚙ Setup: a dropdown on wide screens (a click outside closes it); in the phone menu it's always open, a list
+  var narrow = window.matchMedia('(max-width: 1100px)');
+  var fit = function () { document.querySelectorAll('.na-group').forEach(function (g) { if (narrow.matches) g.setAttribute('open', ''); else g.removeAttribute('open'); }); };
+  fit(); if (narrow.addEventListener) narrow.addEventListener('change', fit);
+  document.addEventListener('click', function (e) {
+    if (narrow.matches) return;
+    document.querySelectorAll('.na-group[open]').forEach(function (g) { if (!g.contains(e.target)) g.removeAttribute('open'); });
+  });
 })();
 </script>
 <script src="{% static 'js/tomato.js' %}?v=12" data-pit="{% url 'tomato_pit' %}" data-state="{% url 'tomato_state' %}"></script>

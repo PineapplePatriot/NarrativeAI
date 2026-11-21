@@ -1742,3 +1742,11 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-edit-box textarea { width: 100%; box-sizing: border-box; resize: none; background: transparent; color: var(--tg-text); border: 0; outline: 0;
   font: inherit; font-size: 15px; line-height: 1.45; min-height: 60px; }
 @media (max-width: 860px) { .tg-edit-box, .tg-edit-box.user { margin-left: 0; margin-right: 0; max-width: 100%; } }
+/* 🎭 one tab per sticker pack */
+.tg-sticker-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 6px 10px; border-bottom: 1px solid var(--tg-border); scrollbar-width: thin; }
+.tg-sticker-tabs button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; max-width: 170px; padding: 4px 10px 4px 4px;
+  border-radius: 999px; border: 1px solid var(--tg-border); background: transparent; color: var(--tg-muted); cursor: pointer; font: inherit; font-size: 12.5px; }
+.tg-sticker-tabs button.on { border-color: var(--tg-accent, #8b5cf6); color: var(--tg-text); background: rgba(139,92,246,.18); }
+.tg-sticker-tabs img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+.tg-sticker-tabs span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-pack-remove { grid-column: 1 / -1; justify-self: start; margin-top: 6px; }
