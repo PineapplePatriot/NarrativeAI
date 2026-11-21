@@ -338,3 +338,14 @@ class ScreenDocumentProposal(models.Model):
 
     class Meta:
         ordering = ("-pk",)
+
+
+class PulseReminder(models.Model):
+    event = models.OneToOneField(ScreenEntry, on_delete=models.CASCADE, related_name="pulse_reminder")
+    event_revision = models.PositiveIntegerField()
+    due_at = models.DateTimeField(db_index=True)
+    clock = models.CharField(max_length=8, default="real")
+    enabled = models.BooleanField(default=False, db_index=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    checked_at = models.DateTimeField(null=True, blank=True)
+    fingerprint = models.CharField(max_length=64)

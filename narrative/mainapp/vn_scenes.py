@@ -473,7 +473,7 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
 
 
 def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False,
-                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay"):
+                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
@@ -486,6 +486,16 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         raise ai_client.AIError("Pick at least one character for the scene.")
 
     context = vn_support.scene_context(user, thread)
+    if pulse_event:
+        # Freeze the plan at launch. Calendar edits cannot rewrite an episode already in progress.
+        context["clock"] = pulse_event["when_label"]
+        context["pulse_event"] = copy.deepcopy(pulse_event)
+        location_hint = location_hint or pulse_event["location"]
+        direction = (f"PULSE PLAN: {pulse_event['title']}\nScheduled time: {pulse_event['when_label']}\n"
+                     f"Place: {pulse_event['location']}\nPurpose: {pulse_event['purpose']}\n"
+                     "Stage this meeting at its scheduled time. Do not assume it already happened. "
+                     "Only the scheduled participants are present; group membership alone does not put someone in the room. "
+                     "This scene does not advance the phone's clock or mark the calendar plan completed.\n" + direction)
     u_name = context["user_name"]
     now_local = timezone.localtime(timezone.now())
     clock_str = context["clock"]
@@ -505,6 +515,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
             "authoring_mode": authoring_mode if authoring_mode in vn_story.AUTHORING else "roleplay",
             "user_participant": vn_story.user_participant(user, context),
             "phone_snapshot": copy.deepcopy(thread.data or {}) if thread else {}}
+    if pulse_event:
+        seed["pulse_event"] = copy.deepcopy(pulse_event)
     prompt = VN_SCENE_PROMPT.format(
         user=u_name,
         clock=clock_str,

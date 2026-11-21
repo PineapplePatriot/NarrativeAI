@@ -105,3 +105,12 @@ body:is([data-screen-wallpaper=moonlit-library],[data-screen-wallpaper=cloud-sta
  body:is([data-screen-wallpaper=moonlit-library],[data-screen-wallpaper=cloud-station],[data-screen-wallpaper=night-greenhouse]) .screen-home {background-position:72% center}
 }
 @media(prefers-reduced-motion:reduce) {.screen-app-tile,.screen-dock .dock-app-btn {transition:none}}
+
+/* Pulse agenda and invitations share the mini-app controls. */
+.pulse-agenda-group h3 {font-size:12px;color:var(--accent-soft);margin:22px 0 8px}
+.pulse-cast {margin:16px 0;border:1px solid var(--border-color);border-radius:12px;padding:8px 12px}
+.screen-mini-root .pulse-cast label {display:flex;flex-direction:row;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+.screen-mini-root .pulse-cast input[type=checkbox] {width:18px;min-height:18px;height:18px;accent-color:var(--accent-1)}
+.pulse-responses {margin-top:20px}.pulse-responses .screen-letter p {margin:8px 0}
+#vnPulsePlan {line-height:1.6}#vnPulsePlan p {margin:6px 0}
+.tg-sys-pill .tg-fmt-btn {margin:6px 0 0 8px;min-height:32px}

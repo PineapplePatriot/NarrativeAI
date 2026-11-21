@@ -340,7 +340,9 @@
     msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
-        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
+        var pulseLink = Number.isSafeInteger(Number(m.pulse_event_id)) && Number(m.pulse_event_id) > 0
+          ? '<button type="button" class="tg-fmt-btn" onclick="ScreenHome.openPulse(' + Number(m.pulse_event_id) + ',' + Number(t.id) + ')">View plan</button>' : '';
+        out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + pulseLink + "</div>");
         return;
       }
       var isUser = m.role === "user";
@@ -1229,6 +1231,17 @@
         if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
         return true;
       }).catch(function (error) { if (selection === threadSelectionRequest) alert(error.message); return false; });
+    },
+
+    refreshVisibleThread: function () {
+      var id = STATE.active_thread && STATE.active_thread.id, selection = threadSelectionRequest;
+      if (!id) return Promise.resolve(false);
+      return apiPost({action: "load_thread", thread_id: id}).then(function (res) {
+        if (selection !== threadSelectionRequest || STATE.active_thread?.id !== id || !document.getElementById('app-messenger').classList.contains('active')) return false;
+        STATE.active_thread = res.thread;
+        STATE.threads = STATE.threads.map(function (t) { return t.id === id ? Object.assign({}, t, {unread: 0}) : t; });
+        renderSidebar(); renderActiveThread(); return true;
+      }).catch(function () { return false; });
     },
 
     showMobileSidebar: function () {

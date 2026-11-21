@@ -4680,6 +4680,8 @@ def messenger_api(request):
     if request.method == "GET":
         action = request.GET.get("action") or "poll"
         if action == "poll":
+            from . import pulse
+            pulse.deliver_due(user=request.user, limit=100)
             u_prof = messenger.user_profile(request.user)
             threads = list(MessengerThread.objects.filter(user=request.user).prefetch_related("characters"))
             # Optional spontaneous check-in when enabled and user is on another page
@@ -5794,10 +5796,26 @@ def vn_scenes_api(request):
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
         if tid and t_obj is None:
             return JsonResponse({"error": "That chat no longer exists or is not yours."}, status=404)
+        pulse_event = None
+        if body.get("pulse_event_id") is not None:
+            from . import pulse, screen_apps
+            from .models import ScreenEntry
+            try:
+                event = ScreenEntry.objects.filter(owner=request.user, thread=t_obj,
+                    pk=screen_apps.positive(body["pulse_event_id"]), kind="event").first()
+                if not event:
+                    return JsonResponse({"error": "Pulse plan not found in this chat."}, status=404)
+                pulse_event = pulse.scene_seed(request.user, event, screen_apps.positive(body.get("pulse_event_revision")))
+            except ValueError as exc:
+                return JsonResponse({"error": str(exc)}, status=400)
         slugs = body.get("character_slugs") or []
         if not isinstance(slugs, list) or any(not isinstance(s, str) or s not in char_by_slug for s in slugs):
             return JsonResponse({"error": "Choose available scene characters."}, status=400)
         picked = [char_by_slug[s] for s in slugs if s in char_by_slug]
+        if pulse_event:
+            if any(s not in char_by_slug for s in pulse_event["participants"]):
+                return JsonResponse({"error": "A plan participant is no longer available."}, status=400)
+            picked = [char_by_slug[s] for s in pulse_event["participants"]]
         if not picked and t_obj:
             picked = list(t_obj.characters.all())
         if not picked:
@@ -5815,6 +5833,7 @@ def vn_scenes_api(request):
                 polish_enabled=bool(body.get("polish_enabled", False)),
                 interaction_mode=body.get("interaction_mode", "mixed"),
                 authoring_mode=body.get("authoring_mode", "roleplay"),
+                pulse_event=pulse_event,
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)

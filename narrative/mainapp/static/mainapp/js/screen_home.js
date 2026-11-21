@@ -12,7 +12,7 @@
   const descriptions = {
     files:'Documents, private scratchpads, and an archive of what was actually shared in this chat.',
     mail:'Longer correspondence with the participants of this chat. Draft, review, then deliver.',
-    pulse:'Keep plans for this story. Dates use your device’s timezone; plans do not send automatic messages.',
+    pulse:'Plan meetings, invite your chat cast, and prepare VN scenes. Confirmed plans can deliver free chat reminders.',
     wave:'A shared playlist and the voice notes already sent in this chat. Playback starts only when you press play.',
   };
   const S = {app:'home',thread:null,cache:new Map(),epochs:new Map(),selection:new Map(),dirtyThreads:new Set(),busy:false,errors:new Map(),tab:'documents',overview:null};
@@ -79,6 +79,7 @@
   }
   function editor(item) {
     const kind=kinds[S.app];
+    if(kind==='event' && selected()!=='new' && !item)return '<p class="screen-error" role="alert">This plan is no longer in this chat’s current list. Refresh the list or choose another plan.</p>';
     let html = item?.kind==='mail' ? mail(item) : field('Title','miniTitle',item?.title || '', 'input','maxlength="200"');
     if(kind==='document') {
       html+=`<label for="miniScope">Who can read it?<select id="miniScope" data-screen-field="miniScope"><option value="private" ${item?.data.scope!=='shared'?'selected':''}>Private scratchpad — only you</option><option value="shared" ${item?.data.scope==='shared'?'selected':''}>Shared with this chat’s characters</option></select></label>`;
@@ -89,11 +90,7 @@
           field('What should they change?','miniDocDirection','','textarea','maxlength="2000" placeholder="e.g. Add the supplies you agreed to bring, keeping the rest of the list."')+button('Request edit · uses model tokens','draft-document')+'</details>';
       }
     } else if(kind==='event') {
-      let when='';if(item?.data.when) {const d=new Date(item.data.when);when=new Date(+d-d.getTimezoneOffset()*60000).toISOString().slice(0,16);}
-      html+=field('When (your device’s local time)','miniWhen',when,'input','type="datetime-local" required');
-      html+=field('Place','miniLocation',item?.data.location || '','input','maxlength="200"');
-      html+=field('Notes','miniBody',item?.body || '','textarea','maxlength="30000"');
-      html+=`<label for="miniDone">Status<select id="miniDone" data-screen-field="miniDone"><option value="false" ${!item?.data.done?'selected':''}>Planned</option><option value="true" ${item?.data.done?'selected':''}>Done</option></select></label><p class="screen-muted">Visible to this chat’s characters. This records a plan; it does not confirm attendance or trigger a call.</p>`;
+      html+=PulseUI.fields(item,{field,button,date,clock:cache()?.pulse_clock});
     } else if(kind==='track') {
       html+=field('Artist','miniArtist',item?.data.artist || '','input','maxlength="200"');
       html+=field('Track link (optional)','miniUrl',item?.data.url || '','input','type="url" placeholder="https://…" maxlength="2000"');
@@ -154,13 +151,13 @@
     else {
       let entries=data.entries.filter(e=>e.kind===kind);
       if(kind==='event') entries=entries.slice().sort((a,b)=>new Date(a.data.when)-new Date(b.data.when));
-      html+=`<div class="screen-app-columns"><aside class="screen-card"><h2>${{document:'Documents',mail:'Correspondence',event:'Plans',track:'Playlist'}[kind]}</h2>${button('+ New '+{document:'document',mail:'subject',event:'plan',track:'track'}[kind],'new')}${entries.map(e=>`<button type="button" class="screen-record" data-action="select" data-id="${esc(e.id)}" aria-current="${String(e.id)===selected()}"><strong>${esc(e.title)}</strong><small>${esc(kind==='event'?(e.data.done?'Done · ':'')+date(e.data.when):kind==='document'?(e.data.scope==='shared'?'Shared with this chat':'Private scratchpad'):kind==='mail'?(e.data.messages||[]).length+' letters':e.data.artist || 'Track')}</small></button>`).join('')}${data.total>200?'<p class="screen-muted">Showing the latest 200 records in this chat.</p>':''}</aside><section class="screen-card">${editor(current())}</section></div>`;
+      html+=`<div class="screen-app-columns"><aside class="screen-card"><h2>${{document:'Documents',mail:'Correspondence',event:'Plans',track:'Playlist'}[kind]}</h2>${button('+ New '+{document:'document',mail:'subject',event:'plan',track:'track'}[kind],'new')}${(kind==='event'?PulseUI.agenda(entries,selected(),data.pulse_clock,{button,date}):entries.map(e=>`<button type="button" class="screen-record" data-action="select" data-id="${esc(e.id)}" aria-current="${String(e.id)===selected()}"><strong>${esc(e.title)}</strong><small>${esc(kind==='event'?(e.data.done?'Done · ':'')+date(e.data.when):kind==='document'?(e.data.scope==='shared'?'Shared with this chat':'Private scratchpad'):kind==='mail'?(e.data.messages||[]).length+' letters':e.data.artist || 'Track')}</small></button>`).join(''))}${data.total>200?'<p class="screen-muted">Showing the latest 200 records in this chat.</p>':''}</aside><section class="screen-card">${editor(current())}</section></div>`;
       if(kind==='track') {
         const voices=data.receipts.filter(r=>r.kind==='voice');
         html+=`<section class="screen-card" style="margin-top:22px"><h2>Voice archive</h2><p class="screen-muted">Voice notes already delivered in this chat. No offline calls or unheard audio are invented.</p>${voices.length?voices.slice().reverse().map(receipt).join(''):'<p class="screen-empty">Voice notes sent in TeleChat will appear here.</p>'}</section>`;
         const item=current(); if(item && url(item.data.url)) html+=`<p><a href="${esc(url(item.data.url))}" target="_blank" rel="noopener noreferrer" style="color:#c6b7f7">Open selected track on its service ↗</a></p>`;
       }
-      if(kind==='event' && data.legacy_events.length) html+=`<section class="screen-card" style="margin-top:22px"><h2>Plans mentioned in TeleChat</h2><p class="screen-muted">Original chat event notes. Dates may be informal; add a dated plan above when ready.</p>${data.legacy_events.map(e=>`<div class="screen-event ${e.done?'done':''}"><strong>${esc(e.title)}</strong><p class="screen-muted">${esc(e.when)} ${esc(e.notes)}</p></div>`).join('')}</section>`;
+      if(kind==='event' && data.legacy_events.length) html+=`<section class="screen-card" style="margin-top:22px"><h2>Plans mentioned in TeleChat</h2><p class="screen-muted">Original chat event notes. Dates may be informal; add a dated plan above when ready.</p>${data.legacy_events.map((e,index)=>`<div class="screen-event ${e.done?'done':''}"><strong>${esc(e.title)}</strong><p class="screen-muted">${esc(e.when)} ${esc(e.notes)}</p>${button('Use as new plan','pulse-import',`data-index="${index}"`)}</div>`).join('')}</section>`;
     }
     root.innerHTML=html;
     root.dataset.draftKey=draftKey();root.dataset.revision=String(current()?.revision || '');
@@ -192,13 +189,13 @@
     document.getElementById(roots[app])?.querySelectorAll('button,select,input,textarea').forEach(el=>el.disabled=true);
     try {
       const result=await request({...payload,thread_id:thread});
-      if(result.forwarded) S.dirtyThreads.add(thread);
+      if(result.forwarded || result.chat_changed) S.dirtyThreads.add(thread);
       const data=S.cache.get(thread);
       if(result.entry && data) {data.entries=data.entries.filter(e=>e.id!==result.entry.id);data.entries.unshift(result.entry);}
       if(result.proposal && data) {data.proposals=(data.proposals||[]).filter(p=>p.id!==result.proposal.id);data.proposals.unshift(result.proposal);}
       if(result.deleted && data) data.entries=data.entries.filter(e=>String(e.id)!==String(payload.id));
       await onSuccess?.(result,thread,app);
-      toast(result.proposal?.status==='pending'?'Edit proposal ready. The saved document is unchanged.':result.draft?'Reply preview ready. Review it before delivery.':result.forwarded?'Copy sent to TeleChat. No reply was generated.':'Saved.');
+      toast(result.pulse_seed?'Scene setup prepared. Launch it when ready.':result.chat_changed?'Invitation updated in TeleChat.':result.proposal?.status==='pending'?'Edit proposal ready. The saved document is unchanged.':result.draft?'Reply preview ready. Review it before delivery.':result.forwarded?'Copy sent to TeleChat. No reply was generated.':'Saved.');
       overview();
     } catch(error) {S.errors.set(key,{message:error.message,current:error.current});}
     finally {S.busy=false;if(roots[S.app]) render();}
@@ -214,9 +211,11 @@
     if(action==='home') return TG.switchApp('home');
     if(action==='refresh') return load(true);
     if(action==='source') return openSource(el.dataset.id);
+    if(action==='pulse-check') {const result=await request({action:'pulse_tick'});ScreenHome.remindersDelivered(result);if(S.app==='pulse')await load(true);if(!result.delivered)toast('No reminders are due.');return;}
     if(S.busy) return;
     if(action==='tab') {S.tab=el.dataset.tab;return render();}
     if(action==='select'||action==='new') {S.selection.set(selectKey(),action==='new'?'new':el.dataset.id);S.errors.delete(selectKey());return render();}
+    if(action==='pulse-import'){const note=cache()?.legacy_events[Number(el.dataset.index)];if(!note)return;const newKey='apps:'+S.thread+':pulse:new';if(Object.keys(ScreenDrafts.get(newKey)).length && !confirm('Replace the unsaved new plan with this chat note?'))return;ScreenDrafts.put(newKey,{miniTitle:String(note.title || 'Chat plan').slice(0,200),miniBody:String(note.notes || '')+'\nOriginal time note: '+String(note.when || ''),miniWhen:'',pulseClock:'chat'});S.selection.set(selectKey(),'new');render();toast('Choose the date, participants and reminder before saving this chat note.');return;}
     const item=current(), key=draftKey();
     if(action==='reload-record') {
       const saved=S.errors.get(selectKey())?.current;
@@ -226,7 +225,7 @@
     if(action==='save') {
       const kind=kinds[S.app];let details={};
       if(kind==='document') details={scope:value('miniScope')};
-      if(kind==='event') {const d=new Date(value('miniWhen'));if(Number.isNaN(+d)) return toast('Choose a valid date and time.');details={when:d.toISOString(),location:value('miniLocation'),done:value('miniDone')==='true'};}
+      if(kind==='event') details=PulseUI.read(item);
       if(kind==='track') details={url:value('miniUrl'),artist:value('miniArtist')};
       const selectedAtStart=selectKey();
       if(!item && selected()!=='new') return toast('This saved record is no longer listed. Copy your draft before starting a new record.');
@@ -234,6 +233,7 @@
     }
     if(!item) return;
     const base={id:item.id,revision:item.revision};
+    if(action.startsWith('pulse-'))return PulseUI.handle(action,item,{mutate,base,toast,key});
     if(['draft-document','apply-proposal'].includes(action)) {
       if(value('miniBody')!==item.body || value('miniTitle')!==item.title || value('miniScope')!==item.data.scope)
         return toast('Save your document changes before requesting or applying a character edit.');
@@ -291,6 +291,14 @@
     const wanted=query.get('app') || (query.has('thread')||query.has('char')?'messenger':'home');
     TG.switchApp(document.getElementById('app-'+wanted)?wanted:'home');
     document.addEventListener('telechat-rendered',()=>{if(S.app==='home') home();});
-    window.ScreenHome={state:S,open:app=>TG.switchApp(app)};
+    window.ScreenHome={state:S,open:app=>TG.switchApp(app),async openPulse(id,threadId){S.thread=String(threadId);S.selection.set(S.thread+':pulse',String(id));TG.switchApp('pulse');await load(true);},request,remindersDelivered(result){
+      (result.thread_ids || []).forEach(id=>S.dirtyThreads.add(String(id)));
+      (result.reminders || []).forEach(reminder=>{S.cache.forEach(data=>{const entry=data.entries.find(e=>e.id===reminder.id);if(entry)entry.schedule={...entry.schedule,...(reminder.expired?{enabled:false}:{delivered_at:reminder.delivered_at})};});
+        if(S.app==='pulse' && String(reminder.id)===selected()){const el=document.getElementById('pulseReminderState');if(el)el.textContent=reminder.expired?'The missed reminder expired; the plan has not been marked completed.':'Reminder delivered: '+date(reminder.delivered_at);}
+      });
+      const active=TG.state.active_thread;
+      if(result.delivered && S.app==='messenger' && active && (result.thread_ids || []).includes(active.id))TG.refreshVisibleThread();
+      if(result.delivered)toast(result.delivered+' Pulse reminder(s) delivered to chat.');
+    }};
   });
 })();

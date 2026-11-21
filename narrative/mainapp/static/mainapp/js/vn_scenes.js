@@ -159,6 +159,7 @@
     },
 
     openLaunchModalFromChat() {
+      this.pendingPulse = null;
       const t = TG.state.active_thread;
       const existing = this.activeScene();
       TG.switchApp("scenes");
@@ -167,6 +168,17 @@
       if (!TG.state.vn_scenes.active_scene) {
         document.getElementById("vnLocationHintInput")?.focus();
       }
+    },
+
+    async preparePulse(seed) {
+      if(this.busy || this.activeScene()) throw new Error('Save or finish the open episode before preparing a Pulse scene.');
+      const selected=await TG.selectThread(seed.thread_id);
+      if(selected===false) throw new Error('Chat selection changed. Reopen the plan from Pulse.');
+      if(this.busy || this.activeScene()) throw new Error('An episode is already open. Save or finish it first.');
+      this.pendingPulse=seed;
+      const key='launch:'+seed.thread_id;
+      ScreenDrafts.put(key,{...ScreenDrafts.get(key),location:seed.location,auto_images:false});
+      this.tab='stage';TG.switchApp('scenes');this.render();
     },
 
     async launchFromActiveThread(btnEl) {
@@ -193,6 +205,7 @@
         const data = await this.apiPost({
           action: "start_scene",
           thread_id: t.id,
+          ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
           auto_generate_sprites: autoImages,
           direction,
@@ -200,6 +213,7 @@
           interaction_mode: interactionMode, authoring_mode: authoringMode,
         });
         TG.state.vn_scenes = data.vn_scenes;
+        this.pendingPulse = null;
         this.autoGenSprites = !!data.scene.auto_generate_sprites;
         window.ScreenDrafts?.clear('launch:' + t.id);
         if (data.char_sprites) {
@@ -653,6 +667,7 @@
                   ✨ <strong>Recent chat cue:</strong> <em>"${this.attr(cue.reason)}"</em>
                 </div>
               ` : ""}
+              ${this.pendingPulse ? `<div class="screen-preview" id="vnPulsePlan"><strong>Pulse plan: ${this.attr(this.pendingPulse.title)}</strong><p>${this.attr(this.pendingPulse.when_label)} · ${this.attr(this.pendingPulse.location)}</p><p>${this.attr(this.pendingPulse.purpose)}</p><small>Uses only the plan’s invited cast. Preparing this screen is free; launching generates the episode. The phone clock stays unchanged.</small></div>` : ''}
               <div class="tg-field-group">
                 <label>Where are you meeting up? (optional — leave blank for the model to pick from your chat)</label>
                 <input type="text" class="tg-input" id="vnLocationHintInput" data-screen-field="location" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
@@ -672,7 +687,7 @@
               </label>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="tg-fmt-btn" onclick="TG.switchApp('messenger')">← Back to TeleChat</button>
-                <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread(this)">🎬 Launch Meet-Up Scene ➤</button>
+                <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread(this)">🎬 Launch Meet-Up Scene · uses model tokens ➤</button>
               </div>
             </div>
           </div>

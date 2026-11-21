@@ -35,10 +35,11 @@ chat as read. Existing `?thread=…` and `?char=…` links still open TeleChat d
   persona, lore and model writing rules, followed by an email presentation contract.
   Correspondence is separate from TeleChat until explicitly forwarded. There is no
   real email service, address book, CC/BCC, or implied read receipt.
-- **Pulse:** dated plans, locations, notes and planned/done status. Dates use the
-  device's local time and are stored with a timezone. Open plans enter only the
-  selected chat's context as plans, not evidence of attendance or present location.
-  Original informal TeleChat event notes remain visible separately.
+- **Pulse:** one-off agendas with real/story clocks, selected participants, invitation
+  replies and recorded status. Confirmed plans can prepare a VN launch with their
+  exact cast, time, place and purpose, and opt into free chat reminders. The server
+  timer supports offline delivery; older informal chat event notes can seed a dated
+  plan after user review. See `pulse-scheduler-handoff.md` for state and clock rules.
 - **Wave:** persisted track titles, artists, links and mood notes, plus the source
   chat's existing voice archive. Songs open on their external service. Saved voice
   audio uses native controls and no autoplay. Missing audio/photos link back to
@@ -83,16 +84,15 @@ has been performed here. Apply migrations before opening the new apps.
 
 ## Deliberately deferred
 
-No scheduled/offline character calls, automatic calendar messages, invented live
-locations or "currently listening" activity. Those need an explicit simulation
-clock/job system, spending controls and delivery semantics. No automatic unlock of
-private character scratchpads, trust score, or forced drama. Character document
-edits require a user request and review; autonomous edits remain follow-up work.
+Pulse's server timer delivers system reminders without model calls. Recurring
+plans, routine editors, automatic character-authored calls/messages, trust unlocks
+and external calendar integrations remain follow-up work. Character document
+edits still require a user request and review.
 
 No CC/BCC mail audiences yet: correspondence belongs to the selected chat's cast.
 Mail previews spend one model call only on the labelled button; model quality has
-not been tested with paid requests. New shared document/calendar context currently
-feeds TeleChat; a dedicated historical snapshot for VN remains follow-up work.
+not been tested with paid requests. Shared document context currently feeds TeleChat. Pulse plans have a dedicated
+historical snapshot when they launch a VN episode.
 
 The archive is a live view of source messages, not a durable duplicate backup;
 deleting a message removes its archive item. It displays the latest 200 media
@@ -123,7 +123,7 @@ at 390px and 1280px. Model requests are mocked/blocked. Existing integrated VN a
 lore/browser edge checks also run with `?app=messenger` so their direct-chat entry
 point remains explicit.
 
-The affected backend suite passes 124 tests, including preservation of unread
+The affected backend suite passes 143 tests, including preservation of unread
 messages when opening Home. App model/audio validation used mocked responses. The wallpaper assets were
 generated separately with the image-generation tool; no OpenRouter generations
 were used for validation.
@@ -156,3 +156,5 @@ verify assets, layout, focus, persistence and storage denial at 320, 390, 768,
 1024 and 1280 px. The mini-app, Drive proposal, VN/lore workflow and edge browser
 checks also pass at phone/desktop widths. The 124-test backend baseline was unchanged
 by this visual pass.
+
+Pulse scheduler and VN integration details: [pulse-scheduler-handoff.md](pulse-scheduler-handoff.md).
