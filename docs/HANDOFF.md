@@ -1,9 +1,8 @@
-# Handoff for the next Claude session (written 11 November 2026)
+# Handoff for the next Claude session (written 21 November 2026)
 
-Read this first. It replaces the 13 October handoff; that version (`git show 6014b51:docs/HANDOFF.md`) has the long write-up of Bulba Watch, polish, director's notes, recall, story
-systems and the older decisions. Those still hold; they're summarised briefly below.
-`docs/ROADMAP.md` is the public to-do list; `docs/bulba/PLAN.md` is Bulba's original design; `docs/research/` holds
-the research package, including the preset cookbook (`preset-instruction-cookbook.md`).
+Read this first. It replaces the 11 November handoff (`git show 61d8986:docs/HANDOFF.md` for that one, which has
+the longer history up to then). `docs/PLAN.md` is the working plan with every list the user sent and what was
+built; `docs/DEPLOY.md` covers Railway; `docs/ROADMAP.md` is the public to-do list.
 
 ## Premise
 
@@ -27,22 +26,28 @@ gunicorn. Graders use a demo account with **Il Dottore**. Testers are Ukrainian.
 - Taste rules: normal fonts; story extras mid-text; no forced randomness; Bulba avoids AI-speak; plainer, never
   fancier (polish must not add metaphors); characters are people, not types or tropes.
 
+- They keep notes in Telegram and send screenshots in batches of 5–10 items; work through a batch with a task list,
+  commit and push after each group, and end with a plain report (what changed, what was and wasn't checked, and
+  the questions that are theirs to answer).
+
 ## Rules for working in the repo
 
-- Branch: **`claude/vigilant-hawking-ea4zwf`**. The user merges it to `master` through PRs themselves; **don't open
-  a PR unless asked**. Push with `git push -u origin claude/vigilant-hawking-ea4zwf`.
-- At handoff the branch is **13 commits ahead of `master`** (counting this handoff) (master = `5370638`, PR #34). Everything listed under
-  "Not live yet" below is only on the branch until they merge.
-- Latest migration: `0032_second_character_name`. Railway runs migrations on deploy.
+- Branch: **`claude/zen-feynman-ta1yra`** (this session's). The user merges it to `master` through PRs themselves;
+  **don't open a PR unless asked**. At handoff `master` = `3650ea9` (PR #50) and the branch is 3 commits ahead
+  (the last three batches below); they were about to merge.
+- Latest migrations: `mainapp 0040_bulba_texting`, `users 0016_persona_pictures`. Nothing in the last batches
+  needed a migration. Railway runs migrations on deploy.
 - Commits end with the attribution lines from the session's system reminder. **No model identifiers** in commits,
-  code comments or docs.
-- Secrets only in Railway variables, never in chat, code or commits. The user's email is private.
-- `.gitignore` ignores `*.json` except the listed data folders (`mainapp/data/...`).
+  code comments or docs. Secrets only in Railway variables (`TELEGRAM_BOT_TOKEN` for Telegram sticker packs,
+  `STATS_USERS` for who sees the stats page). The user's email is private.
+- Commit only after the full suite passes (`... test --parallel 4 && git commit`), never chained with `;`.
+- Static files: CSS/JS links carry `?v=N`; bump them when you change a file (some use a timestamp instead).
+- Molfar.Vertep is AGPL: ideas only, never its code. No Gemini safety workarounds.
 
 ## Dev environment
 
 - venv: `python3 -m venv <scratchpad>/venv && pip install -r requirements.txt`. Tests from `narrative/`:
-  `python manage.py test mainapp users --parallel 4` → **1544 tests, all passing** at handoff (~100 s).
+  `python manage.py test mainapp users --parallel 4` → **1758 tests, all passing** at handoff (~2 min).
   With `--parallel`, a failing test can show only as `TypeError: cannot pickle 'traceback'`; then run serially in
   the background and poll the log (`until grep -q "^done" log; do sleep 5; done`).
 - Dev server **from `narrative/`**: `NARRATIVE_DATA_DIR=<scratchpad>/shots-data python manage.py runserver
@@ -54,6 +59,10 @@ gunicorn. Graders use a demo account with **Il Dottore**. Testers are Ukrainian.
 - The build machine **can't reach** OpenRouter, NanoGPT, ElevenLabs or most wikis: every AI feature is tested with
   faked responses. Real runs happen only on the user's side.
 - Static files carry `?v=N` cache numbers in templates: bump them when changing CSS (JS uses a timestamp).
+- Second test database for browser checks: `NARRATIVE_DATA_DIR=<scratchpad>/data python manage.py migrate`, then a
+  small server script that seeds the demo user and starts `runserver 127.0.0.1:8765 --noreload` (run it **from
+  `narrative/`**: the templates path is relative). Give the demo user a dummy `ConnectionProfile`, or the chat page
+  sends it to the welcome page.
 
 ## Map of the code (where things live)
 
@@ -76,117 +85,50 @@ gunicorn. Graders use a demo account with **Il Dottore**. Testers are Ukrainian.
   renderer: designed objects → text rules → speech colour tags → thoughts → extras slots → quotes → markdown →
   DOMPurify), `static/mainapp/css/chat_page.css`, `chat_skins.css`; Bulba's page `bulba.html` / `bulba.js`;
   tours in `narrative/static/js/tour.js` (fires a `na-tour` event on start/end).
+- **The Screen (TeleChat):** `mainapp/messenger.py` (thread data, prompts, turns, photos, stickers, memory, reminders,
+  scene tracking "📍 Right now", continuity check, stories, worldbook for texting, gallery, linked chats),
+  `views.messenger_api` (one endpoint, `action` switch), `static/mainapp/js/messenger.js` (the `TG` object),
+  `messenger.css`, `templates/mainapp/messenger.html`; Bulba's messenger mode `bulba/texting.py`.
+  `thread_data()` keeps **only known keys**: add a new field there or it's dropped on save.
+- Garden/cottage: `tomato_garden.py`, `tomato_house.py`, `static/mainapp/js/tomato_garden.js`.
+- Card search: `bulba/cardsearch.py` (Chub search + links, Janitor links; RisuRealm by file). Look contrast:
+  `chat_looks.readable()`. Uploaded backgrounds/music: `media_library.py` (`library/` on the volume) and the stats
+  page (`users/views.stats_library`).
 
-## Built before 13 October (short version; details in the old handoff)
+## Built in this session (12–21 November), all on the branch, most merged
 
-Setup progress and fast route; Bulba Watch (free checks every reply, a paid read every few replies, habit notes,
-taste learning, "getting the past wrong", reply pace, director-mode offer); Bulba's polish ("Fix this
-automatically", 🧹, Show original / Undo, turned-down rewrites remembered); in-chat Bulba sees what the AI saw and
-edits memory and text rules; director's notes; Condense; free recall; weather and time of day; music in the header
-and music that follows the scene; voice input; story systems (meters, clock, events, tables).
+The full lists are in `docs/PLAN.md` (iteration 2 and 3 sections). In short:
+- **Screen / TeleChat:** Bulba setup for texting (Modern AU or "As they are"), ideas, worldbook step, a persona
+  step, new pictures; replies typed at the character's pace, typos, leave on read, reactions as replies, several
+  messages before a reply, live "typing…" status; photos read by a vision model; photo moods (Daily, Sweet,
+  Playful, Flirty, Bold) and picture styles; expression references; a +1 in photos; scene tracking with
+  remembered places; reminders that fire; stories with posting habits, replies and reactions, memos after 48 h;
+  Gallery; stickers (packs, custom, Telegram packs, emoji panel); memory with "out of view / all"; linked chats;
+  a chat clock locked to the last message; the browser's time zone; the continuity check (with Bulba Watch);
+  profile pictures (the user's choice, and characters changing theirs rarely); translation; Bulba suggestions
+  everywhere (replies, pictures, statuses, bio, plans, art style).
+- **Chat page:** lore highlights with tooltips; tracker rewind on regenerate/swipe; summary "N of M"; picture
+  sizes (−/+); persona picture sized next to a cut-out sprite; loose colour tags fixed; readable custom looks.
+- **Bulba:** card focus, one person / several / a world, story- and chat-specific personas (in seven parts), card
+  search, web search in the messenger panel, the app map updated.
+- **Platform:** analytics (weekly from Sunday or Monday, minutes split at midnight, browser time zone), uploads
+  of backgrounds and radio music from the stats page, a ⚙ Setup menu in the top bar, the garden shelf and orders
+  given by hand, a calmer cottage, a winter banner, 429 retries, thinking settings dropped when refused.
 
-## Built from 13 October to 9 November (all merged and live, PRs #12–#34)
+## Next (the user's words: "send it off with GPT's work on VN for the next chat")
 
-- **Tours** in English and Ukrainian, "What's this?" with Bulba; one look across pages; pen menu in two tabs.
-- **Trackers** as a rail with slide-out cards; tracker tiles page; Bulba-designed **custom trackers** for any story
-  (look, colour, icon, what raises and lowers them, levels that steer the story, automatic escalation).
-- **Accounts**: email verification and password reset (Brevo), login by email, delete account, encrypted keys,
-  login limit, admin off unless `DJANGO_ADMIN=1`, usage stats page with backup download and `restore_backup`.
-- **Bulba**: notebook page; looks at pictures; edits utility prompts; refusals retried on other models (Gemini 4
-  Argon, then DeepSeek V4 Flash; MiMo stands in for the chat model); one action at a time.
-- **Writing**: experience presets on two family bases with modules (adapted from Pura, Sola, Realistic
-  Frankenstein; Heartstrings default; Storybook style); Quick setup page; thinking in plain words; read in another
-  language (stories written in English, translated); chat styles (Parchment, Neon, Lab, Romance); chat memory
-  slider with costs; NanoGPT as a second provider; Gemini safety settings as SillyTavern sends them.
-- **Fun**: the 🍅 tomato to throw during waits, the secret Tomato Pit with skins and achievements.
+1. **Plan E: story systems with story memory.** See "Next: story systems with story memory" in `docs/PLAN.md`
+   (one trust instead of two, gates, knowledge triggers, scene clocks, promises coming due, familiar faces,
+   chapter cards). Ask which to build first; nothing is built yet.
+2. **Visual Novel mode:** another assistant (GPT) is working on it in a separate branch; the user will bring it.
+   Its "moments" were meant to go into Moments; parked until then.
+3. **Background cut-out on picture generation:** undecided. Green screen is risky for sprites (contrast); rembg
+   costs roughly 200–400 MB of memory while it works; a plain white background is the cheap middle way. Ask.
 
-## Built 10–11 November (this session; on the branch, **not live yet** unless noted)
+## Never run against the real services yet (check on live, they're where things may break)
 
-Testing batches 2–5 (from the user's live tests) were merged earlier; these came after master `5370638`:
-
-1. **Stuck replies recover**; log out moved to the profile; the tomato steps aside.
-2. **Two characters in one card**: a name for the second, both pictures with the speaker highlighted (migration
-   0032), Bulba support.
-3. **Pictures of their own character**: on the profile, in the chat scene with their mood, offered by Bulba.
-4. **Setup order**: Bulba's full setup makes the character first, then the persona ("who you are in that story").
-   `STAGES = extras, taste, preset, character, persona, story, done`.
-5. **Model confusion fixes**: the story AI only knows the persona (never the login, fallback "Stranger"); no
-   phantom "continue"; a clear "write my character" rule; no "What will X do?" question endings.
-6. **Consistency**: AI-designed objects keep their look (first design of each kind remembered per chat and shown to
-   the AI; editing one replaces it); "woven" inner-thoughts option; polish says plainer, never fancier.
-7. Bulba's panel tidies up after setup; **several pictures at once** with Add and Send.
-8. **MiMo thinking fix**: its provider now refuses `reasoning.effort: "medium"` (only none/high). Profile and
-   starters use "high"; `ai_client._fit_effort` maps any refused level to the nearest accepted one.
-9. **Speech colours** (`speaker_colors.py`; replaces the old "Coloured speech" basics question, whose lines are
-   removed from presets by `basics.drop_retired`):
-   - Per character (`theme["speech"]`): **"story"** (the AI writes named tags from our 16-name palette,
-     `<plum>"..."</plum>`; the cast list and the user's colour go into StoryState every request; side characters
-     take a free colour; Write for me is told the user's colour) or **"app"** (one colour for all speech, the AI is
-     never told; the app colour beats any colour the AI wrote). Old characters without the key stay on "app".
-   - Each palette colour has a dark-style and a light-style shade (`body.light-style` on parchment/lab).
-   - The user's own colour (`theme["you_color"]`) paints speech in their messages in both modes.
-   - Optional **tone marks** (`<plum:whisper>`): whisper, shout, drawl, tremble, sharp.
-   - Bulba's look step (`propose_theme`) sets story colours by default for new characters, and colours the greeting
-     (written before the look) with the character's colour. The theme card shows one sample line per speaker.
-   - Pen menu → This chat: Story colours / One colour chips, cast list with colour circles, your colour; no more
-     native colour picker. A half-written tag stays hidden while streaming (no more colour flip at the closing quote).
-10. **Quick setup**: boxes in a row line up (CSS subgrid); room under the "Let Bulba do it" buttons; **13 new
-    genres** (Adventure, Mystery, Suspense, Horror, Drama, Action, Intrigue, Survival, Found family, Whimsical,
-    Psychological, Grimdark, Dark romance), shown in two groups, **Mood** and **Kind of story**, in both forms.
-11. **Music waits for the chat tour**: silent while the first-visit tour is open, starts when it ends or is closed;
-    a tour opened later pauses and resumes it.
-12. **🧹 on an already polished reply** runs another pass on the polished text (each pass has its own limits: 12
-    fixes, 40% or 300 characters); fixes add up and the model's original stays for Undo.
-
-## Decisions the user made recently
-
-- Speech colours: two ways (app colour, or story colours done purely by the AI's tags); the user's colour in
-  both; our own palette names; new characters start on story colours; small colour drift is fine (no app
-  correction); tone marks yes.
-- Genres split into Mood / Kind of story; more genres later when needed. Dark romance sits in the normal list
-  (asked whether it should be behind 18+: no answer yet).
-- 🧹 may run again on a polished reply.
-- Setup: character before persona; the persona can belong to the story.
-
-## Answers the user gave at the end of this session
-
-- Polish lost after rotation, and the panel during onboarding: small temporary bugs, **drop them**.
-- Name fallback: the persona name, else their name, else **the login, only then** (`prompt_names`, `cards.user_name`;
-  "Stranger" only when there isn't even a login). Done.
-- Speech colours belong to the **character**. Done (that's how it's built).
-- Thinking **on** by default: already so (DeepSeek "medium", MiMo "high" in their starters; Pico stays off on purpose).
-- Ukrainian interface: later.
-- Dark romance behind 18+: not answered.
-
-## Open: 24 moods (asked; plan proposed, not built)
-
-The user wants **24 mood pictures** instead of 8, more range (normal ones, plus e.g. "aroused" behind the 18+
-switch), shown in **a separate window** so the page stays compact. Today each mood is its own ImageField
-(`photo_<mood>`) on `Character`, again for `photo_second_*`, on the template model and `persona_photo_*` on the
-user; the list is repeated in `views.SPRITE_EMOTIONS`, `forms.py`, `seed_demo.py`, `add_character.js`, `bulba.js`
-(MOODS), the emotion-pick prompt (views ~1454) and `bulba/tune.py` (offer_mood_pictures).
-Proposed: keep the 8 fields; add the extra 16 in one JSON field per owner (`extra_moods: {mood: file path}`) with
-one helper that returns a picture for any mood (falls back to the nearest of the 8, then neutral); one list of 24 in
-one module; the emotion pick offers only moods that have a picture; making all 24 costs ~3× (Bulba asks first and
-can make just a few); a "More moods" window on the character page. Needs the user's mood list (and which are 18+).
-
-## Open: does editing a message update the summary?
-
-No. Deleting drops the summary pieces that covered the deleted messages; editing changes only the message, so a
-summary piece that covered it keeps the old version. (Each piece can be re-run by hand in the summary panel.)
-Asked the user whether editing a covered message should offer "Update the summary" (re-run that piece) or do it
-automatically.
-
-## Next steps
-
-1. After the user merges: live checks of the setup order (character → persona), no login or "What will…?"
-   endings, designed-object memory, speech colours with MiMo over 10+ replies (do tags stick? do side characters
-   pick new colours?), the music/tour behaviour on a phone, MiMo thinking on "high".
-2. If MiMo forgets colour tags: add a one-line reminder right before each reply (the way the 18+ rule works).
-3. Planned: pictures for a chat's own persona; the user's picture dims while only the character talks.
-4. Older leftovers: Storybook export; verify OpenRouter IDs for some model profiles; cookbook parts not in yet.
-
-## Never run against real services (check in live tests)
-
-Everything above from 10–11 November, plus: speech-colour tags with each model; tone marks; the greeting colouring
-on a real Bulba setup; second 🧹 passes; the cost of Watch reads and polish passes; NanoGPT pictures and web search.
+- Card search on Chub (its search address isn't documented and may have moved) and Janitor links (may be blocked
+  for servers, or the card hidden). From the build machine both answered 403.
+- Reminders firing (only while some page of the site is open), the continuity check, story replies, Telegram
+  sticker packs (`TELEGRAM_BOT_TOKEN`), uploads on the stats page (`STATS_USERS` or staff), status pictures.
+- Everything AI-driven was tested with faked responses only.

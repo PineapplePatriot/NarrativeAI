@@ -328,6 +328,12 @@ a +1 in photos (on by default in groups); the continuity check (with Bulba Watch
 step, adapted from the roleplay lorebook); "📍 Right now" scene tracking used by every photo and the replies.
 Visual Novel moments: parked (another branch).
 
+### 21 November: last batches before the hand-off (all built)
+Picture sizes and the persona picture height; sticker packs as tabs; "As they are" setup with a persona step; the
+⚙ Setup menu; uploads from the stats page; readable custom looks; Screen memory "out of view / all"; My own object
+on the Extras page; chat personas in seven parts (and Bulba setting one for just a chat); status pictures; the
+model pill removed. The ElevenLabs voice id on the Screen already existed. Next: see `docs/HANDOFF.md` → Next.
+
 ## Later / parked
 
 - The guided tours in more languages.
