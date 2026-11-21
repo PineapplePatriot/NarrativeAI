@@ -357,10 +357,13 @@ def _linkable_chats(user, current):
             continue
         parts = chats.summary_parts(data, len(msgs))
         upto = chats.summary_upto(parts)
+        mem = story_memory.linked_text(data.get("memory"))
         out.append({"id": chat.id, "title": chat.title, "character": chat.character.name, "count": len(msgs),
                     "tokens": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs),
                     "has_summary": bool(parts), "summary_upto": upto,
                     "tokens_rest": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs[upto:]),
+                    "milestones": story_memory.milestone_count(data.get("memory")) if mem else 0,
+                    "memory_tokens": samplers.approx_tokens(mem) if mem else 0,
                     "updated": chat.time_update.strftime("%Y-%m-%d")})
     return out
 
@@ -371,6 +374,11 @@ def _link_chat(user, other, how):
     data = chats.read(other)
     msgs = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
     parts = chats.summary_parts(data, len(msgs))
+    if how == "memory":  # its milestones, people and relationships as they are: nothing to summarize
+        text = story_memory.linked_text(data.get("memory"))
+        if text:
+            return text.strip()[:16000], "memory"
+        how = "anew"
     if how == "append" and parts:
         earlier, start = chats.summary_text(parts), chats.summary_upto(parts)
     else:
@@ -1517,7 +1525,8 @@ def chat(request, slug):
                 _, summary_model = ai_client.resolve(request.user, "summary")
                 return JsonResponse({"success": True, "count": count, "summary": chats.summary_text(parts),
                                      "summary_upto": chats.summary_upto(parts), "summary_model": summary_model,
-                                     "has_trackers": bool((tracker_state or {}).get("values"))})
+                                     "has_trackers": bool((tracker_state or {}).get("values")),
+                                     "milestones": story_memory.milestone_count(chat_state["memory"], count)})
 
             summary_mode = data.get("summary_mode", "transfer")
             if summary_mode == "rerun":
@@ -1547,6 +1556,12 @@ def chat(request, slug):
                 "current_bg": chat_state["current_bg"],
                 "current_music": chat_state["current_music"],
             }
+            # 🧠 story memory: the milestones up to here come along (a scene cut in half is marked to look at again)
+            if data.get("memory_mode", "keep") == "keep" and story_memory.milestone_count(chat_state["memory"], count):
+                branch_data["memory"] = story_memory.trim_to(chat_state["memory"], count)
+                branch_data["summary_mode"] = "memory"
+            elif chat_state.get("summary_mode"):
+                branch_data["summary_mode"] = chat_state["summary_mode"]
             title = f"{chat_obj.title} ⑂ {chat_obj.branches.count() + 1}"[:200]
             branch = chats.create(character, title, branch_data, parent=chat_obj, branch_point=count)
             return JsonResponse({"success": True, "go_to": branch.id})

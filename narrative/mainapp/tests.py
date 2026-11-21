@@ -1700,6 +1700,53 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         from mainapp.models import Chat
         return Chat.objects.get(id=resp["go_to"])
 
+    def give_memory(self):
+        """Two milestones (messages 0-3 and 3-5) and an arc over the first, in the chat file."""
+        from mainapp import chats
+        chat = self.character.chats.get(parent=None)
+        data = chats.read(chat)
+        data["summary_mode"] = "memory"
+        data["memory"] = {"version": 1, "upto": 5, "arcs": [{"id": "a1", "text": "The arc.", "from": 0, "to": 3, "milestones": ["m1"]}],
+                          "milestones": [{"id": "m1", "from": 0, "to": 3, "title": "The cellar", "summary": "They met.", "arc": "a1"},
+                                         {"id": "m2", "from": 3, "to": 5, "title": "The lab", "summary": "They argued."}],
+                          "facts": [{"text": "A secret.", "source": "m2"}], "people": [{"name": "Ivan", "identity": "a guard"}],
+                          "relationships": []}
+        chats.write(chat, data)
+        return chat
+
+    def test_branch_keeps_story_memory_up_to_the_branch_point(self):
+        self.build_story()
+        self.give_memory()
+        info = self.post({"action": "branch_info", "index": 3}).json()
+        self.assertEqual(info["milestones"], 2)  # m2 starts at 3, before message 4
+        data = self.chat_file(self.branch(summary_mode="clear"))
+        self.assertEqual(data["summary_mode"], "memory")
+        self.assertEqual([m["id"] for m in data["memory"]["milestones"]], ["m1", "m2"])
+        self.assertTrue(data["memory"]["milestones"][1]["stale"])  # cut in half: looked at again
+        data = self.chat_file(self.branch(summary_mode="clear", memory_mode="clear"))
+        self.assertFalse(data.get("memory"))
+
+    def test_deleting_scenes_drops_the_arc_that_told_them(self):
+        from mainapp import story_memory
+        self.build_story()
+        mem = story_memory.trim_to(self.chat_file(self.give_memory())["memory"], 0)
+        self.assertEqual((mem["arcs"], mem["milestones"]), ([], []))
+
+    def test_a_chat_can_remember_another_chats_story_memory(self):
+        from mainapp import chats
+        self.build_story()
+        old = self.give_memory()
+        new = chats.create(self.character)
+        self.url = self.url + f"?chat={new.id}"
+        listing = self.post({"action": "linkable_chats"}).json()
+        self.assertEqual(next(c for c in listing["chats"] if c["id"] == old.id)["milestones"], 2)
+        calls = len(self.all_calls)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "memory"}).json()
+        self.assertEqual(out["linked"][0]["how"], "memory")
+        self.assertIn("They argued.", out["linked"][0]["text"])
+        self.assertIn("Ivan: a guard", out["linked"][0]["text"])
+        self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
+
     def test_branch_transfer(self):
         self.build_story()
         original = self.character.chats.get()

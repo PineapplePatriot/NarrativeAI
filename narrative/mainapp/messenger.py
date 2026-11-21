@@ -1254,6 +1254,8 @@ def branch_chat(user, thread, message_id):
     raw.update({"messages": kept, "unread": 0, "regen_prev": [], "last_auto_at": None,
                 "pinned_id": data["pinned_id"] if any(m.get("id") == data["pinned_id"] for m in kept) else None,
                 "branch_of": {"thread_id": thread.id, "message_id": message_id, "title": thread.title}})
+    if data["memory_upto"] > len(kept):  # the memory also tells what came after the branch point: refresh it
+        raw.update({"memory_upto": len(kept), "memory_stale": True})
     branch = MessengerThread.objects.create(user=user, title=f"{thread.title or 'Chat'} · branch", is_group=thread.is_group, data=raw)
     branch.characters.set(list(thread.characters.all()))
     return branch

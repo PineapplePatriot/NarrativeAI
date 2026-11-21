@@ -556,6 +556,11 @@
                 <label class="branch-option"><input type="radio" name="branchSummary" value="rerun"> <span><strong>Re-run</strong>: summarize all <span class="branch-n"></span> messages again with <span id="branchModel"></span>. <em>Costs tokens</em>, more for long chats.</span></label>
                 <label class="branch-option"><input type="radio" name="branchSummary" value="clear"> <span><strong>Leave clear</strong>: start without a summary</span></label>
             </div>
+            <div class="branch-group" id="branchMemoryGroup" hidden>
+                <div class="branch-label">🧠 Story memory</div>
+                <label class="branch-option"><input type="radio" name="branchMemory" value="keep" checked> <span><strong>Keep</strong> the <span id="branchMilestones"></span> milestones up to here, with who's who, relationships and secrets (free)</span></label>
+                <label class="branch-option"><input type="radio" name="branchMemory" value="clear"> <span><strong>Start empty</strong></span></label>
+            </div>
             <div class="branch-group">
                 <div class="branch-label">📊 Trackers</div>
                 <label class="branch-option"><input type="radio" name="branchTrackers" value="copy" checked> <span><strong>Copy</strong> them as they were at this message</span></label>

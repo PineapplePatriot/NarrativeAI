@@ -109,10 +109,28 @@ def trim_to(memory, message_count):
         if m.get("to", 0) > message_count:
             m["to"], m["stale"] = message_count, True
     memory["facts"] = [f for f in memory["facts"] if f.get("source") not in gone]
+    # an arc that told any of the gone scenes would still tell them: it goes, its other scenes show on their own
+    broken = {a["id"] for a in memory["arcs"] if gone & set(a.get("milestones") or [])}
+    memory["arcs"] = [a for a in memory["arcs"] if a["id"] not in broken]
+    for m in memory["milestones"]:
+        if m.get("arc") in broken:
+            m.pop("arc", None)
     for r in memory["relationships"]:
         r["history"] = [h for h in r.get("history", []) if h.get("m") not in gone]
     memory["upto"] = message_count
     return memory
+
+
+def milestone_count(memory, message_count=None):
+    """How many milestones there are (that start before message_count, when given)."""
+    ms = clean(memory)["milestones"]
+    return len([m for m in ms if message_count is None or m.get("from", 0) < message_count])
+
+
+def linked_text(memory):
+    """Another chat's memory, for a chat that remembers it (🔗): the same block its own replies read."""
+    text = prompt_text(memory)
+    return text.split("\n", 1)[1] if text.startswith("[Story memory]") else text
 
 
 def mark_stale(memory, index):

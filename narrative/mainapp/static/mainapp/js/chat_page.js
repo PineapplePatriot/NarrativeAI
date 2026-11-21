@@ -1734,6 +1734,9 @@ function openBranchModal(index) {
             text.placeholder = d.summary ? '' : 'No summary covers these messages yet. You can write one here.';
             const pick = branchModal.querySelector(`input[name=branchSummary][value=${d.summary ? 'transfer' : 'clear'}]`);
             pick.checked = true;
+            document.getElementById('branchMemoryGroup').hidden = !d.milestones;
+            document.getElementById('branchMilestones').textContent = d.milestones || 0;
+            branchModal.querySelector('input[name=branchMemory][value=keep]').checked = true;
             document.getElementById('branchTrackersNote').textContent = d.has_trackers ? ''
                 : 'No tracker values were saved at this message yet, so the branch starts with empty trackers either way.';
             branchModal.classList.add('show');
@@ -1756,6 +1759,7 @@ function confirmBranch() {
             action: 'branch', index: branchIndex, summary_mode: mode,
             summary_text: document.getElementById('branchSummaryText').value,
             trackers_mode: branchModal.querySelector('input[name=branchTrackers]:checked').value,
+            memory_mode: (branchModal.querySelector('input[name=branchMemory]:checked') || {}).value || 'keep',
         }),
     })
         .then(r => r.json())
@@ -2241,7 +2245,7 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
         const d = await resp.json();
         if (!d.success) throw new Error(d.error || 'Could not load it.');
         const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
-        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${x.how === 'append' ? 'its summary + the rest' : 'summarized anew'})</small></p><p>${esc(x.text)}</p>`).join('')
+        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${({ append: 'its summary + the rest', memory: 'its story memory' })[x.how] || 'summarized anew'})</small></p><pre>${esc(x.text)}</pre>`).join('')
                 + '<p class="tool-help">Read before this chat\'s own summary, as things that happened.</p>') : '')
             + (d.memory ? block('🧠 Story memory', `<pre>${esc(d.memory)}</pre>`) : '')
             + block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
@@ -2749,7 +2753,7 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     let state = null;
     function draw() {
         list.innerHTML = state.linked.length ? state.linked.map(x => `<div class="linked-row"><span>🔗 <b>${escapeHtml(x.title)}</b> · ${escapeHtml(x.character)}
-            <small>${x.how === 'append' ? 'its summary + the rest' : 'summarized anew'} · ${escapeHtml(x.at || '')}</small></span>
+            <small>${({ append: 'its summary + the rest', memory: 'its story memory' })[x.how] || 'summarized anew'} · ${escapeHtml(x.at || '')}</small></span>
             <button type="button" class="link-btn" data-unlink="${x.chat_id}" title="Forget it here">✕</button></div>`).join('')
             : '<p class="tool-help">None yet.</p>';
         if (state.linked.length >= state.max) { pick.innerHTML = ''; return; }
@@ -2762,11 +2766,12 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
         const how = () => {
             const c = state.chats.find(x => String(x.id) === sel.value) || {};
             document.getElementById('linkedHow').innerHTML =
-                `<label><input type="radio" name="linkedHow" value="anew" ${c.has_summary ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
-                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append" checked> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
+                (c.milestones ? `<label><input type="radio" name="linkedHow" value="memory" checked> Its story memory as it is: ${c.milestones} milestones, who's who and relationships (free, ~${k(c.memory_tokens)} tokens for the AI to read)</label>` : '') +
+                `<label><input type="radio" name="linkedHow" value="anew" ${c.has_summary || c.milestones ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
+                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append" ${c.milestones ? '' : 'checked'}> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
             const warn = () => {
                 const v = (box.querySelector('input[name=linkedHow]:checked') || {}).value;
-                const t = v === 'append' ? c.tokens_rest : c.tokens;
+                const t = v === 'memory' ? 0 : v === 'append' ? c.tokens_rest : c.tokens;
                 document.getElementById('linkedWarn').textContent = t > 30000
                     ? `That's a long one (~${k(t)} tokens): it's summarized in pieces, which takes a while and costs more than a usual summary.` : '';
             };
