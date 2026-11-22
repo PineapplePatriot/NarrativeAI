@@ -430,3 +430,44 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 }
 .vn-end-options { flex-basis: 100%; border-top: 1px solid #465063; padding-top: 8px; }
 .vn-unavailable-sprite { width: 180px; min-height: 130px; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; background: rgba(15,23,42,.85); border-radius: 16px; color: #e2e8f0; }
+
+#vnLaunchTransition[hidden],
+#vnScenesRoot[hidden] {
+  display: none;
+}
+
+#vnLaunchTransition {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .8rem;
+  flex: 1;
+  min-height: 16rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+#vnLaunchTransition h2,
+#vnLaunchTransition p {
+  margin: 0;
+}
+
+#vnLaunchTransition p {
+  color: var(--tg-muted);
+}
+
+.vn-launch-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(167, 139, 250, .25);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vn-launch-spinner { animation: vn-launch-spin .9s linear infinite; }
+}
+
+@keyframes vn-launch-spin {
+  to { transform: rotate(1turn); }
+}

@@ -433,16 +433,16 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
         txt = str(rb["text"]).strip()
         before = copy.deepcopy(current)
         current = vn_story.advance_stage(current, rb.get("stage"), tracks, bgs)
-        sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip()
-        sp_low = sp_raw.lower()
+        sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip().strip("`").strip()
+        sp_low = sp_raw.casefold()
         narrator = rb.get("kind") == "narration" or sp_low in ("narrator", "narration", "system", "")
         user_speaks = sp_low == "user" and not narrator
         speaker_char = char_by_slug.get(sp_raw) or next((c for c in chars if sp_low in (
-            c.slug.lower(), c.name.lower(), messenger.char_profile(c)["display_name"].lower())), None)
+            c.slug.casefold(), c.name.casefold(), messenger.char_profile(c)["display_name"].casefold())), None)
         if user_speaks and authoring_mode != "director":
             raise ai_client.AIError("The model wrote for your character. Your previous scene is saved; try again.")
         if not narrator and not user_speaks and speaker_char is None:
-            raise ai_client.AIError("The model wrote dialogue for an unknown participant. Your previous scene is saved; try again.")
+            raise ai_client.AIError("The model wrote dialogue for someone outside the selected cast. Try again with the same setup.")
         stage_slug = str(rb.get("character_slug") or ("user" if user_speaks else speaker_char.slug if speaker_char else chars[0].slug))
         emotion = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
         if stage_slug == "user":

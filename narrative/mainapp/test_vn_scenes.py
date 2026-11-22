@@ -66,6 +66,16 @@ class EpisodeTests(TestCase):
         self.assertEqual(boxes[0]["speaker_slug"], self.char.slug)
         self.assertEqual(boxes[0]["character_slug"], other.slug)
 
+    def test_speaker_slug_accepts_code_fences_and_rejects_names_outside_the_cast(self):
+        boxes = vn_scenes._enrich_beats(self.user, [self.char], [
+            {"speaker_slug": "`MIRA`", "text": "I found the map."},
+        ])
+        self.assertEqual(boxes[0]["speaker_slug"], self.char.slug)
+        with self.assertRaisesMessage(ai_client.AIError, "outside the selected cast"):
+            vn_scenes._enrich_beats(self.user, [self.char], [
+                {"speaker_slug": "uninvited", "text": "I took the map."},
+            ])
+
     def test_generated_user_dialogue_is_rejected_instead_of_attributed_to_a_character(self):
         with self.assertRaises(ai_client.AIError):
             vn_scenes._enrich_beats(self.user, [self.char], [{"speaker_slug": "user", "text": "I agree."}])

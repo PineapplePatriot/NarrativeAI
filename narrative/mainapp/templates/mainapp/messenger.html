@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=40">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/screen_home.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
@@ -122,7 +122,7 @@
         <!-- Auto-Detected Meet-Up Scene Banner -->
         <div class="tg-meetup-banner" id="tgMeetupBanner" style="display:none">
           <div id="tgMeetupBannerText">🎬 Characters are talking about meeting up!</div>
-          <button type="button" class="tg-send-btn" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread(this)">🎬 Enter Visual Novel Scene ➤</button>
+          <button type="button" class="tg-send-btn" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread()">🎬 Enter Visual Novel Scene ➤</button>
         </div>
 
         <!-- Pinned Message Banner -->
@@ -224,6 +224,11 @@
         <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.returnToPhone()">Back to phone</button>
       </div>
       <div id="vnNotice" role="status" hidden></div>
+      <div id="vnLaunchTransition" role="status" hidden>
+        <span class="vn-launch-spinner" aria-hidden="true"></span>
+        <h2>Setting the stage…</h2>
+        <p id="vnLaunchDetail"></p>
+      </div>
       <div id="vnScenesRoot" aria-live="polite"></div>
       <audio id="vnAudioPlayer" loop preload="none"></audio>
     </section>
@@ -477,7 +482,7 @@
   <script src="{% static 'mainapp/js/screen_drafts.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/screen_lore.js' %}?v=2"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
-  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=5"></script>
+  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=6"></script>
   <script src="{% static 'mainapp/js/vn_editor.js' %}?v=2"></script>
   <script src="{% static 'mainapp/js/pulse.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/screen_home.js' %}?v=5"></script>

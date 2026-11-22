@@ -60,6 +60,14 @@ def prepare(user, scene, prompt, generation="normal"):
     latest = tail.partition("LATEST INPUT / DIRECTION FOR THIS STEP:")[2].partition("Return ONLY")[0]
     engine = start + "\n" + latest + "\nReturn ONLY a valid JSON object" + output if found and output_found else prompt
     engine += "\n" + mode_rules(scene) + "\nUse the preset's writing guidance within this JSON presentation format."
+    cast = [{"slug": c.slug, "name": c.name, "display_name": messenger.char_profile(c)["display_name"]}
+            for c in chars]
+    engine += (
+        "\nSCENE CAST (only these characters may speak, subject to the authorship mode above):\n"
+        + json.dumps(cast, ensure_ascii=False)
+        + "\nCopy the exact slug into speaker_slug. Use narrator for narration. "
+          "Mention anyone outside the selected cast in narration only."
+    )
     if scene.get("user_participant"):
         player = scene["user_participant"]
         engine += "\nUSER CHARACTER SPRITE CHOICES:\n" + json.dumps({"slug": "user", "name": player["name"],

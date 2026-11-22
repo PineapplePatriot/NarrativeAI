@@ -181,7 +181,22 @@
       this.tab='stage';TG.switchApp('scenes');this.render();
     },
 
-    async launchFromActiveThread(btnEl) {
+    showLaunchTransition(visible, autoImages = false) {
+      const transition = document.getElementById('vnLaunchTransition');
+      const root = document.getElementById('vnScenesRoot');
+      if (visible) {
+        document.getElementById('vnNotice').hidden = true;
+        document.getElementById('vnLaunchDetail').textContent = autoImages
+          ? 'Writing the opening scene. Generating missing expressions can take longer.'
+          : 'Writing the opening scene from your TeleChat conversation.';
+      }
+      root.hidden = visible;
+      transition.hidden = !visible;
+      if (visible) transition.scrollIntoView({block: 'start'});
+    },
+
+    async launchFromActiveThread() {
+      if (this.busy) return;
       const t = TG.state.active_thread;
       if (!t) {
         this.notify("Select a TeleChat conversation first.");
@@ -194,14 +209,10 @@
       const interactionMode = (document.getElementById("vnInteractionMode") || {}).value || "mixed";
       const authoringMode = (document.getElementById("vnAuthoringMode") || {}).value || "roleplay";
       const autoImages = !!document.getElementById('vnLaunchAutoSprites')?.checked;
-      const orig = btnEl ? btnEl.textContent : "";
-      if (btnEl) {
-        btnEl.disabled = true;
-        btnEl.textContent = "🎬 Setting the stage…";
-      }
+      this.tab = "stage";
+      if (!document.getElementById('app-scenes').classList.contains('active')) TG.switchApp("scenes");
+      this.showLaunchTransition(true, autoImages);
       try {
-        TG.switchApp("scenes");
-        this.tab = "stage";
         const data = await this.apiPost({
           action: "start_scene",
           thread_id: t.id,
@@ -227,9 +238,10 @@
       } catch (e) {
         this.notify(e.message, true);
       } finally {
-        if (btnEl) {
-          btnEl.disabled = false;
-          btnEl.textContent = orig;
+        this.showLaunchTransition(false);
+        const notice = document.getElementById('vnNotice');
+        if (notice.dataset.error === 'true' && document.getElementById('app-scenes').classList.contains('active')) {
+          notice.scrollIntoView({block: 'nearest'});
         }
       }
     },
@@ -687,7 +699,7 @@
               </label>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="tg-fmt-btn" onclick="TG.switchApp('messenger')">← Back to TeleChat</button>
-                <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread(this)">🎬 Launch Meet-Up Scene · uses model tokens ➤</button>
+                <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread()">🎬 Launch Meet-Up Scene · uses model tokens ➤</button>
               </div>
             </div>
           </div>

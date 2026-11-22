@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
       await page.route('http://vn.test/', route => route.fulfill({contentType: 'text/html', body:
-        '<div class="screen-hub-shell"><section id="app-scenes" class="screen-app-view active"><div id="vnScenesRoot"></div><audio id="vnAudioPlayer"></audio></section></div>'}));
+        '<div class="screen-hub-shell"><section id="app-scenes" class="screen-app-view active"><div id="vnNotice" hidden></div><div id="vnLaunchTransition" hidden><p id="vnLaunchDetail"></p></div><div id="vnScenesRoot"></div><audio id="vnAudioPlayer"></audio></section></div>'}));
       await page.goto('http://vn.test/');
       if (process.env.VN_TEST_BLOCK_STORAGE) await page.evaluate(() => {
         for (const name of ['sessionStorage', 'localStorage']) Object.defineProperty(window, name, {get() {throw new DOMException('Storage disabled in test', 'SecurityError');}});
@@ -81,9 +81,40 @@ const { chromium } = require('playwright');
       await page.waitForFunction(() => VN_SCENES.lastFinaleEntry);
       assert.equal(await page.evaluate(() => requests.at(-1).capture_image), false);
       assert.equal(await page.evaluate(() => TG.state.active_thread.id), 2, 'finishing must not replace a newer phone selection');
+      await page.evaluate(() => {
+        VN_SCENES.startAnotherScene();
+        const launchResponse = new Promise(resolve => { window.completeLaunch = resolve; });
+        window.fetch = () => launchResponse;
+      });
+      await page.locator('#vnWritingDirection').fill('Keep this draft.');
+      await page.getByRole('button', {name: /Launch Meet-Up Scene/}).click();
+      await page.locator('#vnLaunchTransition').waitFor({state: 'visible'});
+      assert.equal(await page.locator('#vnScenesRoot').isVisible(), false);
+      await page.evaluate(() => completeLaunch({
+        ok: false, status: 400, json: async () => ({error: 'The model returned an invalid cast.'}),
+      }));
+      await page.getByRole('alert').waitFor({state: 'visible'});
+      assert.equal(await page.locator('#vnLaunchTransition').isVisible(), false);
+      assert.equal(await page.locator('#vnWritingDirection').inputValue(), 'Keep this draft.');
+      await page.evaluate(() => {
+        const launchResponse = new Promise(resolve => { window.completeLaunch = resolve; });
+        window.fetch = () => launchResponse;
+      });
+      await page.getByRole('button', {name: /Launch Meet-Up Scene/}).click();
+      await page.locator('#vnLaunchTransition').waitFor({state: 'visible'});
+      await page.evaluate(() => {
+        const scene = {id: 'launched', title: 'The meeting', character_slugs: [],
+          beats: [{id: 'opening', kind: 'narration', speaker: 'narrator', text: 'The door opens.'}],
+          handoff: 'user_turn'};
+        completeLaunch({ok: true, json: async () => ({
+          scene, vn_scenes: {...TG.state.vn_scenes, active_scene: scene},
+        })});
+      });
+      await page.getByText('The door opens.', {exact: true}).waitFor({state: 'visible'});
+      assert.equal(await page.locator('#vnLaunchTransition').isVisible(), false);
       assert.deepEqual(errors, []);
       await page.close();
-      console.log(`VN renderer: choices, paragraphs, resume, completion and layout pass at ${width}px.`);
+      console.log(`VN renderer: choices, paragraphs, resume, launch recovery, completion and layout pass at ${width}px.`);
     }
   } finally {
     await browser.close();

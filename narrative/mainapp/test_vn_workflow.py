@@ -49,6 +49,9 @@ class EpisodeWorkflowTests(TestCase):
         with patch.object(ai_client, "complete", return_value=json.dumps(self.response())) as model:
             scene = vn_scenes.start_scene(self.user, self.thread)
         messages = json.dumps(model.call_args.args[2])
+        prompt = "\n".join(message["content"] for message in model.call_args.args[2])
+        self.assertIn("SCENE CAST", prompt)
+        self.assertIn(f'"slug": "{self.char.slug}"', prompt)
         self.assertIn("VOICE FOR Mira AND Rowan", messages)
         self.assertIn("Keeps the brass key", messages)
         self.assertIn("opens Gate Nine", messages)
