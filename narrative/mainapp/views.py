@@ -6217,6 +6217,7 @@ def vn_scenes_api(request):
                 interaction_mode=body.get("interaction_mode", "mixed"),
                 authoring_mode=body.get("authoring_mode", "roleplay"),
                 pulse_event=pulse_event,
+                generate_background=bool(body.get("generate_background", False)),
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)

@@ -219,6 +219,7 @@
           ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
           auto_generate_sprites: autoImages,
+          generate_background: !!document.getElementById("vnGenerateBackground")?.checked,
           direction,
           polish_enabled: polishEnabled,
           interaction_mode: interactionMode, authoring_mode: authoringMode,
@@ -234,7 +235,7 @@
         this.lastFinaleEntry = null;
         this.render();
         this.syncAudioTrack(!!document.getElementById('app-scenes')?.classList.contains('active'));
-        this.notify(data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!data.scene.polish_error);
+        this.notify(data.scene.background_error || data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error));
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -275,7 +276,7 @@
       const idx = Math.max(0, Math.min(this.beatIndex, sc.beats.length - 1));
       for (let i = idx; i >= 0; i--) {
         const b = sc.beats[i];
-        if (b && b.character_slug) {
+        if (b && b.character_slug && (b.character_slug !== "user" || sc.authoring_mode === "director")) {
           // The camera may show the listener while somebody else is speaking.
           return { ...b, speaker: b.character_slug, speaker_name: b.character_name || b.speaker_name };
         }
@@ -692,6 +693,7 @@
                 <label for="vnWritingDirection">Writing preferences (optional)</label>
                 <textarea class="tg-textarea" id="vnWritingDirection" data-screen-field="direction" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
               </div>
+              <label><input type="checkbox" id="vnGenerateBackground" data-screen-field="generate_background" checked> Generate a background for this location (uses image tokens)</label>
               <label><input type="checkbox" id="vnPolishEnabled" data-screen-field="polish"> Let Bulba polish the habits I approved before displaying each turn</label>
               <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#cbd5e1; cursor:pointer;">
                 <input type="checkbox" id="vnLaunchAutoSprites" data-screen-field="auto_images">

@@ -471,3 +471,12 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 @keyframes vn-launch-spin {
   to { transform: rotate(1turn); }
 }
+
+/* Keep the passage reachable at browser zoom and on short screens. */
+#app-scenes { min-width: 0; min-height: 0; }
+#vnScenesRoot { min-width: 0; }
+.vn-stage-wrap { flex: 0 0 auto; min-height: 100%; overflow: visible; }
+.vn-sprite-stage { flex: 0 0 auto; min-height: 100px; }
+.vn-central-sprite-img { max-height: min(28dvh, 280px); }
+.vn-dialogue-dock { flex-shrink: 0; }
+.vn-beat-text { overflow-wrap: anywhere; }

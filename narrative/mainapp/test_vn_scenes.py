@@ -50,6 +50,24 @@ class EpisodeTests(TestCase):
         self.assertNotIn("3 to 5", prompt)
         self.assertEqual(scene["context"]["clock"], vn_support.scene_context(self.user, self.thread)["clock"])
 
+    def test_roleplay_camera_uses_cast_and_director_can_show_player(self):
+        block = {"speaker_slug": "narrator", "character_slug": "user", "text": "The door opens."}
+        rp = vn_scenes._enrich_beats(self.user, [self.char], [block])
+        self.assertEqual(rp[0]["character_slug"], self.char.slug)
+        director = vn_scenes._enrich_beats(self.user, [self.char], [block], authoring_mode="director")
+        self.assertEqual(director[0]["character_slug"], "user")
+
+    def test_generated_background_reaches_opening_and_survives_provider_failure(self):
+        with patch.object(messenger, "make_picture", return_value=(b"image", None)):
+            scene = self.start(generate_background=True)
+        self.assertIn("vn_backgrounds", scene["beats"][0]["stage"]["background"]["url"])
+        self.assertEqual(scene["initial_stage"]["background"], scene["beats"][0]["stage"]["background"])
+        vn_scenes.save_vn_state(self.user, {"active_scene": None})
+        with patch.object(messenger, "make_picture", side_effect=ai_client.AIError("Unavailable")):
+            scene = self.start(generate_background=True)
+        self.assertTrue(scene["beats"])
+        self.assertIn("Unavailable", scene["background_error"])
+
     def test_splitting_preserves_long_prose_and_more_than_six_blocks(self):
         prose = ("The map had changed since winter; she checked its streets carefully. " * 40) + "\n\nA new paragraph."
         blocks = [{"speaker_slug": "narrator", "text": prose}] * 7

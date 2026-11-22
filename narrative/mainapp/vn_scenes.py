@@ -444,6 +444,8 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
         if not narrator and not user_speaks and speaker_char is None:
             raise ai_client.AIError("The model wrote dialogue for someone outside the selected cast. Try again with the same setup.")
         stage_slug = str(rb.get("character_slug") or ("user" if user_speaks else speaker_char.slug if speaker_char else chars[0].slug))
+        if stage_slug == "user" and authoring_mode != "director":
+            stage_slug = speaker_char.slug if speaker_char else chars[0].slug
         emotion = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
         if stage_slug == "user":
             stage_name = user_participant["name"]
@@ -473,7 +475,7 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
 
 
 def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False,
-                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None):
+                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
@@ -572,6 +574,27 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         "started_at": now_local.strftime("%d %b %H:%M"),
         "ts": time.time(),
     }
+    if generate_background:
+        opening = beats[0]["stage"]
+        location = opening.get("location") or scene["location"]
+        try:
+            image, cost = messenger.make_picture(user, (
+                f"Create an immersive visual novel background of {location}. "
+                f"Scene context: {beats[0]['text']}\n"
+                f"Setting details: {json.dumps(opening.get('continuity') or {}, ensure_ascii=False)}\n"
+                "Environment only, no people, no portraits, no lettering. Wide establishing shot."
+            ))
+            path = default_storage.save(
+                f"messenger/vn_backgrounds/{user.pk}/{uuid.uuid4().hex}.png", ContentFile(image))
+            generated_bg = {"id": "generated_" + scene["id"], "name": location,
+                            "url": default_storage.url(path)}
+            original_bg = opening.get("background")
+            for beat in beats:
+                for key in ("stage", "stage_before"):
+                    if beat[key].get("background") == original_bg:
+                        beat[key]["background"] = copy.deepcopy(generated_bg)
+        except ai_client.AIError as exc:
+            scene["background_error"] = "Episode ready, but the background could not be generated: " + str(exc)
     scene["initial_stage"] = copy.deepcopy(beats[0]["stage_before"])
     scene["current_stage"] = vn_story.finish_timeline(beats, parsed.get("continuity"))
     scene["continuity"] = scene["current_stage"]["continuity"]

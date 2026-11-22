@@ -46,6 +46,25 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('.vn-short-input').evaluate(el => el.tagName), 'TEXTAREA');
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
       assert.equal(overflow, false, `horizontal overflow at ${width}px`);
+      await page.locator('.vn-beat-text').scrollIntoViewIfNeeded();
+      const passage = await page.locator('.vn-beat-text').boundingBox();
+      assert(passage && passage.y >= 0 && passage.y + passage.height <= 844, 'passage can be read in viewport');
+      await page.evaluate(() => {
+        const scene = TG.state.vn_scenes.active_scene;
+        scene.beats[0].character_slug = 'user';
+        scene.beats[0].character_name = 'Rowan';
+        scene.authoring_mode = 'roleplay';
+      });
+      assert.equal(await page.evaluate(() => VN_SCENES.activeSpriteBeat()), null);
+      await page.evaluate(() => {
+        TG.state.vn_scenes.active_scene.authoring_mode = 'director';
+      });
+      assert.equal(await page.evaluate(() => VN_SCENES.activeSpriteBeat().speaker), 'user');
+      await page.evaluate(() => {
+        TG.state.vn_scenes.active_scene.authoring_mode = 'roleplay';
+        delete TG.state.vn_scenes.active_scene.beats[0].character_slug;
+      });
+
       await page.evaluate(() => {
         TG.state.vn_scenes.active_scene.beats.push({id: 'two', kind: 'narration', speaker: 'narrator', text: 'A second line.'});
         VN_SCENES.nextBeat();
