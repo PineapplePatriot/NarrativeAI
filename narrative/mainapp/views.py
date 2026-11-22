@@ -342,6 +342,19 @@ LINKED_CHATS = 3
 FAVOURITES = 60  # ⭐ starred messages kept per chat
 
 
+def _fav_places(favs, messages):
+    """⭐ Where each starred message is now: messages before it may have been deleted, so it's found by its text;
+    one that was edited away keeps its copy with "i": -1 (it shows in the list, not on a message)."""
+    texts = [speaker_colors.strip_tags(m[2]) if isinstance(m, (list, tuple)) and len(m) > 2 else "" for m in messages]
+    out = []
+    for f in favs:
+        i = f.get("i", -1)
+        if not (isinstance(i, int) and 0 <= i < len(texts) and texts[i] == f["text"]):
+            i = next((j for j, t in enumerate(texts) if t == f["text"]), -1)
+        out.append({**f, "i": i})
+    return out
+
+
 def _what_a_chat_has(data):
     """(text, kind) another chat already holds, for free: its story memory, else its summary; ("", "") if neither."""
     text = story_memory.linked_text(data.get("memory"))
@@ -1340,17 +1353,17 @@ def chat(request, slug):
             except (TypeError, ValueError, IndexError):
                 return JsonResponse({"success": False, "error": "No such message."})
             text = speaker_colors.strip_tags(msg[2])
-            had = [x for x in chat_state["favourites"] if x.get("i") == index and x.get("text") == text]
+            chat_state["favourites"] = _fav_places(chat_state["favourites"], messages)
+            had = [x for x in chat_state["favourites"] if x.get("i") == index]
             if had or data.get("remove"):
-                chat_state["favourites"] = [x for x in chat_state["favourites"]
-                                            if not (x.get("i") == index and (x.get("text") == text or data.get("remove")))]
+                chat_state["favourites"] = [x for x in chat_state["favourites"] if x.get("i") != index]
             else:
                 names = prompt_names(request.user, character, chat_state["persona"])
                 chat_state["favourites"] = (chat_state["favourites"] + [{
                     "i": index, "who": names["user"] if msg[0] == "user" else character.name, "role": msg[0],
                     "text": text[:20000], "at": datetime.now().strftime("%Y-%m-%d")}])[-FAVOURITES:]
             save_messages(messages)
-            return JsonResponse({"success": True, "favourites": chat_state["favourites"]})
+            return JsonResponse({"success": True, "favourites": chat_state["favourites"], "starred": not had})
         elif action == "ai_saw":  # the pen menu's "What the AI saw": summary, pinned note, trackers, lore
             from .bulba import memory
             return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
@@ -2313,7 +2326,7 @@ def chat(request, slug):
         "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
         "lore_terms": _lore_terms(character),  # 📖 lore terms highlighted in replies
-        "favourites": chat_state["favourites"],  # ⭐
+        "favourites": _fav_places(chat_state["favourites"], messages),  # ⭐ (where each one is now)
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
