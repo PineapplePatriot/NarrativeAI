@@ -882,13 +882,19 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
         raise AIError("Making pictures needs an OpenRouter or NanoGPT key (set it on the welcome page).")
     model = model or default_image_model()
+    ref_list = _normalize_references(reference, reference_type, references)
+    is_mai = model.startswith("microsoft/mai-image")
+    if is_mai and len(ref_list) > 1:
+        ref_list = ref_list[:1]
+        prompt += ("\nOnly the first reference image is attached. Use it for its labeled subject, "
+                   "and use the written descriptions for any other subjects.")
     content = [{"type": "text", "text": prompt}]
-    for raw, mime in _normalize_references(reference, reference_type, references):
+    for raw, mime in ref_list:
         url = f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
         content.append({"type": "image_url", "image_url": {"url": url}})
     # image-only models (MAI-Image) refuse a request that asks for text too; Nano Banana answers with both
     listed = next((m for m in _IMAGE_MODELS["list"] or [] if m["id"] == model), None)
-    image_only = (listed is not None and listed.get("text_out") is False) or model.startswith("microsoft/mai-image")
+    image_only = (listed is not None and listed.get("text_out") is False) or is_mai
     payload = {"model": model, "messages": [{"role": "user", "content": content}],
                "modalities": ["image"] if image_only else ["image", "text"], "usage": {"include": True}}
     try:

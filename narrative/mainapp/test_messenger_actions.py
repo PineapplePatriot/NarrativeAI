@@ -236,9 +236,17 @@ class PictureModelTests(TestCase):
         listed = [{"id": "microsoft/mai-image-2.7", "name": "MAI", "text_out": False, "takes_pictures": True}]
         with mock.patch("mainapp.ai_client.image_models", return_value=listed), \
              mock.patch("mainapp.ai_client.requests.post", side_effect=fake_post):
-            messenger.make_picture(user, "a selfie", references=[(png(), "image/png")])
-        self.assertEqual((sent["model"], sent["modalities"]), ("microsoft/mai-image-2.7", ["image"]))
-        self.assertEqual(sent["messages"][0]["content"][1]["type"], "image_url")  # the reference went along
+            primary = png("blue")
+            messenger.make_picture(user, "a selfie", references=[(primary, "image/png"), (png("red"), "image/png")])
+            self.assertEqual((sent["model"], sent["modalities"]), ("microsoft/mai-image-2.7", ["image"]))
+            content = sent["messages"][0]["content"]
+            self.assertEqual(len(content), 2)
+            self.assertIn("Only the first reference image is attached", content[0]["text"])
+            self.assertEqual(content[1]["image_url"]["url"], "data:image/png;base64," + base64.b64encode(primary).decode())
+            ai_client.generate_image(user, "a selfie", reference=primary, references=[(png("red"), "image/png")],
+                                     model="google/gemini-3-pro-image-preview")
+            self.assertEqual([part["type"] for part in sent["messages"][0]["content"]],
+                             ["text", "image_url", "image_url"])
 
 
 class RedoOneMessageTests(MessengerActionTests):
