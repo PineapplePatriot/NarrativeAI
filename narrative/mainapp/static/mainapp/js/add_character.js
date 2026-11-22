@@ -106,7 +106,7 @@ if (location.hash === '#spritesSection') {
         const resp = await fetch(box.dataset.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
-            body: JSON.stringify({ emotion: mood, second,
+            body: JSON.stringify({ emotion: mood, second, note: document.getElementById('spriteNote')?.value || '',
                                    model: document.getElementById('spriteModel').value || null }),
         });
         const data = await resp.json();

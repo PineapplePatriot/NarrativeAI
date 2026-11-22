@@ -307,3 +307,6 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .picture-row > button { grid-area: x; align-self: center; }
 .pk-chips { flex-wrap: wrap; }
 .picture-row .pk-more select { max-width: 100%; }
+.make-pictures .made-pic { position: relative; display: inline-block; }
+.make-pictures .made-redo { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0;
+    background: rgba(10, 12, 22, .75); color: #fff; cursor: pointer; font-size: 14px; line-height: 26px; padding: 0; }

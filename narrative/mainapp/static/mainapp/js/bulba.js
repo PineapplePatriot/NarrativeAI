@@ -799,7 +799,7 @@ $('log').addEventListener('click', async e => {
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
             made += 1;
-            progress.insertAdjacentHTML('afterend', `<img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}">`);
+            progress.insertAdjacentHTML('afterend', `<span class="made-pic"><img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}"><button type="button" class="made-redo" data-redo-picture="${esc(mood)}" title="Redo this one, saying what to change">↻</button></span>`);
         } catch (err) {
             progress.textContent = `Stopped at ${mood}: ${err.message}`;
             btn.disabled = false;
@@ -807,6 +807,26 @@ $('log').addEventListener('click', async e => {
         }
     }
     progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});
+
+// ↻ Redo one picture with a note (what was wrong isn't obvious to the image model)
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-redo-picture]');
+    if (!btn) return;
+    const box = btn.closest('.make-pictures'), mood = btn.dataset.redoPicture;
+    const note = prompt(`What should change in the ${mood} picture? (e.g. "her eyes are green", "no hat", "less smiling")`, '');
+    if (note === null) return;
+    const img = btn.parentElement.querySelector('img');
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const resp = await fetch(box.dataset.url, { method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ emotion: mood, second: !!box.dataset.second, note }) });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
+        img.src = `${data.url}?t=${Date.now()}`;
+    } catch (err) { alert(err.message); }
+    finally { btn.disabled = false; btn.textContent = '↻'; }
 });
 
 // Edit / save / cancel on a proposal

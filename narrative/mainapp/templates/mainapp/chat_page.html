@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=45">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=46">
     <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=5">
     {% if look %}{% if look_fonts %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ look_fonts }}">{% endif %}
@@ -247,8 +247,9 @@
                         </div>
                         <details class="tool-details" id="linkedBox">
                             <summary>🔗 Other chats this one remembers (up to 3)</summary>
-                            <p class="tool-help">Bring in what happened in another chat, with any character: it's summarized and the AI
-                                reads it as part of the story so far. Good for a new chat that continues an old one.</p>
+                            <p class="tool-help">Bring in what happened in another chat, with any character: the AI reads it as part
+                                of the story so far. 🔴 Live follows that chat's story memory (or summary) as it goes on, for free;
+                                ❄ freeze keeps it as it is now. Good for a new chat that continues an old one.</p>
                             <div id="linkedList"></div>
                             <div id="linkedPick"></div>
                         </details>

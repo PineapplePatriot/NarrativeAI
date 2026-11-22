@@ -151,6 +151,9 @@ def _temper_line(p):
     return ("(" + "; ".join(bits) + ")") if bits else ""
 
 
+DISTINCT = ("Each person here is their own person, played true to their own part of the card: their own voice and way of speaking, wants, knowledge, temper and reactions. Don't blend them, don't let them all react the same way or agree by default, and never move one toward another's personality.")
+
+
 def compose(data):
     """The description text the model reads: plain labelled parts (the guide: plain text beats W++/JSON)."""
     data = clean(data)
@@ -181,6 +184,8 @@ def compose(data):
             out.append(f"## {head}\n" + "\n\n".join(parts))
         else:
             out.extend(parts)
+    if len([p for p in data["people"] if p["name"]]) > 1:  # several people: they stay apart
+        out.append(f"[Several people]\n{DISTINCT}")
     for e in data["extra"]:
         if e.get("on") and e.get("text"):
             out.append(f"[{e['title']}]\n{e['text']}")

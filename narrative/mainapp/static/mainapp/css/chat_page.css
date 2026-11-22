@@ -2587,3 +2587,7 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .linked-row small { display: block; color: var(--text-muted); font-size: .78rem; }
 .linked-how { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: .86rem; }
 .linked-warn { color: #fbbf24 !important; }
+
+.new-chat-box { display: grid; gap: 6px; margin-bottom: 10px; }
+.new-chat-box label { display: flex; gap: 6px; align-items: center; }
+.new-chat-actions { display: flex; gap: 6px; justify-content: flex-end; }

@@ -1078,6 +1078,7 @@ HANDLERS = {
     "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
                                                   [{"type": "preset_upload"}]),
     "read_block": doctor.tool_read_block, "propose_preset_edit": doctor.tool_propose_preset_edit,
+    "propose_basics": doctor.tool_propose_basics,
 }
 
 
@@ -1537,3 +1538,5 @@ def run_turn(session, user_text, action_note=None, model_note=None):
         last["choices"] = pending_choices
     session.events.extend(new_events)
     return new_events
+
+TOOLS.append(doctor.basics_tool())  # (here: it reads BASICS, defined above)

@@ -2245,7 +2245,7 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
         const d = await resp.json();
         if (!d.success) throw new Error(d.error || 'Could not load it.');
         const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
-        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${({ append: 'its summary + the rest', memory: 'its story memory' })[x.how] || 'summarized anew'})</small></p><pre>${esc(x.text)}</pre>`).join('')
+        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${x.live ? '🔴 live, ' : '❄ frozen, '}${({ append: 'its summary + the rest', memory: 'its story memory', summary: 'its summary' })[x.how] || 'summarized anew'})</small></p><pre>${esc(x.text)}</pre>`).join('')
                 + '<p class="tool-help">Read before this chat\'s own summary, as things that happened.</p>') : '')
             + (d.memory ? block('🧠 Story memory', `<pre>${esc(d.memory)}</pre>`) : '')
             + block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
@@ -2753,8 +2753,9 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     let state = null;
     function draw() {
         list.innerHTML = state.linked.length ? state.linked.map(x => `<div class="linked-row"><span>🔗 <b>${escapeHtml(x.title)}</b> · ${escapeHtml(x.character)}
-            <small>${({ append: 'its summary + the rest', memory: 'its story memory' })[x.how] || 'summarized anew'} · ${escapeHtml(x.at || '')}</small></span>
-            <button type="button" class="link-btn" data-unlink="${x.chat_id}" title="Forget it here">✕</button></div>`).join('')
+            <small>${x.live ? `🔴 live: its ${x.how === 'memory' ? 'story memory' : 'summary'} as it is now` : `❄ frozen ${escapeHtml(x.at || '')}: ${({ append: 'its summary + the rest', memory: 'its story memory', summary: 'its summary' })[x.how] || 'summarized anew'}`}</small></span>
+            <span><button type="button" class="link-btn" data-freeze="${x.chat_id}" data-live="${x.live ? 1 : ''}" title="${x.live ? 'Keep it as it is now, whatever happens in that chat later' : 'Follow that chat again as it goes on'}">${x.live ? '❄' : '▶'}</button>
+            <button type="button" class="link-btn" data-unlink="${x.chat_id}" title="Forget it here">✕</button></span></div>`).join('')
             : '<p class="tool-help">None yet.</p>';
         if (state.linked.length >= state.max) { pick.innerHTML = ''; return; }
         if (!state.chats.length) { pick.innerHTML = '<p class="tool-help">No other chats with a few messages yet.</p>'; return; }
@@ -2766,12 +2767,12 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
         const how = () => {
             const c = state.chats.find(x => String(x.id) === sel.value) || {};
             document.getElementById('linkedHow').innerHTML =
-                (c.milestones ? `<label><input type="radio" name="linkedHow" value="memory" checked> Its story memory as it is: ${c.milestones} milestones, who's who and relationships (free, ~${k(c.memory_tokens)} tokens for the AI to read)</label>` : '') +
-                `<label><input type="radio" name="linkedHow" value="anew" ${c.has_summary || c.milestones ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
-                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append" ${c.milestones ? '' : 'checked'}> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
+                (c.free ? `<label><input type="radio" name="linkedHow" value="live" checked> 🔴 Follow it live: its ${c.free === 'memory' ? `story memory (${c.milestones} milestones, who's who, relationships)` : 'summary'}, kept up to date as that chat goes on. Free, ~${k(c.free_tokens)} tokens for the AI to read. You can freeze it later.</label>` : '') +
+                `<label><input type="radio" name="linkedHow" value="anew" ${c.free ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
+                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append"> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
             const warn = () => {
                 const v = (box.querySelector('input[name=linkedHow]:checked') || {}).value;
-                const t = v === 'memory' ? 0 : v === 'append' ? c.tokens_rest : c.tokens;
+                const t = v === 'live' ? 0 : v === 'append' ? c.tokens_rest : c.tokens;
                 document.getElementById('linkedWarn').textContent = t > 30000
                     ? `That's a long one (~${k(t)} tokens): it's summarized in pieces, which takes a while and costs more than a usual summary.` : '';
             };
@@ -2792,6 +2793,8 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     }
     box.addEventListener('toggle', () => { if (box.open) load(); });
     list.addEventListener('click', async e => {
+        const f = e.target.closest('[data-freeze]');
+        if (f) { await call({ action: 'freeze_link', chat_id: Number(f.dataset.freeze), freeze: !!f.dataset.live }); load(); return; }
         const b = e.target.closest('[data-unlink]'); if (!b) return;
         await call({ action: 'unlink_chat', chat_id: Number(b.dataset.unlink) }); load();
     });

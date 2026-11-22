@@ -330,7 +330,7 @@ def _story_text(user, chat_state, count):
     own = story_memory.story_text(user, {"summary_mode": chat_state.get("summary_mode"), "memory": chat_state.get("memory"),
                                          "summary_parts": chat_state.get("summary_parts"), "summary": chat_state.get("summary")},
                                   chat_state.get("summary") or "", count)
-    linked = [x for x in chat_state.get("linked") or [] if x.get("text")]
+    linked = [x for x in linked_now(user, chat_state.get("linked")) if x.get("text")]
     if not linked:
         return own
     before = "\n\n".join(f"[From another chat: “{x.get('title') or 'a chat'}” with {x.get('character') or 'someone'}. "
@@ -341,11 +341,42 @@ def _story_text(user, chat_state, count):
 LINKED_CHATS = 3
 
 
+def _what_a_chat_has(data):
+    """(text, kind) another chat already holds, for free: its story memory, else its summary; ("", "") if neither."""
+    text = story_memory.linked_text(data.get("memory"))
+    if text:
+        return text, "memory"
+    msgs = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    text = chats.summary_text(chats.summary_parts(data, len(msgs)))
+    return (text, "summary") if text.strip() else ("", "")
+
+
+def linked_now(user, linked):
+    """The linked chats with their text as of now: a live one reads the other chat's memory (or summary) each time,
+    so it follows that chat as it goes on; a frozen one keeps the text it was brought in with."""
+    from .models import Chat
+    out = []
+    for x in linked or []:
+        if not isinstance(x, dict):
+            continue
+        if x.get("live"):
+            chat = Chat.objects.filter(id=x.get("chat_id"), character__author=user).select_related("character").first()
+            if chat is not None:
+                try:
+                    text, kind = _what_a_chat_has(chats.read(chat))
+                except chats.ChatUnreadable:
+                    text, kind = "", ""
+                if text:
+                    x = {**x, "text": text.strip()[:16000], "how": kind, "title": chat.title, "character": chat.character.name}
+        out.append(x)
+    return out
+
+
 def _linkable_chats(user, current):
     """🔗 Their other chats (any character), newest first: what bringing each one in would take."""
     from .models import Chat
     out = []
-    for chat in Chat.objects.filter(character__author=user).exclude(id=current.id).select_related("character").order_by("-time_update")[:300]:
+    for chat in Chat.objects.filter(character__author=user).exclude(id=current.id if current else None).select_related("character").order_by("-time_update")[:300]:
         if len(out) >= 40:  # (chats with just a greeting are skipped, so look further than the first 40)
             break
         try:
@@ -358,12 +389,14 @@ def _linkable_chats(user, current):
         parts = chats.summary_parts(data, len(msgs))
         upto = chats.summary_upto(parts)
         mem = story_memory.linked_text(data.get("memory"))
+        has_text, has_kind = _what_a_chat_has(data)
         out.append({"id": chat.id, "title": chat.title, "character": chat.character.name, "count": len(msgs),
                     "tokens": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs),
                     "has_summary": bool(parts), "summary_upto": upto,
                     "tokens_rest": sum(samplers.approx_tokens(_summary_line(m)) for m in msgs[upto:]),
                     "milestones": story_memory.milestone_count(data.get("memory")) if mem else 0,
                     "memory_tokens": samplers.approx_tokens(mem) if mem else 0,
+                    "free": has_kind, "free_tokens": samplers.approx_tokens(has_text) if has_text else 0,
                     "updated": chat.time_update.strftime("%Y-%m-%d")})
     return out
 
@@ -797,10 +830,22 @@ def chat(request, slug):
         action = data.get("action", "chat")
         regen_from = None  # the reply being regenerated; the new one becomes its next swipe
         # --- Chats: list, new, rename, delete ---
+        if action == "new_chat_sources":  # + New chat → continue from: the chats that already have memory or a summary
+            return JsonResponse({"success": True, "current": chat_obj.id,
+                                 "chats": [c for c in _linkable_chats(request.user, None) if c["free"]]})
         if action in ("list_chats", "new_chat", "rename_chat", "delete_chat", "import_chat"):
             go_to = None
             if action == "new_chat":
-                go_to = chats.create(character).id
+                from .models import Chat
+                source = Chat.objects.filter(id=data.get("continue_from") or 0, character__author=request.user).select_related("character").first()
+                start = {"messages": chats.greeting(character)}
+                if source is not None:  # 🔗 the new chat remembers that one, live
+                    text, kind = _what_a_chat_has(chats.read(source))
+                    if text:
+                        start["linked"] = [{"chat_id": source.id, "character": source.character.name, "title": source.title,
+                                            "text": text.strip()[:16000], "how": kind, "live": True,
+                                            "at": datetime.now().strftime("%Y-%m-%d")}]
+                go_to = chats.create(character, data=start).id
             elif action == "import_chat":  # a chat file (this app's, the rescue snippet's or SillyTavern's): a new chat
                 try:
                     imported = chats.clean_import(data.get("chat"))
@@ -1432,31 +1477,44 @@ def chat(request, slug):
             return JsonResponse({"success": True, **payload, "total": len(messages),
                                  "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"]),
                                  "spending": ai_client.spending(request.user)})
-        elif action in ("linkable_chats", "link_chat", "unlink_chat"):  # 🔗 other chats this one remembers
+        elif action in ("linkable_chats", "link_chat", "unlink_chat", "freeze_link"):  # 🔗 other chats this one remembers
             from .models import Chat
             if action == "linkable_chats":
                 taken = {x.get("chat_id") for x in chat_state["linked"]}
-                return JsonResponse({"success": True, "linked": chat_state["linked"], "max": LINKED_CHATS,
+                return JsonResponse({"success": True, "linked": linked_now(request.user, chat_state["linked"]), "max": LINKED_CHATS,
                                      "chats": [c for c in _linkable_chats(request.user, chat_obj) if c["id"] not in taken]})
             if action == "unlink_chat":
                 chat_state["linked"] = [x for x in chat_state["linked"] if x.get("chat_id") != data.get("chat_id")]
+            elif action == "freeze_link":  # ❄ keep it as it is now / ▶ follow that chat again
+                now = linked_now(request.user, chat_state["linked"])
+                for i, x in enumerate(chat_state["linked"]):
+                    if x.get("chat_id") == data.get("chat_id"):
+                        chat_state["linked"][i] = {**now[i], "live": not data.get("freeze"),
+                                                   "at": datetime.now().strftime("%Y-%m-%d")}
             else:
                 if len(chat_state["linked"]) >= LINKED_CHATS:
                     return JsonResponse({"success": False, "error": f"Up to {LINKED_CHATS} chats: take one out first."})
                 other = Chat.objects.filter(id=data.get("chat_id"), character__author=request.user).select_related("character").first()
                 if other is None or other.id == chat_obj.id:
                     return JsonResponse({"success": False, "error": "That chat is gone."})
+                live = data.get("how") == "live"
                 try:
-                    text, how = _link_chat(request.user, other, data.get("how"))
+                    if live:
+                        text, how = _what_a_chat_has(chats.read(other))
+                        if not text:
+                            return JsonResponse({"success": False, "error": "That chat has no story memory or summary yet. "
+                                                 "Pick “Summarize it anew” instead."})
+                    else:
+                        text, how = _link_chat(request.user, other, data.get("how"))
                 except ai_client.AIError as e:
                     return JsonResponse({"success": False, "error": str(e)})
                 if not text:
                     return JsonResponse({"success": False, "error": "That chat has nothing to remember yet."})
                 chat_state["linked"] = [x for x in chat_state["linked"] if x.get("chat_id") != other.id] + [
-                    {"chat_id": other.id, "character": other.character.name, "title": other.title, "text": text, "how": how,
-                     "at": datetime.now().strftime("%Y-%m-%d")}]
+                    {"chat_id": other.id, "character": other.character.name, "title": other.title, "text": text.strip()[:16000],
+                     "how": how, "live": live, "at": datetime.now().strftime("%Y-%m-%d")}]
             save_messages(messages)
-            return JsonResponse({"success": True, "linked": chat_state["linked"]})
+            return JsonResponse({"success": True, "linked": linked_now(request.user, chat_state["linked"])})
 
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
             parts = list(chat_state["summary_parts"])
@@ -3559,6 +3617,9 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
         prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
                   f"art style, framing, lighting and background. Only the expression and body language change: show "
                   f"them {emotion}. No text, no borders, no extra people.")
+    note = " ".join(str(data.get("note") or "").split())[:500]
+    if note:  # ↻ a redo with their words: what was wrong last time isn't obvious to the image model
+        prompt += f"\nTheir note for this picture (follow it exactly; it fixes what was wrong in the last try): {note}"
     model = data.get("model") or None
     if model:
         known = [m["id"] for m in ai_client.image_models()]

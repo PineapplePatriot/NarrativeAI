@@ -26,7 +26,7 @@ photoInput.addEventListener("change", function () {
         fig.classList.add('working');
         try {
             const resp = await fetch(box.dataset.url, { method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ emotion: mood }) });
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ emotion: mood, note: document.getElementById('personaPicHint')?.value || '' }) });
             const d = await resp.json();
             if (!resp.ok) throw new Error(d.error || 'Could not make it.');
             fig.querySelector('img, span').outerHTML = `<img src="${d.url}?t=${Date.now()}" alt="">`;
