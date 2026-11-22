@@ -125,7 +125,7 @@
                 const a = num(r.affection), ap = pct(a, ra.min, ra.max);
                 const heart = a < -30 ? '💔' : a < 10 ? '🤍' : a < 50 ? '🩷' : a < 80 ? '❤️' : '💖';
                 return `<div class="tlr-card" style="--h:${hue(r.name)}"><div class="tlr-head"><span class="tl-ava">${initial(r.name)}</span><b>${esc(r.name)}</b>
-                    ${r.status ? `<span class="tlr-ribbon">${esc(r.status)}</span>` : ''}</div>
+                    ${r.status ? `<span class="tlr-ribbon${String(r.status).length > 24 ? ' long' : ''}">${esc(r.status)}</span>` : ''}</div>
                     <div class="tlr-row"><span class="tlr-ico" style="--s:${0.8 + ap / 250}">${heart}</span><span class="tlr-bar aff"><i style="width:${ap}%"></i></span><small>${esc(a)}</small></div>
                     <div class="tlr-row"><span class="tlr-ico">🛡️</span><span class="tlr-bar trust"><i style="width:${pct(r.trust, rt.min, rt.max)}%"></i></span><small>${esc(r.trust ?? '–')}</small></div>
                     <div class="tlr-row"><span class="tlr-ico">⚡</span><span class="tlr-bar tension"><i style="width:${pct(r.tension, rx.min, rx.max)}%"></i></span><small>${esc(r.tension ?? '–')}</small></div>

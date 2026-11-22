@@ -99,15 +99,23 @@ window.Summary = (() => {
                     <p class="t-empty">Not in the summary (a piece was deleted).</p>
                     <button type="button" class="add-btn" data-sum="run" data-from="${r.from}" data-to="${r.to}">Summarize ${range(r.from, r.to).toLowerCase()}</button>
                 </div>`;
+            // The ones the AI no longer sees (they didn't fit the last request) are what needs a summary; the rest
+            // are still read as they are
+            const out = Math.min(r.to, data.out_of_view || 0), need = Math.max(0, out - r.from), all = r.to - r.from;
             return `
                 <div class="t-card sum-gap">
                     <header><span>${range(r.from, r.to)}</span></header>
-                    <p class="t-empty">Not summarized yet. Recent messages are sent to the AI as they are, so there's no rush.</p>
+                    <p class="t-empty">${need
+                        ? `Not summarized yet: the AI no longer sees ${need === all ? 'any of them' : `the first ${need} of these ${all}`} (they didn't fit). Summarize ${need === 1 ? 'it' : 'them'} so the story remembers.`
+                        : "Not summarized yet. The AI still reads all of these as they are, so there's no rush."}</p>
                     <div class="sum-run">
-                        <label>Summarize up to message
-                            <input type="number" class="sum-upto" min="${r.from + 1}" max="${r.to}" value="${r.to}"></label>
-                        <button type="button" class="icon-btn" data-sum="run" data-from="${r.from}">Summarize</button>
+                        ${need ? `<button type="button" class="icon-btn on" data-sum="run" data-from="${r.from}" data-to="${out}">Summarize ${need} of ${all}</button>` : ''}
+                        <button type="button" class="icon-btn" data-sum="run" data-from="${r.from}" data-to="${r.to}" title="Everything here, including what the AI still reads">Summarize all ${all}</button>
                     </div>
+                    <details class="sum-custom"><summary>Up to a message of your choice</summary>
+                        <div class="sum-run"><label>Summarize up to message
+                            <input type="number" class="sum-upto" min="${r.from + 1}" max="${r.to}" value="${need ? out : r.to}"></label>
+                        <button type="button" class="icon-btn" data-sum="run" data-from="${r.from}">Summarize</button></div></details>
                 </div>`;
         }).join('') + (busy ? '<p class="sum-busy">Summarizing…</p>' : '');
         body.querySelectorAll('.sum-text').forEach(autosize);
@@ -167,7 +175,7 @@ window.Summary = (() => {
         try {
             if (act === 'run') {
                 const from = Number(btn.dataset.from);
-                const input = btn.closest('.t-card').querySelector('.sum-upto');
+                const input = btn.dataset.to ? null : btn.closest('.t-card').querySelector('.sum-upto');  // (a button with its own end uses it)
                 const to = input ? Number(input.value) : Number(btn.dataset.to);
                 await run({ from, to });
             } else if (act === 'rerun') {

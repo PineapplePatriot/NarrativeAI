@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=6">
-    <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 <body class="na-body">
@@ -79,6 +79,8 @@
             </div>
             <label for="{{ form.persona_photo_neutral.id_for_label }}">Neutral picture (upload)</label>
             {{ form.persona_photo_neutral }}
+            <label class="persona-help">What to change (optional, used for every picture made from here):
+                <input type="text" id="personaPicHint" maxlength="500" placeholder="e.g. shorter hair; glasses; a warmer smile"></label>
             <div class="persona-pic-actions">
                 <button type="button" class="secondary" id="personaMakeNeutral">✨ Make it from my description</button>
                 <button type="button" class="secondary" id="personaMakeMoods">✨ Make the missing moods</button>
@@ -96,7 +98,7 @@
     </div>
 
     {{ persona_parts|json_script:"persona-parts" }}
-    <script src="{% static 'users/js/profile.js' %}?v=3"></script>
-    <script src="{% static 'users/js/persona_parts.js' %}?v=1"></script>
+    <script src="{% static 'users/js/profile.js' %}?v=4"></script>
+    <script src="{% static 'users/js/persona_parts.js' %}?v=2"></script>
 </body>
 </html>

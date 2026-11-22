@@ -98,6 +98,52 @@ DEFAULTS = {
 }
 
 
+# 👓 Readable whatever Bulba picks: each kind of text against every surface it sits on, at least this contrast
+# (WCAG: 4.5 for body text, 3 for large text and accents); a colour that falls short is lightened or darkened
+READABLE = {"text": 4.5, "muted": 3.6, "accent": 3.0, "accent2": 3.0}
+SURFACES = ("surface", "bubble_ai", "bubble_user", "page")
+
+
+def _lum(hex_color):
+    r, g, b = (int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    lin = lambda v: v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def contrast(a, b):
+    """The contrast ratio of two #rrggbb colours (1 to 21)."""
+    la, lb = sorted((_lum(a), _lum(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def _mix(a, b, t):
+    """a moved t of the way to b."""
+    ca = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    cb = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(ca, cb))
+
+
+def readable(colors):
+    """The colours with every text colour readable on every surface: a colour that falls short is moved toward white
+    (on dark surfaces) or black (on light ones), keeping as much of its hue as it can. Returns (colours, what changed)."""
+    out, fixed = dict(colors), []
+    for key, need in READABLE.items():
+        grounds = [out[s] for s in SURFACES]
+        if min(contrast(out[key], g) for g in grounds) >= need:
+            continue
+        dark_grounds = sum(_lum(g) < 0.18 for g in grounds) >= len(grounds) / 2
+        target = "#ffffff" if dark_grounds else "#000000"
+        best = target
+        for step in range(1, 21):
+            candidate = _mix(out[key], target, step / 20)
+            if min(contrast(candidate, g) for g in grounds) >= need:
+                best = candidate
+                break
+        out[key] = best
+        fixed.append(key)
+    return out, fixed
+
+
 def clean(recipe):
     """A checked recipe (every value from the lists, colours as #rrggbb), or None."""
     if not isinstance(recipe, dict):
@@ -133,6 +179,7 @@ def clean(recipe):
     }
     if out["background"] == "picture" and not out["picture"]:
         out["background"] = "gradient"  # no usable picture: the colours instead
+    out["colors"], _ = readable(out["colors"])  # 👓 nothing unreadable, whatever was asked for
     return out
 
 
@@ -304,6 +351,19 @@ def css(recipe, char_name="", user_name=""):
 {S} .tr-icon.small {{ background: none; }}
 {S} .tr-icon[data-item="add"] {{ color: {c['accent']}; border-color: {c['accent']}88; }}
 {S} .tr-gap {{ background: {c['outline']}44; }}""")
+    # The tracker cards (quests, milestones…): the look's own panel colour, so its text colours stay readable on it
+    # (the rail itself is see-through: only its icon strip and the card that slides out of it get a colour)
+    out.append(f"""{S} .tracker-panel:not(.tracker-rail), {S} .tr-flyout {{ background: linear-gradient(180deg, {c['accent']}1a, transparent 200px), {c['surface']}f5;
+  border-color: {c['outline']}55; color: {c['text']}; }}
+{S} .tr-head {{ background: {c['surface']}f2; border-bottom: 1px solid {c['outline']}33; }}
+{S} .tr-head b, {S} .tr-stop p {{ color: {c['text']}; }}
+{S} .tr-foot, {S} .tr-note, {S} .tr-addrow small {{ color: {c['muted']}; }}
+{S} .tr-addrow {{ color: {c['text']}; }}
+{S} .tr-btn {{ background: {c['bubble_ai']}; color: {c['text']}; border-color: {c['outline']}55; }}
+{S} .tlr-card {{ background: {c['bubble_ai']}; border-color: {c['outline']}33; }}
+{S} .tlr-ribbon {{ background: {c['accent']}26; color: {c['text']}; }}
+{S} .tlr-bar {{ background: {c['outline']}22; }}
+@media (max-width: 768px) {{ {S} .tracker-panel.tracker-rail {{ background: {c['surface']}; border-color: {c['outline']}55; }} }}""")
     return "\n".join(out)
 
 

@@ -76,6 +76,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "mainapp.timezones.ResetTimeZoneMiddleware",  # a browser's time zone never sticks to the worker thread
     "whitenoise.middleware.WhiteNoiseMiddleware",  # serves the CSS and JS when DEBUG is off
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

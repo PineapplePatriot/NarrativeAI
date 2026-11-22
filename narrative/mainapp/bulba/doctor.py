@@ -54,6 +54,17 @@ def _lore_line(character):
     return f"“{character.worldbook.title}”, {len(entries)} entries: " + "; ".join(titles)
 
 
+def _favourites_section(data, char_name):
+    """⭐ The replies they starred: the clearest sign of their taste there is."""
+    favs = [x for x in data.get("favourites") or [] if isinstance(x, dict) and x.get("role", "assistant") != "user"][-5:]
+    if not favs:
+        return ""
+    return ("### Replies they starred ⭐ (their favourites: what they love; when they ask what made one great, "
+            "compare it with the other replies here and name concrete things, then offer changes they approve)\n"
+            + "\n\n".join(f"[message {x.get('i', 0) + 1}] {x.get('who') or char_name}: {_clip(x.get('text'), 1500)}"
+                            for x in favs))
+
+
 def context(session):
     from mainapp.views import prompt_names
     chat = session.chat
@@ -96,6 +107,7 @@ def context(session):
         "### What the model thought before its last reply\n" + (_clip(thoughts, THOUGHTS_CHARS) if thoughts
                                                                   else "(nothing: this model didn't send its thinking)"),
         memory.context_section(chat),
+        _favourites_section(data, character.name),
         _watch_section(user, chat),
     ]
     return "\n\n".join(filter(None, parts))
@@ -189,6 +201,25 @@ def _remind(preset, line):
     block["enabled"] = True
     if line not in block["content"]:
         block["content"] = (block["content"].rstrip() + "\n" + line).strip()
+
+
+EDIT_LOG = "bulba_edits"  # preset extras: Bulba's applied changes, replayed when the preset is rebuilt
+
+
+def replay_edits(old, new):
+    """Bulba's changes to `old` made again on `new` (a rebuild for another model). Returns (new, kept, skipped):
+    each logged change goes in whole or not at all (a block the new preset doesn't have, say)."""
+    kept, skipped = [], []
+    for entry in (old.get("extras") or {}).get(EDIT_LOG) or []:
+        if not isinstance(entry, dict) or not entry.get("edits"):
+            continue
+        try:
+            new = apply_edits(copy.deepcopy(new), entry["edits"])
+            kept.append(entry)
+        except (ValueError, KeyError, TypeError):
+            skipped.append(entry)
+    new["extras"] = {**(new.get("extras") or {}), EDIT_LOG: kept}
+    return new, kept, skipped
 
 
 def apply_edits(preset, edits):
@@ -293,6 +324,49 @@ def tool_propose_preset_edit(session, args):
     p = _proposal(session, "preset_edit", f"Preset change: {active.name}",
                   [*(_edit_line(e) for e in edits), "Why:", str(args.get("why") or "")[:400]],
                   {"preset_id": active.id, "edits": edits, **({"from_taste": from_taste} if from_taste else {})})
+    return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
+
+
+BASICS_KEYS = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres", "voice", "author",
+               "keep_out", "length", "control")
+
+
+def basics_tool():
+    """propose_basics: the onboarding form's own settings (point of view, tense, reply length...), changed in place."""
+    from mainapp.bulba.agent import BASICS
+    props = {}
+    for k in BASICS_KEYS:
+        title, options = BASICS[k]
+        if k == "genres":
+            props[k] = {"type": "array", "items": {"type": "string", "enum": list(options)}, "description": title}
+        elif options is None:
+            props[k] = {"type": "string", "description": f"{title} (free text; empty removes it)"}
+        else:
+            props[k] = {"type": "string", "enum": [*options, ""], "description": f"{title}" + (
+                "" if k in ("length", "control") else " (\"\" = no preference: the line goes)")}
+    props["why"] = STR
+    return _fn("propose_basics", "Change the story's basic settings, the ones the onboarding form and Quick setup set: "
+               "point of view, tense, speech format, inner thoughts, pacing, who moves the story, making things up, "
+               "genres, narration voice, write like, keep out, reply length, and how much of their character the AI "
+               "writes. ALWAYS use this (not propose_preset_edit) for these: each setting has its own line in the "
+               "preset, and this replaces that line instead of adding a second rule that contradicts it. Only the "
+               "settings you give change.", props, ["why"])
+
+
+def tool_propose_basics(session, args):
+    from mainapp.bulba.agent import BASICS, _proposal
+    picks = {k: args[k] for k in BASICS_KEYS if k in args}
+    if not picks:
+        return {"error": "Nothing to change."}, []
+    lines = []
+    for k, v in picks.items():
+        title, options = BASICS[k]
+        shown = ", ".join(v) if isinstance(v, list) else (v or "no preference")
+        lines.append(f"{title}: {shown}")
+    active = presets.get_active(session.user)
+    p = _proposal(session, "preset_edit", f"Story basics: {active.name}",
+                  [*lines, "Why:", str(args.get("why") or "")[:400]],
+                  {"preset_id": active.id, "edits": [], "basics": picks})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -416,7 +490,7 @@ PRESET_EDIT_TOOLS = [
     _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
         {"block": STR}, ["block"]),
     _fn("propose_preset_edit", "Propose changes to the active preset (they press Apply; Undo puts it back). "
-        "Smallest change that fixes the problem; read a block before rewriting it.",
+        "Smallest change that fixes the problem; read a block before rewriting it. Point of view, tense, reply length, pacing and the other story basics go through propose_basics instead.",
         {"edits": {"type": "array", "maxItems": 6, "items": {"type": "object", "properties": {
             "action": {"type": "string", "enum": list(EDIT_ACTIONS),
                        "description": "replace a block's text, append to it, switch it on/off, add a new "
@@ -437,11 +511,13 @@ PRESET_EDIT_TOOLS = [
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
+            "find_card", "bring_in_card",
             "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
             "offer_downloads", "propose_persona", "propose_character", "offer_card_upload", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         *PRESET_EDIT_TOOLS,
+        basics_tool(),
         CARD_EDIT_TOOL,
         *polish.tool_defs(_fn, STR),
         *watch_mod.tool_defs(_fn, STR),
@@ -454,7 +530,8 @@ def tools():
     ]
 
 
-HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
+HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit,
+            "propose_basics": tool_propose_basics, **lore.HANDLERS,
             **tune.HANDLERS,
             **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
@@ -472,9 +549,21 @@ def apply(session, p):
         if obj is None:
             raise ValueError("That preset is gone.")
         before = copy.deepcopy(obj.data)
-        obj.data = apply_edits(presets.normalize(obj.data), data["edits"])
-        obj.save(update_fields=["data", "time_update"])
+        if data["edits"]:
+            new = apply_edits(presets.normalize(obj.data), data["edits"])
+            # 🔁 kept with the preset, so a rebuild for another model can make the same changes again
+            log = list((new.get("extras") or {}).get(EDIT_LOG) or [])[-39:] + [
+                {"title": p.get("title") or "", "summary": [l for l in (p.get("summary") or []) if l != "Why:"][:4],
+                 "edits": data["edits"], "from_taste": data.get("from_taste") or []}]
+            new["extras"] = {**(new.get("extras") or {}), EDIT_LOG: log}
+            obj.data = new
+            obj.save(update_fields=["data", "time_update"])
         p["undo"] = {"preset_id": obj.id, "data": before}
+        if data.get("basics"):  # the form's own lines, written the way the form writes them
+            if presets.get_active(user).id != obj.id:
+                raise ValueError("Another preset is active now: switch back to it first.")
+            from mainapp.views import _save_quick_basics
+            _save_quick_basics(user, data["basics"])
         if data.get("from_taste"):  # these learned lines are in the preset now: not offered again
             from mainapp.bulba import watch
             watch.mark_taste_in_preset(user, data["from_taste"])

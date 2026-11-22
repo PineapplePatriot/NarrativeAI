@@ -392,6 +392,7 @@ function render() {
 }
 
 // The setup's stages: done (green), skipped, the current one with its small steps, and what's left
+let showGuided = false;  // (already set up: the steps only on request)
 function renderStages() {
     const pr = state.progress;
     if (!pr) {
@@ -400,9 +401,13 @@ function renderStages() {
             `<li class="${i < current ? 'done' : i === current ? 'current' : ''}">${esc(STAGE_LABELS[s] || s)}</li>`).join('');
         return;
     }
-    const finished = state.stage === 'done';
-    $('progressLine').textContent = finished ? 'Setup finished. Ask me anything, or to change any part of it.'
-        : `Step ${pr.step} of ${pr.of}` + (pr.questions_left ? ` · about ${pr.questions_left} question${pr.questions_left === 1 ? '' : 's'} left` : '');
+    const finished = state.stage === 'done' || (state.already_set_up && !showGuided);
+    $('progressLine').innerHTML = state.stage === 'done' ? 'Setup finished. Ask me anything, or to change any part of it.'
+        : finished ? 'You\'re set up and chatting. Ask me anything, or to change any part of it. ' +
+                     '<button type="button" class="link" id="showGuidedBtn">Show the guided steps</button>'
+        : esc(`Step ${pr.step} of ${pr.of}` + (pr.questions_left ? ` · about ${pr.questions_left} question${pr.questions_left === 1 ? '' : 's'} left` : ''));
+    const sg = document.getElementById('showGuidedBtn');
+    if (sg) sg.onclick = () => { showGuided = true; renderStages(); };
     // Once it's done the steps and the quick-setup switch have served their purpose
     $('stages').hidden = finished;
     document.querySelectorAll('.quick-switch').forEach(a => { a.hidden = finished; });
@@ -414,13 +419,14 @@ function renderStages() {
         const note = st.status === 'skipped' ? ' <i>skipped</i>' : '';
         return `<li class="${st.status}"><span class="mark">${mark}</span><div><span class="stage-name">${esc(st.label)}</span>${note}${hint}${steps}</div></li>`;
     }).join('');
-    $('miniProgress').hidden = false;
+    const folded = state.already_set_up && !showGuided;  // set up already: no step counter, no "skip" nagging
+    $('miniProgress').hidden = folded;
     $('miniProgressText').textContent = `${$('progressLine').textContent}` + (finished ? '' : ` · ${pr.stages[pr.step - 1].label}`);
-    $('miniSkip').hidden = !pr.can_skip;
+    $('miniSkip').hidden = folded || !pr.can_skip;
     $('miniSkip').disabled = busy;
-    $('skipBtn').hidden = !pr.can_skip;
+    $('skipBtn').hidden = folded || !pr.can_skip;
     $('skipBtn').disabled = busy;
-    $('skipTip').hidden = !pr.can_skip;
+    $('skipTip').hidden = folded || !pr.can_skip;
 }
 
 function renderPanel() {
@@ -490,7 +496,7 @@ async function run(body, label) {
             const changed = (data.state.proposals || []).find(x => x.id === body.id);
             // A fixed message changes what the chat shows: the page reloads with Bulba still open
             // (a new chat look too: its styles come with the page)
-            window.parent.postMessage({ bulba: changed && ['message_fix', 'chat_look'].includes(changed.kind) ? 'reply' : body.action },
+            window.parent.postMessage({ bulba: changed && ['message_fix', 'chat_look', 'persona'].includes(changed.kind) ? 'reply' : body.action },
                                       window.location.origin);
         }
         if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);
@@ -793,7 +799,7 @@ $('log').addEventListener('click', async e => {
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
             made += 1;
-            progress.insertAdjacentHTML('afterend', `<img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}">`);
+            progress.insertAdjacentHTML('afterend', `<span class="made-pic"><img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}"><button type="button" class="made-redo" data-redo-picture="${esc(mood)}" title="Redo this one, saying what to change">↻</button></span>`);
         } catch (err) {
             progress.textContent = `Stopped at ${mood}: ${err.message}`;
             btn.disabled = false;
@@ -801,6 +807,26 @@ $('log').addEventListener('click', async e => {
         }
     }
     progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});
+
+// ↻ Redo one picture with a note (what was wrong isn't obvious to the image model)
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-redo-picture]');
+    if (!btn) return;
+    const box = btn.closest('.make-pictures'), mood = btn.dataset.redoPicture;
+    const note = prompt(`What should change in the ${mood} picture? (e.g. "her eyes are green", "no hat", "less smiling")`, '');
+    if (note === null) return;
+    const img = btn.parentElement.querySelector('img');
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const resp = await fetch(box.dataset.url, { method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ emotion: mood, second: !!box.dataset.second, note }) });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
+        img.src = `${data.url}?t=${Date.now()}`;
+    } catch (err) { alert(err.message); }
+    finally { btn.disabled = false; btn.textContent = '↻'; }
 });
 
 // Edit / save / cancel on a proposal

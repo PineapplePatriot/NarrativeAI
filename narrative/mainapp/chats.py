@@ -182,8 +182,13 @@ def refresh_greeting(messages, character, name, old_names):
 
 
 def create(character, title=None, data=None, parent=None, branch_point=None):
-    count = character.chats.count()
-    chat = Chat.objects.create(character=character, title=title or f"Chat {count + 1}",
+    if not title:  # the next number not already taken (a deleted chat would otherwise bring back an old name)
+        taken = set(character.chats.values_list("title", flat=True))
+        n = character.chats.count() + 1
+        while f"Chat {n}" in taken:
+            n += 1
+        title = f"Chat {n}"
+    chat = Chat.objects.create(character=character, title=title,
                                parent=parent, branch_point=branch_point)
     write(chat, data if data is not None else {"messages": greeting(character)})
     return chat

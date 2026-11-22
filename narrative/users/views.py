@@ -414,6 +414,7 @@ def _extras_state(user):
         "sprites": settings_["emotion"].enabled,
         "game": game_default(user),
         "story_extras": story_extras(user),
+        "custom_object": _custom_object(user),  # ✨ "My own object" (a preset module the AI designs)
         "ideas": ideas_on(user),
         "watch": get_task_setting(user, "watch").enabled,
         "watch_memory": _watch_memory(user),
@@ -426,6 +427,17 @@ def _extras_state(user):
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.hosted),
     }
+
+
+def _custom_object(user):
+    """{"on", "text"}: the active preset's "My own object" module."""
+    from mainapp import experiences, presets
+    try:
+        item = next((m for m in experiences.module_states(presets.normalize(presets.get_active(user).data))
+                     if m["key"] == experiences.CUSTOM_OBJECT), None)
+    except Exception:
+        item = None
+    return {"on": bool(item and item["on"]), "text": (item or {}).get("custom") or ""}
 
 
 def _thinking_now(user):
@@ -498,6 +510,14 @@ def apply_extras(user, data):
         if isinstance(data.get("story_extras"), list):
             from mainapp import extras
             extras.set_kinds(user, data["story_extras"])
+        if isinstance(data.get("custom_object"), dict):  # ✨ "My own object", in the active preset
+            from mainapp import experiences, presets
+            active = presets.get_active(user)
+            text = str(data["custom_object"].get("text") or "").strip()[:1500]
+            on = bool(data["custom_object"].get("on")) and bool(text)
+            active.data = experiences.set_modules(presets.normalize(active.data), {experiences.CUSTOM_OBJECT: on},
+                                                  custom=text)
+            active.save(update_fields=["data"])
         if isinstance(data.get("ideas"), bool):
             from mainapp import extras
             extras.set_ideas(user, data["ideas"])
@@ -684,6 +704,8 @@ def stats(request):
     from users import usage
     if not can_see_stats(request.user):
         raise Http404()
+    from mainapp import messenger
+    messenger.use_browser_time_zone(request)  # 🌍 days and weeks in the viewer's time zone, not the server's UTC
     try:
         days = int(request.GET.get("days") or 0) or None
     except ValueError:
@@ -693,15 +715,51 @@ def stats(request):
         from users import backup
         handle, name = backup.make_zip()
         return FileResponse(handle, as_attachment=True, filename=name, content_type="application/zip")
-    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
+    week_starts = "monday" if request.GET.get("week") == "monday" else "sunday"  # 📅 Sunday weeks unless asked
+    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",), week_starts=week_starts)
     if request.GET.get("format") == "csv":
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'
         return response
+    from django.core.files.storage import default_storage
+    from mainapp import media_library
+    lib = media_library.uploads()
     return render(request, "users/stats.html", {
         "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
         "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
-        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})
+        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS],
+        # 🎵🖼️ what they uploaded for everyone (chat backgrounds, music, radio)
+        "library": {k: [{**i, "url": default_storage.url(i["file"])} for i in v] for k, v in lib.items()},
+        "radio_sets": [g["set"] for g in media_library.catalog().get("radio", [])] + sorted({i["set"] for i in lib["radio"]}),
+        "library_note": request.GET.get("library", "")})
+
+
+@login_required
+def stats_library(request):
+    """🎵🖼️ Upload a chat background, a track or a radio track for everyone (or take one out): the stats page's
+    owners only. Kept on the volume, so they survive deploys."""
+    from django.http import Http404
+    from django.shortcuts import redirect
+    from urllib.parse import quote
+    from mainapp import media_library
+    if not can_see_stats(request.user) or request.method != "POST":
+        raise Http404()
+    try:
+        if request.POST.get("remove"):
+            media_library.remove(request.POST["remove"])
+            note = "Removed."
+        else:
+            upload = request.FILES.get("file")
+            if not upload:
+                raise ValueError("Choose a file first.")
+            kind = request.POST.get("kind")
+            media_library.add("music" if kind == "radio" else kind, request.POST.get("name"), upload,
+                              radio_set=(request.POST.get("set") or request.POST.get("new_set") or "Uploads") if kind == "radio" else "")
+            note = "Added. It's in the pickers now."
+    except ValueError as e:
+        note = str(e)
+    from django.urls import reverse
+    return redirect(f"{reverse('users:stats')}?library={quote(note)}#library")
 
 
 @login_required

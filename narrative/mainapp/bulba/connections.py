@@ -174,7 +174,9 @@ def tool_defs(fn, STR):
            "(chat, summary, story memory, trackers...), and the models the app knows with price and strengths. "
            "Read before proposing a connection change.", {}),
         fn("propose_connection_change", "Switch models or connections for them, as a card they Apply (Undo puts it "
-           "back). action 'use': `job` (default chat) runs on `connection`, optionally with `model`; 'new': a new "
+           "back). Any job can have its own model: the chat, or a background job (summary, story memory, trackers, "
+           "translation, emotion/sprites, writing tools, voice split), e.g. a cheaper model for the summary. "
+           "action 'use': `job` (default chat) runs on `connection`, optionally with `model`; 'new': a new "
            "connection called `name` that reuses the key of `copy_key_from`, with `model` (and `job` to use it at "
            "once); 'model': `connection` itself uses `model` (everything on it follows). Never ask for or mention "
            "a key's value: a new key goes on the Connections page.",
@@ -182,6 +184,28 @@ def tool_defs(fn, STR):
             "job": {"type": "string", "enum": list(JOBS)}, "connection": STR, "model": STR, "name": STR,
             "copy_key_from": STR, "why": STR}, ["action"]),
     ]
+
+
+def after_model_change(user):
+    """🔁 What Bulba should offer once the chat's model changed: the same check the chat page makes (is their preset
+    made for another model?), said as a next step. "" when the preset fits."""
+    from mainapp import preset_upgrade
+    try:
+        hint = preset_upgrade.pending(user)
+    except Exception:
+        return ""
+    if not hint:
+        return ""
+    if hint["kind"] == "offer_rebuild":
+        return (f"NEXT: their preset “{hint['preset']}” was made for {hint['from']}, and the chat now runs on "
+                f"{hint['to']}. Offer it with offer_choices: rebuild it for {hint['to']} (the same feel, tuned for the "
+                f"new model: get_starter and propose_preset), or keep it as it is. The chat page offers the same.")
+    if hint["kind"] == "offer_upgrade":
+        return (f"NEXT: their preset “{hint['from']}” is an older one; for the new model there's a ready setup "
+                f"(“{hint['to']}”). Offer it with offer_choices (get_starter and propose_preset), or keeping theirs.")
+    if hint["kind"] == "switched":
+        return f"(Their untouched preset was switched to “{hint['to']}”, made for the new model: tell them.)"
+    return ""
 
 
 HANDLERS = {"read_connections": tool_read_connections, "propose_connection_change": tool_propose_connection_change}

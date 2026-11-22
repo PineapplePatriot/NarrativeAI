@@ -18,6 +18,7 @@ with it.
 All of it is kept in the chat file under "memory" and given to the model in the summary slot of the preset, as
 one block that changes only when memory updates (so the start of the prompt stays cacheable).
 """
+import copy
 import json
 import re
 import uuid
@@ -100,18 +101,53 @@ def due(user, memory, message_count):
 def trim_to(memory, message_count):
     """Messages were deleted: memory keeps only what still exists (milestones past the end go; facts and changes
     from them go too)."""
-    memory = clean(memory)
+    memory = clean(copy.deepcopy(memory))  # (a branch cuts a copy: the original chat keeps all of it)
     if memory["upto"] <= message_count:
         return memory
+    rewind_relationships(memory, [m for m in memory["milestones"] if m.get("to", 0) > message_count])
     gone = {m["id"] for m in memory["milestones"] if m.get("from", 0) >= message_count}
     memory["milestones"] = [m for m in memory["milestones"] if m["id"] not in gone]
     for m in memory["milestones"]:
         if m.get("to", 0) > message_count:
             m["to"], m["stale"] = message_count, True
     memory["facts"] = [f for f in memory["facts"] if f.get("source") not in gone]
+    # an arc that told any of the gone scenes would still tell them: it goes, its other scenes show on their own
+    broken = {a["id"] for a in memory["arcs"] if gone & set(a.get("milestones") or [])}
+    memory["arcs"] = [a for a in memory["arcs"] if a["id"] not in broken]
+    for m in memory["milestones"]:
+        if m.get("arc") in broken:
+            m.pop("arc", None)
     for r in memory["relationships"]:
         r["history"] = [h for h in r.get("history", []) if h.get("m") not in gone]
     memory["upto"] = message_count
+    return memory
+
+
+def milestone_count(memory, message_count=None):
+    """How many milestones there are (that start before message_count, when given)."""
+    ms = clean(memory)["milestones"]
+    return len([m for m in ms if message_count is None or m.get("from", 0) < message_count])
+
+
+def linked_text(memory):
+    """Another chat's memory, for a chat that remembers it (🔗): the same block its own replies read."""
+    text = prompt_text(memory)
+    return text.split("\n", 1)[1] if text.startswith("[Story memory]") else text
+
+
+def rewind_relationships(memory, milestones):
+    """Relationships back to how they stood before these milestones changed them (newest undone first). Milestones
+    from before this was kept have nothing to undo: their changes stay."""
+    for m in sorted(milestones, key=lambda x: x.get("from", 0), reverse=True):
+        for key, before in (m.pop("rel_undo", None) or {}).items():
+            i = next((j for j, r in enumerate(memory["relationships"])
+                      if f"{r['from']}\u2192{r['to']}".lower() == key), None)
+            if i is None:
+                continue
+            if before is None:  # it began in that milestone
+                memory["relationships"].pop(i)
+            else:
+                memory["relationships"][i].update(before)
     return memory
 
 
@@ -242,6 +278,15 @@ def _apply_relationship(memory, change, milestone_id, character=None):
     a, b = str(change.get("from") or "").strip()[:80], str(change.get("to") or "").strip()[:80]
     if not a or not b or a.lower() == b.lower():
         return
+    # ⑂ the first change a milestone makes to a pair keeps how it stood before (None: it didn't exist), so a branch
+    # or a delete can roll the relationship back (rewind_relationships)
+    m = next((x for x in memory["milestones"] if x.get("id") == milestone_id), None)
+    if m is not None:
+        key = f"{a}\u2192{b}".lower()
+        undo = m.setdefault("rel_undo", {})
+        if key not in undo:
+            old = next((x for x in memory["relationships"] if x["from"].lower() == a.lower() and x["to"].lower() == b.lower()), None)
+            undo[key] = {k: v for k, v in old.items() if k != "history"} if old else None
     r = _relationship(memory, a, b, character)
     route = str(change.get("route") or "").strip()
     if route in card_sections.ROUTES and route != r["route"]:  # it turned into another kind of relationship
@@ -423,6 +468,9 @@ def prompt_text(memory, budget=BUDGET):
     who = [f"{p['name']}: {p.get('identity', '')}" for p in memory["people"] if p.get("identity")]
     if who:
         sections.append(["Who and what is who (as of now):", who])
+    if len(here) >= 3:  # a crowded scene: everyone stays themselves
+        sections.append(["In this scene:", ["Everyone present is their own person (voice, wants, what they know, how "
+                                             "they react), true to their card or to who memory says they are; don't blend them."]])
     rels = [r for r in memory["relationships"] if not here or r["from"].lower() in here or r["to"].lower() in here]
     if rels:
         lines = []

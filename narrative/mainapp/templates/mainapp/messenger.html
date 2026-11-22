@@ -3,10 +3,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Screen Hub · Messenger — Narrative AI</title>
-  <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=22">
+  <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=40">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=4">
   <link rel="stylesheet" href="{% static 'mainapp/css/screen_home.css' %}?v=3">
@@ -38,6 +38,10 @@
       <button type="button" class="dock-app-btn" data-app="moments" onclick="TG.switchApp('moments')" title="Moments & Profile Status Updates">
         <span class="dock-ico">✨</span>
         <span>Moments</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="gallery" onclick="TG.switchApp('gallery')" title="Every photo from your chats">
+        <span class="dock-ico">🖼️</span>
+        <span>Gallery</span>
       </button>
       <button type="button" class="dock-app-btn" data-app="files" onclick="TG.switchApp('files')" title="Shared Files & Personal Notes">
         <span class="dock-ico">🗂️</span>
@@ -92,9 +96,6 @@
             </div>
           </div>
           <div class="tg-header-actions">
-            <span class="tg-hdr-btn" id="hdrModelBadge" title="Active chat model — per-model texting rules & anti-slop counters adapt automatically when you switch models" style="cursor:default; opacity:0.88; font-size:11.5px;">
-              🧠 <span id="hdrModelLabel">Auto Rules</span>
-            </span>
             <button type="button" class="tg-hdr-btn" style="background:linear-gradient(135deg,rgba(219,39,119,0.25),rgba(124,58,237,0.25)); border-color:rgba(236,72,153,0.45); color:#fbcfe8;" onclick="VN_SCENES.openLaunchModalFromChat()" title="Trigger a Visual Novel Meet-Up Scene with central character sprites, music, and Finale Event CG">
               🎬 <span>Meet-Up</span>
             </button>
@@ -147,11 +148,17 @@
           <div class="tg-tray-header">
             <span>🎭 Stickers & Moods</span>
             <div style="display:flex; gap:6px;">
+              <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerIdea()" title="A sticker from your own idea">✨ Make a sticker</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.makeStickerPack()" title="Draw a sticker pack in their texting look, one sticker at a time">🎨 Make a pack</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.importTelegramPack()" title="Add a Telegram sticker pack by its link">📥 Telegram pack</button>
               <button type="button" class="tg-fmt-btn" onclick="document.getElementById('customStickerUpload').click()">+ Upload Sticker</button>
               <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerTray(false)">✕</button>
             </div>
+          </div>
+          <div class="tg-sticker-idea" id="tgStickerIdea" hidden>
+            <select class="tg-select" id="tgStickerWho"></select>
+            <input type="text" class="tg-input" id="tgStickerText" placeholder="What it shows: facepalming, sending a heart, asleep on the desk…">
+            <button type="button" class="tg-fmt-btn" onclick="TG.makeCustomSticker(this)">✨ Make it</button>
           </div>
           <div class="tg-tray-status" id="tgStickerStatus" hidden></div>
           <div class="tg-tray-grid" id="tgStickerGrid"></div>
@@ -183,7 +190,9 @@
             <button type="button" class="tg-icon-btn" onclick="document.getElementById('tgMediaUpload').click()" title="Attach photo or file">📎</button>
             <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
             <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
+            <button type="button" class="tg-icon-btn" onclick="TG.toggleEmoji()" title="Emoji">😀</button>
             <button type="button" class="tg-icon-btn" onclick="TG.openMakePicture()" title="Make a picture to send (a photo of you, or anything)">🎨</button>
+            <button type="button" class="tg-icon-btn" onclick="TG.suggestReply(this)" title="Stuck? Bulba suggests what you could text">🥔</button>
             <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
             <button type="button" class="tg-icon-btn" id="tgMicBtn" onclick="TG.toggleRecording()" title="Record a voice message (tap again to send)">🎤</button>
             <button type="button" class="tg-send-btn" id="tgSendBtn" onclick="TG.sendUserMessage()">Send ➤</button>
@@ -302,7 +311,16 @@
       </div>
     </section>
 
-    <!-- APP 4: SHARED FILES & PERSONAL NOTES -->
+    <!-- GALLERY: every photo from the chats (a deleted message takes its photo with it) -->
+    <section class="screen-app-view" id="app-gallery">
+      <div class="hub-secondary-pane">
+        <h2 style="margin:0 0 4px;">🖼️ Gallery</h2>
+        <p style="margin:0; color:var(--tg-muted); font-size:13.5px;">Every photo from your chats, yours and theirs. Delete the message in the chat and the photo leaves here too.</p>
+        <div class="tg-gallery-grid" id="galleryGrid"></div>
+      </div>
+    </section>
+
+    <!-- Drive -->
     <section class="screen-app-view" id="app-files">
       <div id="screenDriveRoot" class="screen-mini-root"></div>
     </section>
@@ -397,8 +415,14 @@
         </select>
       </div>
       <div class="tg-field-group">
+        <label>👥 Someone else in it too</label>
+        <select class="tg-select" id="photoModalAlso"></select>
+      </div>
+      <div class="tg-field-group">
         <label>Scene / Prompt details (optional — leave blank to auto-extract essence from the current chat)</label>
         <textarea class="tg-textarea" id="photoModalPrompt" placeholder="Leave blank to let the scene reader inspect the last messages, or describe a specific selfie, food, or scenery shot…"></textarea>
+        <button type="button" class="tg-fmt-btn" style="align-self:flex-start;margin-top:6px" onclick="TG.suggestInto('their_picture', this, function (x) { document.getElementById('photoModalPrompt').value = x; })">🥔 Suggest from the chat</button>
+        <div class="tg-suggest" data-suggest-for="their_picture"></div>
       </div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Cancel</button>
@@ -448,13 +472,14 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=27"></script>
+  <script src="{% static 'users/js/persona_parts.js' %}?v=2"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=42"></script>
   <script src="{% static 'mainapp/js/screen_drafts.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/screen_lore.js' %}?v=2"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=5"></script>
   <script src="{% static 'mainapp/js/vn_editor.js' %}?v=2"></script>
   <script src="{% static 'mainapp/js/pulse.js' %}?v=1"></script>
-  <script src="{% static 'mainapp/js/screen_home.js' %}?v=4"></script>
+  <script src="{% static 'mainapp/js/screen_home.js' %}?v=5"></script>
 </body>
 </html>

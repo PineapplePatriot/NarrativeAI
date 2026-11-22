@@ -17,6 +17,7 @@ function fill() {
     $('watch').checked = !!state.watch;
     document.querySelector(`input[name=game][value=${state.game || 'off'}]`).checked = true;
     document.querySelectorAll('input[name=story_extras]').forEach(b => { b.checked = (state.story_extras || []).includes(b.value); });
+    if ($('customObject')) { $('customObject').checked = !!(state.custom_object || {}).on; $('customObjectText').value = (state.custom_object || {}).text || ''; }
     $('chatModel').textContent = state.chat_model || 'your chat model';
     $('background').innerHTML = `<option value="chat">Use my chat model for everything</option>` +
         state.cheap_models.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${esc(m.price)}): ${esc(m.best_for)}</option>`).join('');
@@ -67,6 +68,7 @@ $('saveBtn').onclick = async () => {
         watch: $('watch').checked,
         game: document.querySelector('input[name=game]:checked').value,
         story_extras: [...document.querySelectorAll('input[name=story_extras]:checked')].map(b => b.value),
+        custom_object: $('customObject') ? { on: $('customObject').checked, text: $('customObjectText').value } : undefined,
         eleven_key: $('elevenKey').value,
         remove_eleven_key: $('removeElevenBox').checked,
         background_thinking: $('bgThinking').checked ? 'light' : 'model',

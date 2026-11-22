@@ -25,7 +25,7 @@ class Command(BaseCommand):
         for key, value in data["summary"].items():
             out.write(f"  {key.replace('_', ' '):<26} {value}\n")
         out.write("\nActive users by day:\n")
-        for day, n in data["active_by_day"][:14]:
+        for day, n, _mins in data["active_by_day"][:14]:
             out.write(f"  {day}  {n}\n")
         out.write("\nPer user:\n")
         for r in data["users"]:

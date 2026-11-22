@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Usage - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
     <style>
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 28px; }
@@ -57,7 +57,12 @@
         {% endfor %}
     </div>
 
-    <h2>Week by week <small class="note">(everyone added up; a session counts in the week it started)</small></h2>
+    <h2>Week by week <small class="note">(everyone added up, times in {{ data.time_zone }}; a session counts once, in
+        the week it started, but its minutes are split at midnight: 23:00 to 04:00 gives 1 hour to one day and 4 to
+        the next)</small></h2>
+    <p class="note">Weeks start on:
+        {% if data.week_starts == "monday" %}<a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=sunday">Sunday</a> · <b>Monday</b>
+        {% else %}<b>Sunday</b> · <a href="?{% if request.GET.days %}days={{ request.GET.days }}&{% endif %}week=monday">Monday</a>{% endif %}</p>
     <div class="table-wrap"><table>
         <tr><th>Week of</th><th>Time on the site</th><th>Sessions</th><th>People active</th><th>Minutes per person</th></tr>
         {% for w in data.weekly %}<tr><td>{{ w.week }}</td><td>{{ w.hours }} h <span class="note">({{ w.minutes }} min)</span></td><td>{{ w.sessions }}</td><td>{{ w.people }}</td><td>{{ w.per_person }}</td></tr>{% endfor %}
@@ -79,8 +84,8 @@
         <div>
             <h2>Active users by day</h2>
             <div class="table-wrap"><table>
-                <tr><th>Day</th><th>Users</th></tr>
-                {% for day, n in data.active_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="note">No activity yet.</td></tr>{% endfor %}
+                <tr><th>Day</th><th>Users</th><th>Time on the site</th></tr>
+                {% for day, n, mins in data.active_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td><td>{{ mins }} min</td></tr>{% empty %}<tr><td colspan="3" class="note">No activity yet.</td></tr>{% endfor %}
             </table></div>
         </div>
         <div>
@@ -106,6 +111,55 @@
     </table></div>
     <p class="note">Generated {{ data.generated|date:"Y-m-d H:i" }} (UTC). Minutes: from first to last activity of each session
         (one page alone counts as a minute). Messages: the ones they wrote in their chats. Spend: what OpenRouter reported.</p>
+    <h2 id="library">🎵🖼️ Backgrounds and music for everyone</h2>
+    <p class="note">Uploads go into the pickers for every account: chat backgrounds (the chat page's BG), music for chats, and
+        tracks for the Pit radio. They're kept on the server's disk, so a deploy doesn't remove them.</p>
+    {% if library_note %}<p class="lib-note">{{ library_note }}</p>{% endif %}
+    <div class="lib-forms">
+        <form method="post" action="{% url 'users:stats_library' %}" enctype="multipart/form-data" class="lib-form">
+            {% csrf_token %}<input type="hidden" name="kind" value="backgrounds">
+            <b>🖼️ A chat background</b>
+            <input type="text" name="name" placeholder="Its name (e.g. Rainy lab)" maxlength="80">
+            <input type="file" name="file" accept="image/*" required>
+            <button type="submit" class="backup-btn">Upload</button>
+        </form>
+        <form method="post" action="{% url 'users:stats_library' %}" enctype="multipart/form-data" class="lib-form">
+            {% csrf_token %}<input type="hidden" name="kind" value="music">
+            <b>🎵 Music for chats</b>
+            <input type="text" name="name" placeholder="Its name (e.g. Quiet tavern)" maxlength="80">
+            <input type="file" name="file" accept="audio/*" required>
+            <button type="submit" class="backup-btn">Upload</button>
+        </form>
+        <form method="post" action="{% url 'users:stats_library' %}" enctype="multipart/form-data" class="lib-form">
+            {% csrf_token %}<input type="hidden" name="kind" value="radio">
+            <b>📻 A Pit radio track</b>
+            <input type="text" name="name" placeholder="Its name (emoji welcome: 🌙🎻)" maxlength="80">
+            <select name="set">{% for s in radio_sets %}<option>{{ s }}</option>{% endfor %}<option value="">A new set…</option></select>
+            <input type="text" name="new_set" placeholder="New set's name (when “A new set…”)" maxlength="60">
+            <input type="file" name="file" accept="audio/*" required>
+            <button type="submit" class="backup-btn">Upload</button>
+        </form>
+    </div>
+    {% if library.backgrounds or library.music or library.radio %}
+    <div class="table-wrap"><table>
+        <tr><th>Uploaded</th><th>Name</th><th>Where</th><th></th></tr>
+        {% for i in library.backgrounds %}<tr><td><a href="{{ i.url }}" target="_blank"><img src="{{ i.url }}" alt="" class="lib-thumb"></a></td><td>{{ i.name }}</td><td>Chat backgrounds</td>
+            <td>{% include "users/_library_remove.html" %}</td></tr>{% endfor %}
+        {% for i in library.music %}<tr><td><audio src="{{ i.url }}" controls preload="none"></audio></td><td>{{ i.name }}</td><td>Chat music</td>
+            <td>{% include "users/_library_remove.html" %}</td></tr>{% endfor %}
+        {% for i in library.radio %}<tr><td><audio src="{{ i.url }}" controls preload="none"></audio></td><td>{{ i.name }}</td><td>Radio · {{ i.set }}</td>
+            <td>{% include "users/_library_remove.html" %}</td></tr>{% endfor %}
+    </table></div>
+    {% endif %}
+    <style>
+        .lib-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 10px 0 16px; }
+        .lib-form { display: flex; flex-direction: column; gap: 8px; background: var(--ui-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; }
+        .lib-form input[type=text], .lib-form select { background: var(--ui-tertiary, #1e2235); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 8px; font: inherit; }
+        .lib-form button { align-self: flex-start; border: 0; cursor: pointer; }
+        .lib-note { background: rgba(139, 92, 246, .15); border: 1px solid rgba(139, 92, 246, .4); border-radius: 10px; padding: 8px 12px; }
+        .lib-thumb { width: 72px; height: 44px; object-fit: cover; border-radius: 6px; }
+        audio { height: 32px; max-width: 220px; }
+    </style>
 </main>
 </body>
 </html>

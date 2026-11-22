@@ -80,8 +80,9 @@
 .tl-rel { display: grid; gap: 8px; }
 .tlr-card { padding: 9px 10px; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid hsl(var(--h) 50% 55% / .3); }
 .tlr-card .tl-ava { background: hsl(var(--h) 55% 45%); }
-.tlr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.tlr-ribbon { margin-left: auto; font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: hsl(var(--h) 50% 40% / .5); }
+.tlr-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 6px; }
+.tlr-ribbon { margin-left: auto; font-size: .7rem; line-height: 1.35; padding: 2px 8px; border-radius: 999px; background: hsl(var(--h) 50% 40% / .5); }
+.tlr-ribbon.long { margin-left: 0; flex-basis: 100%; border-radius: 8px; padding: 4px 8px; }  /* a sentence: its own line */
 .tlr-row { display: grid; grid-template-columns: 22px 1fr 34px; align-items: center; gap: 6px; margin: 3px 0; }
 .tlr-row small { text-align: right; opacity: .75; }
 .tlr-ico { display: inline-block; transform: scale(var(--s, 1)); text-align: center; }

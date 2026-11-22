@@ -1459,6 +1459,8 @@ body.has-you .message.user .message-text .sc { color: var(--you); }
 .branch-note { color: var(--text-muted); font-size: 0.85em; }
 .header-btn.active { border-color: var(--accent-1); }
 .chat-card.current { border-color: var(--accent-1); }
+.chat-card:not(.current) { cursor: pointer; }
+.chat-card .chat-name { padding: 6px 0; }
 .chat-card header { gap: 6px; }
 .chat-card .chat-name { color: var(--text-primary); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-card .chat-name:hover { text-decoration: underline; }
@@ -2252,7 +2254,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 
 /* The ✏️ panel's two tabs */
 .tools-tabs { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
-.tools-tab { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent;
+.tools-tab { flex: 1 1 0; min-width: 0; white-space: nowrap; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent;
     color: var(--text-secondary, #cbd5e1); font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; }
 .tools-tab.on { background: rgba(139, 92, 246, .22); border-color: rgba(167, 139, 250, .8); color: #fff; }
 .tools-x { flex: none; background: none; border: none; color: inherit; cursor: pointer; font-size: .85rem; padding: 6px; }
@@ -2544,3 +2546,71 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .tool-group[open] { padding-bottom: 10px; }
 .tool-group .tool-sublabel:first-of-type { margin-top: 2px; }
 .memory-open { width: 100%; margin-bottom: 6px; text-align: left; background: color-mix(in srgb, var(--accent-1) 18%, transparent); }
+
+/* 📖 lore in replies: underlined, with what the lorebook says on hover or tap */
+.lore-term { text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: help;
+  text-decoration-color: color-mix(in srgb, currentColor 60%, transparent); }
+.lore-term:focus { outline: none; }
+.lore-tip { position: fixed; z-index: 9600; background: rgba(12, 14, 26, .97); color: #e8e6f3; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px; padding: 12px 16px; box-shadow: 0 12px 32px rgba(0,0,0,.5); font-size: 15px; line-height: 1.45; pointer-events: none; }
+.lore-tip small { display: block; letter-spacing: .14em; font-size: 11px; color: rgba(232,230,243,.55); margin-bottom: 4px; text-transform: uppercase; }
+.lore-switch { display: flex; gap: 8px; align-items: baseline; margin-bottom: 10px; font-size: 14px; }
+.lore-switch small { color: var(--muted, #94a3b8); }
+
+/* Their picture next to a character: sized by height, not width, so a framed picture (a card with a background)
+   stands about as tall as a cut-out sprite beside it (a little shorter), the whole picture kept; the frame is on
+   the picture itself, so there's no empty frame around it */
+.character-images-wrapper.with-user { align-items: flex-end; }
+.character-images-wrapper.with-user .character-image-container:not(.standing) {
+    height: min(560px, 62vh); width: auto; max-width: 50%; max-height: none; flex: 0 1 auto;
+    background: none; border: none; box-shadow: none; overflow: visible; display: flex; align-items: flex-end; justify-content: center; }
+.character-images-wrapper.with-user:has(.standing) .character-image-container:not(.standing) { height: 85%; }
+.character-images-wrapper.with-user .character-image-container:not(.standing) .character-sprite {
+    height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: bottom center;
+    border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+.character-images-wrapper.with-user .character-image-container.standing { height: 100%; width: auto; max-height: 900px; }
+.character-images-wrapper.with-user .user-sprite { transform: none; }
+.sum-run .icon-btn.on { background: var(--accent-1, #8b5cf6); color: #fff; border-color: transparent; }
+.sum-custom { margin-top: 6px; font-size: .82rem; color: var(--text-secondary); }
+.sum-custom summary { cursor: pointer; }
+/* ↕ a picture's own size (− / + on hover or tap) */
+.character-image-container { --sprite-size: 1; }
+.character-image-container .character-sprite { transform: scale(var(--sprite-size)); transform-origin: bottom center; transition: transform .2s; }
+.sprite-size { position: absolute; top: 8px; right: 8px; display: none; gap: 4px; z-index: 5; }
+.character-image-container:hover .sprite-size, .character-image-container.show-size .sprite-size { display: flex; }
+.sprite-size button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(10,12,22,.75);
+    color: #fff; font-size: 15px; line-height: 1; cursor: pointer; padding: 0; }
+.sprite-size button:hover { background: rgba(139, 92, 246, .6); }
+@media (hover: none) { .character-image-container:hover .sprite-size { display: none; } .character-image-container.show-size .sprite-size { display: flex; } }
+/* 🔗 other chats this one remembers */
+.linked-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.linked-row small { display: block; color: var(--text-muted); font-size: .78rem; }
+.linked-how { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: .86rem; }
+.linked-warn { color: #fbbf24 !important; }
+
+.new-chat-box { display: grid; gap: 6px; margin-bottom: 10px; }
+.new-chat-box label { display: flex; gap: 6px; align-items: center; }
+.new-chat-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* 💞 relationship milestones: a line under the reply's bubble, not inside it */
+.message { flex-wrap: wrap; }
+.message-after { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; padding-left: 48px; margin-top: -8px; }
+.message.user .message-after { padding-left: 0; padding-right: 48px; align-items: flex-end; }
+.message-after .story-extra.milestone { max-width: min(520px, 75%); }
+
+/* ⭐ favourite messages */
+.message-btn.fav-btn { font-size: 17px; line-height: 1; color: var(--text-secondary); }
+.message-btn.fav-btn[data-on="true"] { color: #facc15; text-shadow: 0 0 6px rgba(250, 204, 21, .6); }
+/* a starred message: a small gold star on its corner, always visible */
+.fav-badge { position: absolute; top: 5px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: #facc15;
+    color: #3b2f00; font-size: 11px; line-height: 18px; text-align: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+    pointer-events: none; z-index: 3; }
+.message:not(.is-fav) .fav-badge { display: none; }
+.message.fav-pop .fav-badge { animation: fav-pop .6s ease-out; }
+@keyframes fav-pop { 0% { transform: scale(0); } 60% { transform: scale(1.6); } 100% { transform: scale(1); } }
+.fav-row { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.fav-head small { color: var(--text-muted); }
+.fav-text { font-size: .85rem; line-height: 1.5; max-height: 9.5em; overflow: hidden; margin: 4px 0; -webkit-mask-image: linear-gradient(#000 75%, transparent); mask-image: linear-gradient(#000 75%, transparent); cursor: pointer; }
+.fav-text.open { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.fav-acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.message.fav-flash .message-content { box-shadow: 0 0 0 2px #facc15, 0 0 24px rgba(250, 204, 21, .45); transition: box-shadow .3s; }

@@ -45,7 +45,10 @@ TONES = {
 MODES = ("story", "app")
 MAX_CAST = 24
 DEFAULT_APP = "#e594f2"
-TAG = re.compile(r"<(/?)([a-z]+)(?::([a-z]+))?>")
+# Models write the tags loosely now and then: <plum:"drawl">, < plum : drawl >, <Plum>, <plum=whisper>; all count
+TAG = re.compile(r"<\s*(/?)\s*([a-zA-Z]+)(?:\s*[:=]\s*[\"']?([a-zA-Z]+)[\"']?)?\s*>")
+# …or lose the brackets altogether right before the speech: plum:"drawl""Now." (the marker is dropped)
+BARE = re.compile(r"\b([a-z]+)\s*:\s*\"([a-z]+)\"(?=\s*[\"“])")
 
 
 def name_of(value):
@@ -144,7 +147,9 @@ def for_prompt(s, user_name="{{user}}"):
     lines = ["### Speech colours",
              "Wrap every spoken line in its speaker's colour tag; the tag's name is the colour: "
              "<plum>\"Spoken words.\"</plum>. Only the quoted words go inside: never narration, actions or who said "
-             "it. One line, one tag, closed right after the closing quote.",
+             "it. One line, one tag, closed right after the closing quote. In a language that marks speech with "
+             "«angle quotes», „low-high quotes“ or dashes (Ukrainian, Russian, French...), tag the same way: "
+             "<plum>«Слова.»</plum>, and for a dash line — <plum>Слова,</plum> — сказала вона. — <plum>Ще слова.</plum>",
              ("Colours already given (keep them exactly, every time): " + "; ".join(given) + ".") if given else "",
              "Anyone else who speaks takes a colour nobody has yet, from: " + ", ".join(free or PALETTE)
              + "; and keeps it for the rest of the story.",
@@ -166,18 +171,21 @@ def for_writing_user(s, user_name="{{user}}"):
 
 def tag_greeting(text, color):
     """A greeting written before colours were chosen: its untagged spoken lines take the character's colour."""
-    if not text or not color or TAG.search(text) and any(m.group(2) in PALETTE for m in TAG.finditer(text)):
+    if not text or not color or TAG.search(text) and any(m.group(2).lower() in PALETTE for m in TAG.finditer(text)):
         return text
     parts = re.split(r"(<[^>]*>|`+[^`]*`+)", text)
     for i in range(0, len(parts), 2):
         parts[i] = re.sub(r"\"([^\"\n]+)\"", lambda m: f"<{color}>\"{m.group(1)}\"</{color}>", parts[i])
         parts[i] = re.sub(r"“([^”\n]+)”", lambda m: f"<{color}>“{m.group(1)}”</{color}>", parts[i])
+        parts[i] = re.sub(r"«([^»\n]+)»", lambda m: f"<{color}>«{m.group(1)}»</{color}>", parts[i])
+        parts[i] = re.sub(r"„([^“”\n]+)([“”])", lambda m: f"<{color}>„{m.group(1)}{m.group(2)}</{color}>", parts[i])
     return "".join(parts)
 
 
 def strip_tags(text):
     """The text without colour tags (for reading aloud, copying and background jobs that quote it)."""
-    return TAG.sub(lambda m: "" if m.group(2) in PALETTE else m.group(0), text or "")
+    text = TAG.sub(lambda m: "" if m.group(2).lower() in PALETTE else m.group(0), text or "")
+    return BARE.sub(lambda m: "" if m.group(1) in PALETTE else m.group(0), text)
 
 
 def css():

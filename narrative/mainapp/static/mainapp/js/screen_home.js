@@ -6,6 +6,7 @@
     ['subtext','Subtext','@','#53699b'], ['files','Drive','▰','#b9935b'],
     ['mail','Mail','✉','#708bb2'], ['wave','Wave','♫','#967b95'],
     ['pulse','Pulse','▦','#6b998d'], ['moments','Moments','✧','#9b778f'],
+    ['gallery','Gallery','▧','#64869e'],
   ];
   const roots = {files:'screenDriveRoot', mail:'screenMailRoot', pulse:'screenPulseRoot', wave:'screenWaveRoot'};
   const kinds = {files:'document',mail:'mail',pulse:'event',wave:'track'};
@@ -24,6 +25,7 @@
     mail:'M3 5h18v14H3z M3 6l9 7 9-7',
     wave:'M4 14v-3a8 8 0 0 1 16 0v3 M4 12h3v8H4z M17 12h3v8h-3z',
     pulse:'M4 5h16v16H4z M4 10h16 M8 3v4 M16 3v4 M8 14h1 M12 14h1 M16 14h1 M8 18h1 M12 18h1',
+    gallery:'M3 5h18v14H3z M3 16l5-5 4 4 3-3 6 5',
     moments:'M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3z',
   };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

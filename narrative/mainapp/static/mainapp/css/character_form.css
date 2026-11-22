@@ -222,3 +222,9 @@ textarea.cs-composed { opacity: .75; cursor: default; }
 .mm-add input[type=text] { flex: 1 1 200px; }
 .mm-upload { cursor: pointer; }
 #mmStatus.bad { color: #fda4af; }
+/* 🎯 a card's focus */
+.cs-focus { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 10px; font-size: 13px; color: var(--text-secondary, #94a3b8); }
+.cs-chip.on { border-color: var(--accent-1, #8b5cf6); background: rgba(139, 92, 246, .25); color: #fff; }
+/* the mood row: the name box and both buttons the same height, the same text size, on one line */
+.mm-add input[type=text], .mm-add .btn-secondary { height: 44px; box-sizing: border-box; margin: 0; }
+.mm-add .btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; font-size: .9rem; line-height: 1; }

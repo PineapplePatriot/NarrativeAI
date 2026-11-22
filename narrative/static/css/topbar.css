@@ -89,3 +89,20 @@
                 border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .na-radio-btn.playing { background: rgba(139, 92, 246, 0.28); box-shadow: 0 0 10px rgba(139, 92, 246, 0.35); }
 .na-radio-btn[hidden] { display: none; }
+/* ⚙ Setup: the five setup pages in one dropdown (listed as they are in the phone menu) */
+.na-links { overflow: visible; }
+.na-group { position: relative; }
+.na-group > summary { list-style: none; cursor: pointer; color: #a7adc4; padding: 8px 12px; border-radius: 8px; white-space: nowrap; user-select: none; }
+.na-group > summary::-webkit-details-marker { display: none; }
+.na-group > summary::after { content: ' ▾'; font-size: 11px; opacity: .7; }
+.na-group > summary:hover, .na-group[open] > summary { color: #f1f0ff; background: rgba(139, 92, 246, 0.12); }
+.na-group.active > summary { color: #fff; background: rgba(139, 92, 246, 0.24); }
+.na-group-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 180px; display: flex; flex-direction: column; gap: 2px;
+                 padding: 6px; background: rgba(15, 17, 28, 0.98); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 12px;
+                 box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45); z-index: 50; }
+.na-group-menu a { padding: 10px 12px !important; }
+@media (max-width: 1100px) {
+    .na-links { overflow-y: auto; }
+    .na-group > summary { display: none; }
+    .na-group:not([open]) > .na-group-menu, .na-group-menu { display: flex; position: static; box-shadow: none; border: 0; padding: 0; background: none; min-width: 0; }
+}

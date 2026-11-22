@@ -1,3 +1,4 @@
+import json
 from django.test import SimpleTestCase, TestCase
 from mainapp import experiences, starters, presets, writing_quality
 from mainapp.bulba import agent, control
@@ -342,6 +343,31 @@ class PresetUpgradeTests(TestCase):
         self.assertIsNone(preset_upgrade.pending(self.user))
         self.assertTrue(preset_upgrade.undo_rebuild(self.user))
         self.assertEqual(presets.get_active(self.user).name, 'Deep Water · GLM 5.3')
+
+
+    def test_a_rebuild_makes_bulbas_changes_again(self):
+        from mainapp import preset_upgrade
+        from mainapp.bulba import doctor
+        data = experiences.configure(presets.normalize(starters.get('glm-experience-storytelling')['preset']), 'dont')
+        good = [{'action': 'add', 'block': 'Banter', 'content': 'Let them tease each other.'},
+                {'action': 'remind', 'content': 'Keep Pantalone sly.'}]
+        data = doctor.apply_edits(data, good)
+        data['extras']['bulba_edits'] = [
+            {'title': 'Preset change: banter', 'edits': good},
+            {'title': 'Preset change: gone block', 'edits': [{'action': 'append', 'block': 'No such block', 'content': 'x'}]}]
+        self.make(data, 'Deep Water · GLM 5.3')
+        self.conn.model = 'anthropic/claude-opus-5-5'
+        self.conn.save()
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual(len(hint['changes']), 2)
+        obj = preset_upgrade.rebuild(self.user)
+        new = presets.normalize(obj.data)
+        self.assertIn('Let them tease each other.', json.dumps(new))
+        self.assertIn('Keep Pantalone sly.', json.dumps(new))
+        self.assertEqual(obj.carried['kept'], ['Preset change: banter'])
+        self.assertEqual(obj.carried['skipped'], ['Preset change: gone block'])
+        self.assertIn("didn't fit", preset_upgrade.carried_text(obj.carried))
+        self.assertEqual(len(new['extras']['bulba_edits']), 1)  # a later rebuild makes it again too
 
 
 class DesignedObjectTests(SimpleTestCase):

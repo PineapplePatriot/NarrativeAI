@@ -44,7 +44,11 @@ window.Chats = (() => {
 
     list.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-chat-act]');
-        if (!btn) return;
+        if (!btn) {  // anywhere else on a card opens that chat (the name alone is a small target on a phone)
+            const card = e.target.closest('.chat-card');
+            if (card && !e.target.closest('a') && !card.classList.contains('current')) window.location.href = urlFor(card.dataset.id);
+            return;
+        }
         const id = Number(btn.closest('.chat-card').dataset.id);
         const chat = chats.find(c => c.id === id);
         try {
@@ -66,13 +70,39 @@ window.Chats = (() => {
         panel.hidden = !show;
         document.getElementById('chatsBtn')?.classList.toggle('active', show);
         if (show) {
+            document.getElementById('toolsMenu')?.classList.remove('show');  // the pen menu would sit on top of the list
+            document.getElementById('toolsBtn')?.classList.remove('active');
             render();
             post({ action: 'list_chats' }).catch(() => {});  // counts may have changed since the page loaded
         }
     }
 
+    // + New chat: fresh, or continuing another chat (it remembers that one live: 🔗 in the pen menu)
     async function create() {
-        try { await post({ action: 'new_chat' }); } catch (err) { alert(err.message); }
+        let sources = [], current = null;
+        try {
+            const resp = await fetch(window.location.href, { method: 'POST', body: JSON.stringify({ action: 'new_chat_sources' }),
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') } });
+            const d = await resp.json(); sources = d.chats || []; current = d.current;
+        } catch (e) { /* offline: just a fresh one */ }
+        if (!sources.length) { try { await post({ action: 'new_chat' }); } catch (err) { alert(err.message); } return; }
+        sources.sort((a, b) => (b.id === current) - (a.id === current));
+        let box = document.getElementById('newChatBox');
+        if (!box) { box = document.createElement('div'); box.id = 'newChatBox'; box.className = 't-card new-chat-box'; list.before(box); }
+        box.innerHTML = `<b>+ New chat</b>
+            <label><input type="radio" name="newChatFrom" value="" checked> Start fresh</label>
+            <label><input type="radio" name="newChatFrom" value="pick"> Continue from:</label>
+            <select class="tool-input" id="newChatSource">${sources.map(c => `<option value="${c.id}">${esc(c.character)} · ${esc(c.title)}${c.id === current ? ' (this one)' : ''} — ${c.free === 'memory' ? 'story memory' : 'summary'}</option>`).join('')}</select>
+            <small class="chat-meta">The new chat remembers it live (🔗 in the pen menu: freeze or remove it there). Chats with no memory or summary yet aren't listed.</small>
+            <span class="new-chat-actions"><button type="button" class="icon-btn" id="newChatGo">Start</button><button type="button" class="icon-btn" id="newChatCancel">Cancel</button></span>`;
+        box.querySelector('#newChatSource').addEventListener('change', () => { box.querySelector('input[value=pick]').checked = true; });
+        box.querySelector('#newChatCancel').onclick = () => box.remove();
+        box.querySelector('#newChatGo').onclick = async (e) => {
+            e.currentTarget.disabled = true;
+            const pick = box.querySelector('input[name=newChatFrom]:checked').value;
+            try { await post({ action: 'new_chat', continue_from: pick ? Number(box.querySelector('#newChatSource').value) : null }); }
+            catch (err) { e.currentTarget.disabled = false; alert(err.message); }
+        };
     }
 
     // A chat file becomes a new chat: this app's own (or a rescued one), or SillyTavern's .jsonl

@@ -224,7 +224,12 @@ function messagePlace(where) {
 function speechTags(text) {
     const sp = window.SPEECH || {};
     const palette = sp.palette || {}, tones = sp.tones || [];
-    let out = text.replace(/<(\/?)([a-z]+)(?::([a-z]+))?>/g, (m, close, name, tone) => {
+    // (models write them loosely now and then: <plum:"drawl">, < plum : drawl >, <Plum>; a bare plum:"drawl" right
+    // before the speech, its brackets lost, is dropped)
+    let out = text.replace(/\b([a-z]+)\s*:\s*"([a-z]+)"(?=\s*["“])/g, (m, name) =>
+        Object.prototype.hasOwnProperty.call(palette, name) ? '' : m);
+    out = out.replace(/<\s*(\/?)\s*([a-zA-Z]+)(?:\s*[:=]\s*["']?([a-zA-Z]+)["']?)?\s*>/g, (m, close, name, tone) => {
+        name = name.toLowerCase(); tone = tone && tone.toLowerCase();
         if (!Object.prototype.hasOwnProperty.call(palette, name)) return m;
         if (close) return '</span>';
         return `<span class="sc sc-${name}${tone && tones.includes(tone) ? ' t-' + tone : ''}">`;
@@ -233,15 +238,92 @@ function speechTags(text) {
     return out;
 }
 
+// 📖 Lore in replies: the first mention of each lorebook entry's keyword is underlined; hover (or tap) shows what the
+// lorebook says about it. Off with the 📖 switch in ⚙ This chat (remembered in this browser).
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
+(function () {  // the 📖 switch: remembered in this browser; the page shows the change at once
+    const sw = document.getElementById('loreSwitch'); if (!sw) return;
+    sw.checked = loreOn();
+    sw.addEventListener('change', () => {
+        try { localStorage.setItem('loreHighlights', sw.checked ? '1' : '0'); } catch (e) { /* this visit */ }
+        document.querySelectorAll('.message-text .lore-term').forEach(el => el.replaceWith(document.createTextNode(el.textContent)));
+        if (sw.checked) document.querySelectorAll('.message:not(.user) .message-text').forEach(markLore);
+    });
+})();
+function loreOn() { try { return localStorage.getItem('loreHighlights') !== '0'; } catch (e) { return true; } }
+let LORE_RE = null;
+function loreRegex() {
+    if (LORE_RE !== null) return LORE_RE;
+    const terms = window.LORE_TERMS || [], keys = [];
+    terms.forEach((t, i) => (t.keys || []).forEach(k => keys.push([k, i])));
+    if (!keys.length) return (LORE_RE = false);
+    keys.sort((a, b) => b[0].length - a[0].length);  // the longest first: "Voynich Guild" before "Guild"
+    const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    LORE_RE = { re: new RegExp('(^|[^\\p{L}\\p{N}])(' + keys.map(k => escRe(k[0])).join('|') + ')(?=$|[^\\p{L}\\p{N}])', 'giu'),
+                index: Object.fromEntries(keys.map(k => [k[0].toLowerCase(), k[1]])) };
+    return LORE_RE;
+}
+function markLore(root) {
+    const lr = loreRegex();
+    if (!lr || !loreOn()) return;
+    const used = new Set();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: n => n.parentElement && n.parentElement.closest('a, code, pre, .lore-term, .object-slot, .extra-slot')
+            ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => {
+        const text = node.nodeValue; let last = 0, m, frag = null;
+        lr.re.lastIndex = 0;
+        while ((m = lr.re.exec(text))) {
+            const i = lr.index[m[2].toLowerCase()];
+            if (i === undefined || used.has(i)) continue;
+            used.add(i);
+            frag = frag || document.createDocumentFragment();
+            const at = m.index + m[1].length;
+            frag.appendChild(document.createTextNode(text.slice(last, at)));
+            const span = document.createElement('span');
+            span.className = 'lore-term'; span.dataset.lore = String(i); span.tabIndex = 0; span.textContent = m[2];
+            frag.appendChild(span);
+            last = at + m[2].length;
+        }
+        if (frag) { frag.appendChild(document.createTextNode(text.slice(last))); node.replaceWith(frag); }
+    });
+}
+(function loreTips() {
+    const tip = document.createElement('div'); tip.className = 'lore-tip'; tip.hidden = true; document.body.appendChild(tip);
+    const show = el => {
+        const t = (window.LORE_TERMS || [])[Number(el.dataset.lore)]; if (!t) return;
+        tip.innerHTML = '<small>LORE · ' + escapeHtml(t.title) + '</small><div>' + escapeHtml(t.text) + '</div>';
+        tip.hidden = false;
+        const r = el.getBoundingClientRect(), w = Math.min(360, window.innerWidth - 24);
+        tip.style.width = w + 'px';
+        tip.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px';
+        const below = r.bottom + 8 + tip.offsetHeight < window.innerHeight;
+        tip.style.top = (below ? r.bottom + 8 : r.top - tip.offsetHeight - 8) + 'px';
+    };
+    document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('.lore-term'); if (el) show(el); });
+    document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('.lore-term')) tip.hidden = true; });
+    document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('.lore-term'); if (el) show(el); else tip.hidden = true; });
+    window.addEventListener('scroll', () => { tip.hidden = true; }, true);
+})();
+
 // Quoted speech gets a highlight; HTML tags (from text rules) and code are left alone
 function wrapQuoted(text) {
     const parts = text.split(/(<[^>]*>|`+[^`]*`+)/g);
     return parts.map((part, i) => {
         if (i % 2 === 1) return part;
 
-        return part.replace(/"([^"\n]+)"/g, (_m, inner) =>
-            `<span class="quoted">"${inner}"</span>`
-        );
+        // straight, curly, «angle» and „low-high“ quotes (Ukrainian, German, French...)
+        let out = part.replace(/(["“«„])([^"“”«»„\n]+)(["”»“])/g, (m, open, inner, close) =>
+            ({ '"': '"', '“': '”', '«': '»', '„': '“' })[open] === close || (open === '„' && close === '”')
+                ? `<span class="quoted">${open}${inner}${close}</span>` : m);
+        // dialogue with dashes: "— Words, — she said. — More words." (the spoken parts are every other piece)
+        out = out.replace(/(^|\n)([ \t]*)([—–])[ \u00a0]([^\n]+)/g, (m, nl, pad, dash, line) => {
+            if (line.includes('class="quoted"')) return m;
+            const bits = line.split(/([ \u00a0][—–][ \u00a0])/);
+            return nl + pad + dash + ' ' + bits.map((b, j) => (j % 4 === 0 && b.trim()) ? `<span class="quoted">${b}</span>` : b).join('');
+        });
+        return out;
     }).join('');
 }
 
@@ -333,6 +415,7 @@ function renderChatMessage(rawText, where) {
         a.setAttribute('rel', 'nofollow noopener noreferrer');
         a.setAttribute('target', '_blank');
     });
+    if (place.role === 'assistant') markLore(tmp);
     tmp.querySelectorAll('.object-slot').forEach(slot => {
         const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
         if (n !== undefined && objects[n] !== undefined) slot.replaceWith(objectFrame(objects[n]));
@@ -640,6 +723,7 @@ function setGame(messageEl, lines) {
 function setExtras(messageEl, htmlList, append = false) {
     if (!messageEl) return;
     let box = messageEl.querySelector('.story-extras');
+    if (!append) messageEl.querySelector('.message-after')?.remove();  // (milestones moved under the bubble go too)
     if (!append && (!htmlList || !htmlList.length)) { if (box) box.remove(); return; }
     if (!box) {
         box = document.createElement('div');
@@ -1544,6 +1628,8 @@ function swipe(step) {
             setGame(last, d.game);
             setExtras(last, d.extras_html);
             if (d.game_trackers && window.Trackers) Trackers.setState(d.game_trackers);
+            // the trackers went back to before this reply: they update from the version now shown
+            if (d.trackers && window.Trackers) { Trackers.setState(d.trackers); Trackers.afterReply(d); }
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;
@@ -1657,6 +1743,9 @@ function openBranchModal(index) {
             text.placeholder = d.summary ? '' : 'No summary covers these messages yet. You can write one here.';
             const pick = branchModal.querySelector(`input[name=branchSummary][value=${d.summary ? 'transfer' : 'clear'}]`);
             pick.checked = true;
+            document.getElementById('branchMemoryGroup').hidden = !d.milestones;
+            document.getElementById('branchMilestones').textContent = d.milestones || 0;
+            branchModal.querySelector('input[name=branchMemory][value=keep]').checked = true;
             document.getElementById('branchTrackersNote').textContent = d.has_trackers ? ''
                 : 'No tracker values were saved at this message yet, so the branch starts with empty trackers either way.';
             branchModal.classList.add('show');
@@ -1679,6 +1768,7 @@ function confirmBranch() {
             action: 'branch', index: branchIndex, summary_mode: mode,
             summary_text: document.getElementById('branchSummaryText').value,
             trackers_mode: branchModal.querySelector('input[name=branchTrackers]:checked').value,
+            memory_mode: (branchModal.querySelector('input[name=branchMemory]:checked') || {}).value || 'keep',
         }),
     })
         .then(r => r.json())
@@ -1794,7 +1884,11 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     const form = document.getElementById('personaForm');
     if (!form) return;
     const line = document.getElementById('personaLine');
-    document.getElementById('personaEdit').onclick = () => { form.hidden = !form.hidden; };
+    document.getElementById('personaEdit').onclick = () => {
+        form.hidden = !form.hidden;
+        // 🧩 the same seven-part persona as the profile's, for this chat too
+        if (!form.hidden && window.PersonaParts) PersonaParts.attach(document.getElementById('personaDesc'), { remember: 'na-chat-persona-parts', inputClass: 'tool-input' });
+    };
     const save = async (name, description, action = 'chat_persona') => {
         try {
             const resp = await fetch(window.location.href, {
@@ -1930,6 +2024,17 @@ function placeExtras(root) {
     // Suggested actions only make sense under the newest reply
     const replies = [...document.querySelectorAll('#messagesContainer .message.assistant:not(#typingMessage)')];
     replies.forEach((m, i) => m.classList.toggle('latest-reply', i === replies.length - 1));
+    // 💞 Relationship milestones are about the story, not part of the reply: they sit under the bubble, not in it
+    (root || document).querySelectorAll('.message-content .story-extras > .story-extra.milestone').forEach(card => {
+        const content = card.closest('.message-content');
+        let after = content.nextElementSibling;
+        if (!after || !after.classList.contains('message-after')) {
+            after = document.createElement('div');
+            after.className = 'message-after';
+            content.after(after);
+        }
+        after.appendChild(card);
+    });
     (root || document).querySelectorAll('.extra-slot').forEach(slot => {
         if (slot.firstChild) return;
         const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
@@ -2160,7 +2265,10 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
         const d = await resp.json();
         if (!d.success) throw new Error(d.error || 'Could not load it.');
         const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
-        box.innerHTML = block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
+        box.innerHTML = ((d.linked || []).length ? block('🔗 From other chats', d.linked.map(x => `<p><b>${esc(x.title)} · ${esc(x.character)}</b> <small>(${x.live ? '🔴 live, ' : '❄ frozen, '}${({ append: 'its summary + the rest', memory: 'its story memory', summary: 'its summary' })[x.how] || 'summarized anew'})</small></p><pre>${esc(x.text)}</pre>`).join('')
+                + '<p class="tool-help">Read before this chat\'s own summary, as things that happened.</p>') : '')
+            + (d.memory ? block('🧠 Story memory', `<pre>${esc(d.memory)}</pre>`) : '')
+            + block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
             + block('📌 Pinned note', d.pinned_note ? esc(d.pinned_note) : '<i>none</i>')
             + block('📊 Trackers', d.trackers ? `<pre>${esc(d.trackers)}</pre>` : '<i>none</i>')
             + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no worldbook'}</i>`)
@@ -2654,3 +2762,177 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     try { const v = localStorage.getItem(key); if (v !== null) d.open = v === '1'; } catch (e) { /* private window */ }
     d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this page only */ } });
 });
+
+// 🔗 Other chats this one remembers (pen menu → Story memory): pick up to 3, summarized anew or from their summary
+(function linkedChats() {
+    const box = document.getElementById('linkedBox'); if (!box) return;
+    const list = document.getElementById('linkedList'), pick = document.getElementById('linkedPick');
+    const call = body => fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                                                     body: JSON.stringify(body) }).then(r => r.json());
+    const k = n => n >= 1000 ? `${Math.round(n / 100) / 10}k` : String(n);
+    let state = null;
+    function draw() {
+        list.innerHTML = state.linked.length ? state.linked.map(x => `<div class="linked-row"><span>🔗 <b>${escapeHtml(x.title)}</b> · ${escapeHtml(x.character)}
+            <small>${x.live ? `🔴 live: its ${x.how === 'memory' ? 'story memory' : 'summary'} as it is now` : `❄ frozen ${escapeHtml(x.at || '')}: ${({ append: 'its summary + the rest', memory: 'its story memory', summary: 'its summary' })[x.how] || 'summarized anew'}`}</small></span>
+            <span><button type="button" class="link-btn" data-freeze="${x.chat_id}" data-live="${x.live ? 1 : ''}" title="${x.live ? 'Keep it as it is now, whatever happens in that chat later' : 'Follow that chat again as it goes on'}">${x.live ? '❄' : '▶'}</button>
+            <button type="button" class="link-btn" data-unlink="${x.chat_id}" title="Forget it here">✕</button></span></div>`).join('')
+            : '<p class="tool-help">None yet.</p>';
+        if (state.linked.length >= state.max) { pick.innerHTML = ''; return; }
+        if (!state.chats.length) { pick.innerHTML = '<p class="tool-help">No other chats with a few messages yet.</p>'; return; }
+        pick.innerHTML = `<select class="tool-input" id="linkedChat">${state.chats.map(c => `<option value="${c.id}">${escapeHtml(c.character)} · ${escapeHtml(c.title)} (${c.count} messages)</option>`).join('')}</select>
+            <div class="linked-how" id="linkedHow"></div>
+            <p class="tool-help linked-warn" id="linkedWarn"></p>
+            <button type="button" class="tool-action-btn" id="linkedGo">🔗 Remember it here</button>`;
+        const sel = document.getElementById('linkedChat');
+        const how = () => {
+            const c = state.chats.find(x => String(x.id) === sel.value) || {};
+            document.getElementById('linkedHow').innerHTML =
+                (c.free ? `<label><input type="radio" name="linkedHow" value="live" checked> 🔴 Follow it live: its ${c.free === 'memory' ? `story memory (${c.milestones} milestones, who's who, relationships)` : 'summary'}, kept up to date as that chat goes on. Free, ~${k(c.free_tokens)} tokens for the AI to read. You can freeze it later.</label>` : '') +
+                `<label><input type="radio" name="linkedHow" value="anew" ${c.free ? '' : 'checked'}> Summarize it anew (~${k(c.tokens || 0)} tokens to read)</label>` +
+                (c.has_summary ? `<label><input type="radio" name="linkedHow" value="append"> Its summary + the ${c.count - c.summary_upto} newer messages (~${k(c.tokens_rest || 0)} tokens)</label>` : '');
+            const warn = () => {
+                const v = (box.querySelector('input[name=linkedHow]:checked') || {}).value;
+                const t = v === 'live' ? 0 : v === 'append' ? c.tokens_rest : c.tokens;
+                document.getElementById('linkedWarn').textContent = t > 30000
+                    ? `That's a long one (~${k(t)} tokens): it's summarized in pieces, which takes a while and costs more than a usual summary.` : '';
+            };
+            box.querySelectorAll('input[name=linkedHow]').forEach(r => r.addEventListener('change', warn)); warn();
+        };
+        sel.addEventListener('change', how); how();
+        document.getElementById('linkedGo').onclick = async (e) => {
+            const b = e.currentTarget; b.disabled = true; b.textContent = '🔗 Summarizing…';
+            const d = await call({ action: 'link_chat', chat_id: Number(sel.value), how: (box.querySelector('input[name=linkedHow]:checked') || {}).value || 'anew' }).catch(() => ({}));
+            if (!d.success) { b.disabled = false; b.textContent = '🔗 Remember it here'; alert(d.error || "Couldn't bring it in."); return; }
+            load();
+        };
+    }
+    async function load() {
+        const d = await call({ action: 'linkable_chats' }).catch(() => null);
+        if (!d || !d.success) { list.innerHTML = '<p class="tool-help">Couldn\'t load your chats.</p>'; return; }
+        state = d; draw();
+    }
+    box.addEventListener('toggle', () => { if (box.open) load(); });
+    list.addEventListener('click', async e => {
+        const f = e.target.closest('[data-freeze]');
+        if (f) { await call({ action: 'freeze_link', chat_id: Number(f.dataset.freeze), freeze: !!f.dataset.live }); load(); return; }
+        const b = e.target.closest('[data-unlink]'); if (!b) return;
+        await call({ action: 'unlink_chat', chat_id: Number(b.dataset.unlink) }); load();
+    });
+})();
+
+// ↕ Each picture beside the chat can be made bigger or smaller (− / + on hover, or tap it on a touch screen);
+// remembered per character in this browser
+(function spriteSizes() {
+    const page = location.pathname.replace(/\/+$/, '');
+    const ids = ['userContainer', 'char1Container', 'char2Container'];
+    const key = id => `na-sprite-size:${page}:${id}`;
+    const get = id => { try { return parseFloat(localStorage.getItem(key(id))) || 1; } catch (e) { return 1; } };
+    const apply = (box, s) => { box.style.setProperty('--sprite-size', s); box.classList.toggle('resized', s !== 1); };
+    ids.forEach(id => {
+        const box = document.getElementById(id); if (!box) return;
+        apply(box, get(id));
+        const bar = document.createElement('div');
+        bar.className = 'sprite-size';
+        bar.innerHTML = '<button type="button" data-d="-0.1" title="Smaller">−</button><button type="button" data-d="0" title="Back to normal">↺</button><button type="button" data-d="0.1" title="Bigger">+</button>';
+        box.appendChild(bar);
+        bar.addEventListener('click', e => {
+            const b = e.target.closest('button'); if (!b) return;
+            e.stopPropagation();
+            const d = parseFloat(b.dataset.d);
+            const s = d === 0 ? 1 : Math.round(Math.min(1.6, Math.max(0.5, get(id) + d)) * 10) / 10;
+            try { localStorage.setItem(key(id), String(s)); } catch (err) { /* this visit */ }
+            apply(box, s);
+        });
+        box.addEventListener('click', e => { if (!e.target.closest('.sprite-size')) box.classList.toggle('show-size'); });
+    });
+})();
+
+
+// ⭐ Favourite messages: a star on every message keeps a copy here to read again; Bulba can say what made it work
+(function favourites() {
+    const box = document.getElementById('favBox'); if (!box) return;
+    const list = document.getElementById('favList'), count = document.getElementById('favCount');
+    let favs = JSON.parse(document.getElementById('favourites-data')?.textContent || '[]') || [];
+    const post = body => fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                                                      body: JSON.stringify(body) }).then(r => r.json());
+    const starred = i => favs.some(f => f.i === i);  // (the server finds each one's place by its text)
+    function stars() {
+        document.querySelectorAll('#messagesContainer .message:not(#typingMessage)').forEach(msg => {
+            const actions = msg.querySelector('.message-actions'), any = msg.querySelector('[data-index]');
+            if (!actions || !any) return;
+            const i = Number(any.dataset.index);
+            let b = actions.querySelector('.fav-btn');
+            if (!b) {
+                b = document.createElement('button');
+                b.type = 'button'; b.className = 'message-btn fav-btn';
+                actions.insertBefore(b, actions.querySelector('.copy') || null);
+            }
+            const on = starred(i);
+            msg.classList.toggle('is-fav', on);
+            const bubble = msg.querySelector('.message-content');
+            if (on && bubble && !bubble.querySelector(':scope > .fav-badge')) {
+                const s = document.createElement('span'); s.className = 'fav-badge'; s.textContent = '★'; s.title = 'A favourite';
+                bubble.appendChild(s);
+            }
+            if (b.dataset.on !== String(on) || b.dataset.i !== String(i)) {
+                b.dataset.on = on; b.dataset.i = i; b.textContent = on ? '★' : '☆';
+                b.title = on ? 'A favourite (click to unstar)' : 'Star it: keep it in ⭐ Favourite messages (pen menu → This chat)';
+            }
+        });
+    }
+    function draw() {
+        count.textContent = favs.length ? `(${favs.length})` : '';
+        list.innerHTML = favs.length ? favs.slice().reverse().map(f => `<div class="fav-row" data-i="${f.i}">
+            <div class="fav-head"><b>${escapeHtml(f.who || '')}</b> <small>· message ${f.i + 1} · starred ${escapeHtml(f.at || '')}</small></div>
+            <div class="fav-text">${escapeHtml(f.text).replace(/\n/g, '<br>')}</div>
+            <div class="fav-acts"><button type="button" class="link-btn" data-fav-go="${f.i}">↪ Show in the chat</button>
+            ${f.role !== 'user' ? `<button type="button" class="link-btn" data-fav-why="${f.i}">🥔 What made it great?</button>` : ''}
+            <button type="button" class="link-btn" data-fav-off="${f.i}" title="Unstar">✕</button></div></div>`).join('')
+            : '<p class="tool-help">None yet.</p>';
+    }
+    document.addEventListener('click', async e => {
+        const b = e.target.closest('.fav-btn');
+        if (b) {
+            b.disabled = true;
+            const d = await post({ action: 'favourite', index: Number(b.dataset.i) }).catch(() => ({}));
+            b.disabled = false;
+            if (!d.success) { showChatNotice(d.error || 'Could not star it.'); return; }
+            favs = d.favourites; stars(); draw();
+            const msg = b.closest('.message');
+            if (d.starred && msg) { msg.classList.remove('fav-pop'); void msg.offsetWidth; msg.classList.add('fav-pop'); }
+            showChatNotice(d.starred ? '⭐ Starred. Read it again any time: pen menu → ⚙ This chat → ⭐ Favourite messages.'
+                                     : 'Unstarred.');
+            return;
+        }
+        const t = e.target.closest('.fav-text');
+        if (t) { t.classList.toggle('open'); return; }
+        const go = e.target.closest('[data-fav-go]');
+        if (go) {
+            const el = document.querySelector(`#messagesContainer [data-index="${go.dataset.favGo}"]`)?.closest('.message');
+            if (!el) { showChatNotice('That message isn\'t in the chat any more: its copy stays here.'); return; }
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('fav-flash'); setTimeout(() => el.classList.remove('fav-flash'), 1800);
+            return;
+        }
+        const why = e.target.closest('[data-fav-why]');
+        if (why && window.askBulba) {
+            const f = favs.find(x => String(x.i) === why.dataset.favWhy) || {};
+            window.askBulba(`⭐ This is one of my favourite replies (message ${Number(f.i) + 1}): “${(f.text || '').slice(0, 300)}${(f.text || '').length > 300 ? '…' : ''}”. ` +
+                'What makes it work better than the other replies in this chat? Be concrete. If it shows something the preset ' +
+                'should ask for more often, propose that change for me to approve.');
+            return;
+        }
+        const off = e.target.closest('[data-fav-off]');
+        if (off) {
+            const d = await post({ action: 'favourite', index: Number(off.dataset.favOff), remove: true }).catch(() => ({}));
+            if (d.success) { favs = d.favourites; stars(); draw(); }
+        }
+    });
+    draw(); stars();
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        let queued = false;
+        new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; stars(); }); })
+            .observe(container, { childList: true, subtree: true });
+    }
+})();

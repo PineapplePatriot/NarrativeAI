@@ -169,3 +169,6 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .extras .option[data-tone] input[type=checkbox]:checked::before { transform: translateX(18px); background: #fff; }
 .extras .option[data-tone] input[type=range] { accent-color: var(--g); }
 @media (prefers-reduced-motion: reduce) { .extras .option[data-tone] input[type=checkbox]::before { transition: none; } }
+/* ✨ the description of "My own object" (Extras page) */
+.custom-object-text { width: 100%; box-sizing: border-box; margin: 4px 0 2px; padding: 8px 10px; border-radius: 10px; font: inherit; font-size: .9rem;
+  background: rgba(255,255,255,.04); color: inherit; border: 1px solid rgba(148,163,184,.3); resize: vertical; }

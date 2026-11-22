@@ -1571,6 +1571,50 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertNotIn("One", call["messages"][1]["content"])
         self.assertIn("Two", call["messages"][1]["content"])
 
+    def test_the_panel_knows_what_the_ai_no_longer_sees(self):
+        self.build_story()
+        data = self.chat_file()
+        self.assertIn("out_of_view", data)  # the last reply's request: what didn't fit (0 here: all fits)
+        resp = self.post({"action": "summary_pause", "paused": False}).json()
+        self.assertEqual(resp.get("summary_data", resp).get("out_of_view", 0), 0)
+
+    def test_a_chat_remembers_other_chats(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.build_story()  # this chat: summary 1 + 2
+        old = self.character.chats.first()
+        new = chats.create(self.character, title="Chat 2")
+        self.url = self.url + f"?chat={new.id}"  # (the helper's stand-in AI, on the new chat)
+        url = self.url
+        listing = self.client.post(url, json.dumps({"action": "linkable_chats"}), content_type="application/json").json()
+        mine = next(c for c in listing["chats"] if c["id"] == old.id)
+        self.assertTrue(mine["has_summary"])
+        self.assertEqual(mine["summary_upto"], 5)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "append"}).json()
+        self.assertTrue(out["success"], out)
+        self.assertEqual(out["linked"][0]["how"], "append")
+        self.assertIn("Summary 1.", out["linked"][0]["text"])  # its own summary, kept
+        reply = self.post({"action": "chat", "message": "Remember?"})
+        self.assertEqual(reply.status_code, 200, reply.content[:300])
+        sent = json.dumps([c["messages"] for c in self.all_calls])
+        self.assertIn("From another chat", sent)  # the reply reads it
+        saw = self.client.post(url, json.dumps({"action": "ai_saw"}), content_type="application/json").json()
+        self.assertIn("Summary 1.", saw["linked"][0]["text"])  # and "What the AI saw" shows it
+        self.client.post(url, json.dumps({"action": "unlink_chat", "chat_id": old.id}), content_type="application/json")
+        self.assertEqual(chats.read(new).get("linked"), [])
+
+    def test_regenerate_and_swipe_rewind_the_trackers(self):
+        self.build_story()
+        self.post({"action": "regenerate"})  # the second reply rewritten: the trackers go back to before it
+        data = self.chat_file()
+        self.assertEqual(data["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertEqual([s["at"] for s in data["tracker_history"]], [3])
+        self.tracker_reply = '{"world": {"location": "Garden"}}'
+        self.post({"action": "update_trackers"})
+        resp = self.post({"action": "swipe", "to": 0}).json()  # back to the first version: back to before it too
+        self.assertEqual(resp["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        self.assertIn("trackers_due", resp)
+
     def test_delete_drops_summary_pieces_and_rewinds_trackers(self):
         self.build_story()
         resp = self.post({"action": "delete", "index": 4}).json()  # removes the second reply
@@ -1655,6 +1699,103 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertTrue(resp["success"], resp)
         from mainapp.models import Chat
         return Chat.objects.get(id=resp["go_to"])
+
+    def give_memory(self):
+        """Two milestones (messages 0-3 and 3-5) and an arc over the first, in the chat file."""
+        from mainapp import chats
+        chat = self.character.chats.get(parent=None)
+        data = chats.read(chat)
+        data["summary_mode"] = "memory"
+        data["memory"] = {"version": 1, "upto": 5, "arcs": [{"id": "a1", "text": "The arc.", "from": 0, "to": 3, "milestones": ["m1"]}],
+                          "milestones": [{"id": "m1", "from": 0, "to": 3, "title": "The cellar", "summary": "They met.", "arc": "a1"},
+                                         {"id": "m2", "from": 3, "to": 5, "title": "The lab", "summary": "They argued."}],
+                          "facts": [{"text": "A secret.", "source": "m2"}], "people": [{"name": "Ivan", "identity": "a guard"}],
+                          "relationships": []}
+        chats.write(chat, data)
+        return chat
+
+    def test_branch_keeps_story_memory_up_to_the_branch_point(self):
+        self.build_story()
+        self.give_memory()
+        info = self.post({"action": "branch_info", "index": 3}).json()
+        self.assertEqual(info["milestones"], 2)  # m2 starts at 3, before message 4
+        data = self.chat_file(self.branch(summary_mode="clear"))
+        self.assertEqual(data["summary_mode"], "memory")
+        self.assertEqual([m["id"] for m in data["memory"]["milestones"]], ["m1", "m2"])
+        self.assertTrue(data["memory"]["milestones"][1]["stale"])  # cut in half: looked at again
+        data = self.chat_file(self.branch(summary_mode="clear", memory_mode="clear"))
+        self.assertFalse(data.get("memory"))
+
+    def test_deleting_scenes_drops_the_arc_that_told_them(self):
+        from mainapp import story_memory
+        self.build_story()
+        mem = story_memory.trim_to(self.chat_file(self.give_memory())["memory"], 0)
+        self.assertEqual((mem["arcs"], mem["milestones"]), ([], []))
+
+    def test_a_chat_can_remember_another_chats_story_memory(self):
+        from mainapp import chats
+        self.build_story()
+        old = self.give_memory()
+        new = chats.create(self.character)
+        self.url = self.url + f"?chat={new.id}"
+        listing = self.post({"action": "linkable_chats"}).json()
+        self.assertEqual(next(c for c in listing["chats"] if c["id"] == old.id)["milestones"], 2)
+        calls = len(self.all_calls)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "memory"}).json()
+        self.assertEqual(out["linked"][0]["how"], "memory")
+        self.assertIn("They argued.", out["linked"][0]["text"])
+        self.assertIn("Ivan: a guard", out["linked"][0]["text"])
+        self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
+
+    def test_starred_messages_are_kept_and_bulba_sees_them(self):
+        from mainapp.models import BulbaSession
+        from mainapp.bulba import doctor
+        self.build_story()
+        out = self.post({"action": "favourite", "index": 2}).json()  # the first reply
+        self.assertEqual([(f["i"], f["role"]) for f in out["favourites"]], [(2, "assistant")])
+        self.assertEqual(self.chat_file()["favourites"][0]["text"], "A reply.")
+        chat = self.character.chats.first()
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        self.assertIn("Replies they starred", doctor.context(session))
+        from mainapp.views import _fav_places
+        moved = _fav_places(self.chat_file()["favourites"], self.chat_file()["messages"][1:])  # one before it deleted
+        self.assertEqual(moved[0]["i"], 1)
+        self.assertEqual(_fav_places(self.chat_file()["favourites"], [])[0]["i"], -1)  # gone: the copy stays
+        out = self.post({"action": "favourite", "index": 2}).json()  # again: unstarred
+        self.assertEqual(out["favourites"], [])
+        self.assertFalse(self.post({"action": "favourite", "index": 99}).json()["success"])
+
+    def test_a_live_link_follows_the_other_chat_until_frozen(self):
+        from mainapp import chats
+        self.build_story()
+        old = self.give_memory()
+        new = chats.create(self.character)
+        self.url = self.url + f"?chat={new.id}"
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "live"}).json()
+        self.assertTrue(out["linked"][0]["live"])
+        data = chats.read(old)  # that chat goes on: a new scene
+        data["memory"]["milestones"].append({"id": "m3", "from": 5, "to": 7, "title": "The roof", "summary": "They kissed."})
+        chats.write(old, data)
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertIn("They kissed.", saw["linked"][0]["text"])
+        self.post({"action": "freeze_link", "chat_id": old.id, "freeze": True})
+        data["memory"]["milestones"].append({"id": "m4", "from": 7, "to": 9, "title": "The fall", "summary": "He fell."})
+        chats.write(old, data)
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertIn("They kissed.", saw["linked"][0]["text"])
+        self.assertNotIn("He fell.", saw["linked"][0]["text"])
+        self.assertFalse(saw["linked"][0]["live"])
+
+    def test_a_live_link_reads_an_old_style_summary_too(self):
+        from mainapp import chats
+        self.build_story()  # summary pieces, no story memory
+        old = self.character.chats.first()
+        listing = self.post({"action": "new_chat_sources"}).json()
+        self.assertEqual(next(c for c in listing["chats"] if c["id"] == old.id)["free"], "summary")
+        go = self.post({"action": "new_chat", "continue_from": old.id}).json()["go_to"]
+        linked = chats.read(self.character.chats.get(id=go))["linked"]
+        self.assertEqual((linked[0]["chat_id"], linked[0]["live"], linked[0]["how"]), (old.id, True, "summary"))
+        self.assertIn("Summary 1.", linked[0]["text"])
 
     def test_branch_transfer(self):
         self.build_story()
@@ -3421,6 +3562,19 @@ class LightReasoningTests(SimpleTestCase):
         self.assertIsNone(self.payload("trackers", "someone/unknown-model"))
         self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
 
+    def test_a_refused_thinking_setting_is_dropped_and_tried_again(self):
+        import types
+        from unittest import mock
+        from mainapp import ai_client
+        bad = mock.Mock(status_code=400, text='{"error": "reasoning effort low is not supported"}')
+        good = mock.Mock(status_code=200, text="{}")
+        profile = types.SimpleNamespace(api_url="https://x", provider="openrouter", api_key="k", name="Main")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=[bad, good]) as post, \
+                mock.patch("mainapp.ai_client._headers", return_value={}):
+            out = ai_client._post(profile, {"model": "x/y", "messages": [], "reasoning": {"effort": "low"}})
+        self.assertIs(out, good)
+        self.assertNotIn("reasoning", post.call_args.kwargs["json"])
+
 
 class ThinkingLevelTests(ChatPromptTests):
     def use_model(self, model):
@@ -3870,6 +4024,9 @@ class SpriteMakerTests(ChatPromptTests):
         self.assertAlmostEqual(data["spending"]["spent"], 0.04)
         bad = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
         self.assertEqual(bad.status_code, 400)
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):  # ↻ a redo with their note
+            self.client.post(url, json.dumps({"emotion": "happy", "note": "her eyes are green"}), content_type="application/json")
+        self.assertIn("her eyes are green", json.dumps(seen[-1]["messages"]))
 
     def test_needs_a_neutral_picture(self):
         url = reverse("character_sprite", args=[self.character.slug])
@@ -9124,6 +9281,12 @@ class SmallFixesNovemberTests(SimpleTestCase):
         self.assertIn("[[extra 1]]", out)
         self.assertIn("never type a marker", extras.PLACING)
 
+    def test_ukrainian_quotes_take_the_colour_too(self):
+        from mainapp import speaker_colors as S
+        out = S.tag_greeting("«Ти прийшов», — сказала вона. „Добре“, відповів він.", "plum")
+        self.assertIn("<plum>«Ти прийшов»</plum>", out)
+        self.assertIn("<plum>„Добре“</plum>", out)
+
     def test_story_colours_start_with_the_characters_and_remind_before_the_note(self):
         import types
         from mainapp import speaker_colors as S
@@ -9387,6 +9550,18 @@ class StoryMemoryTests(ChatPromptTests):
         self.assertEqual((mem["relationships"][0]["route"], mem["relationships"][0]["stage"]), ("enemies_to_lovers", "grudging respect"))
         text = M.prompt_text(mem)
         self.assertIn("Rose toward Sam: grudging respect (route: enemies to lovers; trust", text)
+
+    def test_cutting_memory_rolls_relationships_back(self):
+        from mainapp import story_memory as M
+        ch = lambda a, b, t, why: {"from": a, "to": b, "trust": t, "why": why}
+        mem = M.fold(M.empty(), {"summary": "1", "relationships": [ch("Rose", "Sam", 2, "Saved her.")]}, 0, 4)
+        mem = M.fold(mem, {"summary": "2", "relationships": [ch("Rose", "Sam", -2, "Lied."), ch("Sam", "Ivan", 1, "Met.")]}, 4, 8)
+        mem = M.fold(mem, {"summary": "3", "relationships": [ch("Rose", "Sam", -2, "Betrayed.")]}, 8, 12)
+        self.assertEqual(mem["relationships"][0]["trust"], 3)
+        cut = M.trim_to(mem, 6)  # inside the second scene: back to after the first
+        self.assertEqual([(r["from"], r["to"], r["trust"]) for r in cut["relationships"]], [("Rose", "Sam", 7)])
+        self.assertEqual(mem["relationships"][0]["trust"], 3)  # the original is untouched
+        self.assertEqual(len(mem["relationships"]), 2)
 
     def test_the_panel_edits_and_old_chats_build_in_chunks(self):
         from unittest import mock
@@ -9930,15 +10105,23 @@ class OrderBoardTests(TestCase):
         self.assertEqual(len(g["orders"]), 1)  # three gave up waiting, one new went up
         self.assertIn("gave up waiting", " ".join(x["text"] for x in g["log"]))
 
-    def test_harvests_fill_orders_which_pay_tomatoes_toward_spins(self):
+    def test_harvests_go_to_the_shelf_and_are_given_to_orders_which_pay_tomatoes(self):
         from mainapp import tomato_machine as M, tomato_garden as G
         m, g = M._state(self.score), G._state(self.score)
         g["orders"] = [{"id": 1, "needs": {"seed_tomato": 2}, "have": {"seed_tomato": 0}, "reward": 160,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
-        for i in range(2):
+        for i in range(3):
             g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
             self.assertEqual(G._harvest(g, m, f"{i},0", rng=self.Rolls()), 2)  # compost as usual
-        self.assertEqual((g["orders"], m["earned"], g["filled"]), ([], 160, 1))
+        self.assertEqual((g["shelf"], g["orders"][0]["have"]), ({"seed_tomato": 3}, {"seed_tomato": 0}))  # nothing given yet
+        self.assertEqual(G.give(g, m, 1), 2)  # handed over: only what the order needs
+        self.assertEqual((g["orders"], m["earned"], g["filled"], g["shelf"]), ([], 160, 1, {"seed_tomato": 1}))
+        with self.assertRaises(ValueError):
+            G.give(g, m, 1)  # gone
+        g["shelf"] = {"seed_carrot": G.SHELF_MAX}
+        g["tiles"]["5,0"] = {"kind": "plant", "seed": "seed_carrot", "at": 0, "boost": 0}
+        G._harvest(g, m, "5,0", rng=self.Rolls())
+        self.assertEqual(g["shelf"]["seed_carrot"], G.SHELF_MAX)  # a full shelf: composted
         self.score.machine, self.score.garden = m, g
         self.score.wild = 200
         self.score.save()
@@ -9985,6 +10168,7 @@ class OrderBoardTests(TestCase):
         spins = m["bonus"]
         G._harvest(g, m, "1,1", rng=self.Rolls(.2))  # kept (rare: 25%): golden again, a spin and its seed back
         self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"], g["almanac"]["golden_tomato"]), (spins + 1, 1, 2))
+        G.give(g, m, 1)
         self.assertEqual(m["earned"], 100)  # it still counts as a tomato for orders
         g["tiles"]["1,1"] = {"kind": "plant", "seed": "seed_golden_tomato", "at": 0, "boost": 0}
         m["items"]["seed_golden_tomato"] = 0
@@ -10025,6 +10209,7 @@ class CottageQuestTests(TestCase):
             G.act(self.user, {"action": "build"})  # nothing harvested yet
         m, g = self.fresh()
         self.harvest(g, m, "seed_tomato", 5)
+        G.give(g, m, "house")  # 🧺 from the shelf
         self.assertEqual(g["house"]["have"], {"seed_tomato": 5})
         m["compost"] = 20
         self.score.machine, self.score.garden = m, g
@@ -10048,6 +10233,8 @@ class CottageQuestTests(TestCase):
         g["orders"] = [{"id": 9, "needs": {"seed_tomato": 1}, "have": {"seed_tomato": 0}, "reward": 100,
                         "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
         self.harvest(g, m, "seed_tomato", 6)
+        G.give(g, m, "house")
+        G.give(g, m, 9)
         self.assertEqual((g["house"]["have"]["seed_tomato"], g["orders"], m["earned"]), (5, [], 100))  # 5 to the house, 1 to the bakery
         g["house"]["stage"] = 4  # everything up to the kitchen built
         self.assertTrue(all(H.has(g, u) for u in ("mailbox", "plot", "barrel", "kitchen")))
@@ -10074,6 +10261,7 @@ class CottageQuestTests(TestCase):
         self.assertTrue(200 <= order["reward"] <= 600)
         self.harvest(g, m, "seed_tomato", 3)
         self.harvest(g, m, "seed_carrot", 1)
+        G.give(g, m, order["id"])
         self.assertEqual((g["orders"], m["earned"]), ([], order["reward"]))
         m["compost"] = 500
         self.assertEqual(H.ready(g, m), (False, "Il Dattore needs 3 different mutations for it (0 found so far)."))
@@ -10170,7 +10358,53 @@ class BulbaTextingTests(BulbaTests):
         self.thread.refresh_from_db()
         self.assertNotIn("scenario_override", self.thread.data)
 
+    def test_the_chat_persona_and_photo_mood_card(self):
+        self.client.get(reverse("bulba_texting", args=[self.thread.id]))
+        self.script = [("Here.", [self.call("propose_texting_chat", persona={"name": "Mika", "description": "A night-shift nurse."},
+                                            photo_mood="sweet")])]
+        data = self.tapi(action="say", text="in this chat I'm Mika, a nurse; and keep the photos cute").json()
+        self.assertIn("offer_choices", {t["function"]["name"] for t in self.bulba_calls[0]["tools"]})
+        p = data["state"]["proposals"][-1]
+        self.tapi(action="apply", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["persona"]["name"], "Mika")
+        self.assertEqual(self.thread.data["photo_mood"], "sweet")
+        self.tapi(action="undo", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertNotIn("photo_mood", self.thread.data)
 
+class BulbaStoryPersonaTests(BulbaTests):
+    """🎭 A persona just for one character's story (their usual persona stays)."""
+    def test_story_persona_goes_to_that_characters_chats_only(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        self.user.persona_name, self.user.persona_description = "Anya", "Herself."
+        self.user.save()
+        self.script = [("Here.", [self.call("propose_character", name="Dottore", description="A scholar first. Tall, masked, pale hair.",
+                                            scenario="A lab.", greeting="Hello there.")])]
+        made = self.api(action="say", text="make Dottore").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=made["id"])
+        dottore = Character.objects.get(author=self.user, name="Dottore")
+        old_chat = chats.current(dottore)
+        self.script = [("Here.", [self.call("propose_persona", name="Mira", description="His lab assistant.", scope="story")])]
+        p = self.api(action="say", text="just for this story I'm his assistant Mira").json()["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_name, "Anya")  # the usual one stays
+        self.assertEqual(chats.read(old_chat)["persona"]["name"], "Mira")
+        dottore.refresh_from_db()
+        self.assertEqual(dottore.theme["story_persona"]["name"], "Mira")  # new chats start with it
+        self.api(action="undo", id=p["id"])
+        dottore.refresh_from_db()
+        self.assertNotIn("story_persona", dottore.theme)
+        self.assertEqual(chats.read(old_chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaStoryPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaStoryPersonaTests, _name, None)
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaTextingTests, _name, None)
@@ -10207,6 +10441,19 @@ class WeeklyAndRetentionTests(TestCase):
         cohort = data["retention"]["cohorts"][0]
         # signed up on a Saturday: day 8 falls in calendar week 2 after the signup week (ann, not bob)
         self.assertEqual((cohort["people"], cohort["weeks"]), (2, [0, 50, 0, 0]))
+        with mock.patch("users.usage.timezone.now", return_value=now):
+            monday = usage.report(week_starts="monday")
+        self.assertEqual(monday["weekly"][0]["week"].weekday(), 0)  # 📅 Monday weeks, when asked
+
+    def test_a_late_night_session_splits_its_minutes_at_midnight(self):
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from users import usage
+        late = timezone.make_aware(datetime(2026, 11, 21, 23, 0))  # a Saturday, 23:00, to Sunday 04:00
+        mins = usage.minutes_by_day((late, late + timedelta(hours=5)))
+        self.assertEqual(sorted(mins.values()), [60, 240])
+        rows = usage.weekly({1: [(late, late + timedelta(hours=5))]}, late + timedelta(days=1), weeks=2)
+        self.assertEqual([(r["minutes"], r["sessions"]) for r in rows], [(240, 0), (60, 1)])  # the session: once, where it began
 
 
 class PersonaMoodUploadTests(TestCase):
@@ -10224,3 +10471,271 @@ class PersonaMoodUploadTests(TestCase):
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "sad", "file": bad}).status_code, 400)
         buf.seek(0)
         self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "hungry", "file": buf}).status_code, 400)
+
+
+class LoreGlossaryTests(TestCase):
+    """📖 Lore terms underlined in replies: the glossary the chat page gets."""
+    def test_glossary_keeps_plain_keys(self):
+        from mainapp import lorebook
+        book = lorebook.normalize_book({"entries": [
+            {"comment": "Voynich Guild", "keys": ["Voynich Guild", "/guild\\s+\\w+/", "VG"], "content": "The merchant guild. " * 30},
+            {"comment": "Off", "keys": ["Hidden"], "content": "x", "enabled": False}]})
+        g = lorebook.glossary(book)
+        self.assertEqual(len(g), 1)
+        self.assertEqual(g[0]["keys"], ["Voynich Guild"])  # no regexes, nothing under 3 letters
+        self.assertTrue(g[0]["text"].endswith("…"))
+
+
+class CardFocusTests(TestCase):
+    """🎯 What a card is mainly about: kept on its sections, and Bulba gives the words to it."""
+    def test_focus_is_kept_and_guides_filling(self):
+        from unittest import mock
+        from mainapp import card_sections
+        data = card_sections.clean({"kind": "character", "focus": ["plot", "relationship", "nonsense"],
+                                    "people": [{"name": "Ann", "sections": {"identity": "A spy."}}]})
+        self.assertEqual(data["focus"], ["plot", "relationship"])
+        self.assertIn("goals, conflicts, secrets", card_sections.focus_note(data))
+        user = get_user_model().objects.create_user(username="focus", password="pw12345!")
+        with mock.patch("mainapp.ai_client.complete", return_value='{"people": [{"name": "Ann", "sections": {}}]}') as c:
+            card_sections.fill_empty(user, data)
+        self.assertIn("This card's focus: Plot, Relationship", c.call_args.args[2][1]["content"])
+        self.assertEqual(card_sections.focus_note(card_sections.clean({"kind": "character"})), "")
+
+
+class CardSearchTests(TestCase):
+    """🔎 Cards from Chub and Janitor (the sites answered by stand-ins here)."""
+    def setUp(self):
+        from mainapp.models import BulbaSession
+        self.user = get_user_model().objects.create_user(username="seeker", password="pw12345!")
+        self.session = BulbaSession.objects.create(user=self.user, target_model="x")
+
+    @staticmethod
+    def answer(data, status=200, content=b""):
+        from unittest import mock
+        r = mock.Mock(status_code=status, ok=status < 400, content=content)
+        r.json.return_value = data
+        return r
+
+    def test_search_hides_adult_cards_unless_mature_is_on(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        nodes = {"data": {"nodes": [{"fullPath": "anon/dottore", "name": "Dottore", "tagline": "Mad scientist", "nTokens": 1800},
+                                    {"fullPath": "anon/spicy", "name": "Spicy", "nsfw": True}]}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)) as get, \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            found = cardsearch.search_chub(self.user, "dottore")
+        self.assertEqual([f["name"] for f in found], ["Dottore"])
+        self.assertEqual(get.call_args.kwargs["params"]["nsfw"], "false")
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(nodes)), \
+                mock.patch("mainapp.mature.wanted", return_value=True):
+            self.assertEqual(len(cardsearch.search_chub(self.user, "dottore")), 2)
+
+    def test_a_chub_card_comes_in_with_its_lorebook_and_undo_removes_it(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        from mainapp.models import Character
+        node = {"node": {"name": "Dottore", "topics": ["Genshin"], "definition": {
+            "name": "Dottore", "personality": "{{char}} is a scientist with a mask.", "first_message": "Ah. You.",
+            "scenario": "His lab.", "embedded_lorebook": {"entries": [{"keys": ["Fatui"], "content": "An army.", "enabled": True}]}}}}
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer(node)), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, events = cardsearch.tool_bring_in_card(self.session, {"where": "https://chub.ai/characters/anon/dottore"})
+        self.assertTrue(out.get("done"), out)
+        made = Character.objects.get(author=self.user, name="Dottore")
+        self.assertEqual(made.initial_message, "Ah. You.")
+        self.assertTrue(out["has_lorebook"])
+        self.assertTrue(made.worldbook_id)
+
+    def test_janitor_hidden_cards_risu_and_adult_cards_say_why(self):
+        from unittest import mock
+        from mainapp.bulba import cardsearch
+        link = "https://janitorai.com/characters/0b1e2f3a-1111-2222-3333-444455556666_character-dottore"
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "showdefinition": False})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("hid this card's definition", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"name": "D", "is_nsfw": True,
+                                                                                           "personality": "x"})), \
+                mock.patch("mainapp.mature.wanted", return_value=False):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("marked as adult", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({"chat_name": "Dottore", "personality": "Masked.",
+                                                                                           "first_message": "Hm."})):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertEqual(out["character"], "Dottore")
+        out, _ = cardsearch.tool_bring_in_card(self.session, {"where": "https://realm.risuai.net/character/abc"})
+        self.assertIn("Download (PNG)", out["error"])
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_bring_in_card(self.session, {"where": link})
+        self.assertIn("logged-in browser", out["error"])  # Janitor turning us away: the ways that work
+        with mock.patch("mainapp.bulba.cardsearch.requests.get", return_value=self.answer({}, status=403)):
+            out, _ = cardsearch.tool_find_card(self.session, {"query": "x"})
+        self.assertIn("turned the request away", out["error"])
+
+    def test_every_bulba_mode_has_it(self):
+        from mainapp.bulba import agent, doctor, texting
+        names = lambda tools: {t["function"]["name"] for t in tools}
+        self.assertTrue({"find_card", "bring_in_card"} <= names(agent.TOOLS))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(doctor.tools()))
+        self.assertTrue({"find_card", "bring_in_card"} <= names(texting.tools()))
+
+
+class LibraryUploadTests(TestCase):
+    """🎵🖼️ Backgrounds and music uploaded from the stats page, for everyone."""
+    def test_owner_uploads_a_background_and_a_radio_track(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from mainapp import media_library
+        User = get_user_model()
+        owner = User.objects.create_user(username="owner", password="pw12345!", is_staff=True)
+        other = User.objects.create_user(username="someone", password="pw12345!")
+        self.client.force_login(other)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.assertEqual(self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "file": pic}).status_code, 404)
+        self.client.force_login(owner)
+        pic = SimpleUploadedFile("lab.png", b"\\x89PNG\\r\\n\\x1a\\nfake", content_type="image/png")
+        self.client.post(reverse("users:stats_library"), {"kind": "backgrounds", "name": "Rainy lab", "file": pic})
+        self.assertIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        song = SimpleUploadedFile("night.mp3", b"ID3fake", content_type="audio/mpeg")
+        self.client.post(reverse("users:stats_library"), {"kind": "radio", "name": "🌙🎻", "set": "", "new_set": "Night shift", "file": song})
+        night = next(g for g in media_library.radio() if g["set"] == "Night shift")
+        self.assertEqual(night["tracks"][0]["name"], "🌙🎻")
+        bad = SimpleUploadedFile("x.exe", b"MZ", content_type="application/octet-stream")
+        resp = self.client.post(reverse("users:stats_library"), {"kind": "music", "file": bad})
+        self.assertIn("doesn", resp["Location"])
+        page = self.client.get(reverse("users:stats"))
+        self.assertContains(page, "Rainy lab")
+        path = media_library.uploads()["backgrounds"][0]["file"]
+        self.client.post(reverse("users:stats_library"), {"remove": path})
+        self.assertNotIn("Rainy lab", [b["name"] for b in media_library.built_in("backgrounds")])
+        media_library.remove(media_library.uploads()["radio"][0]["file"])  # (tidy up the test's files)
+
+
+class ReadableLookTests(TestCase):
+    """👓 A look Bulba makes is never unreadable: faint text is lightened or darkened until it reads."""
+    def test_dark_on_dark_is_fixed_and_good_colours_stay(self):
+        from mainapp import chat_looks as L
+        bad = L.clean({"base": "dark", "colors": {"surface": "#1b2a3a", "bubble_ai": "#22303f", "bubble_user": "#283545",
+                                                  "page": "#101820", "text": "#3b2a55", "muted": "#4a3a66"}})
+        c = bad["colors"]
+        self.assertGreaterEqual(min(L.contrast(c["text"], c[s]) for s in L.SURFACES), 4.5)
+        self.assertGreaterEqual(min(L.contrast(c["muted"], c[s]) for s in L.SURFACES), 3.6)
+        good = L.clean({"base": "light", "colors": {"text": "#2b2440"}})
+        self.assertEqual(good["colors"]["text"], "#2b2440")  # already readable: untouched
+        css = L.css(bad)
+        self.assertIn(".tracker-panel", css)  # the tracker cards take the look's own panel colour
+
+
+class ExtrasCustomObjectTests(TestCase):
+    """✨ "My own object" from the Extras page, saved in the active preset."""
+    def test_switched_on_with_a_description(self):
+        from mainapp import experiences, presets
+        user = get_user_model().objects.create_user(username="maker", password="pw12345!")
+        self.client.force_login(user)
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": True, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertEqual(resp["state"]["custom_object"], {"on": True, "text": "A quest log card"})
+        item = next(m for m in experiences.module_states(presets.normalize(presets.get_active(user).data)) if m["key"] == experiences.CUSTOM_OBJECT)
+        self.assertTrue(item["on"])
+        resp = self.client.post(reverse("users:extras"), json.dumps({"custom_object": {"on": False, "text": "A quest log card"}}),
+                                content_type="application/json").json()
+        self.assertFalse(resp["state"]["custom_object"]["on"])
+
+
+class BulbaChatPersonaTests(BulbaTests):
+    """🎭 Bulba on the chat page: a persona just for this chat."""
+    def test_chat_scope(self):
+        from mainapp import chats
+        from mainapp.models import BulbaSession, Character
+        dottore = Character.objects.create(name="Dottore", slug="dott-chatp", author=self.user, initial_message="Hm.")
+        chat = chats.current(dottore)
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        from mainapp.bulba import agent, actions
+        out, _ = agent.tool_propose_persona(session, {"name": "Mira", "scope": "chat",
+                                                      "sections": {"pronouns": "Mira, she/her", "appearance": "Tall, ink-stained."}})
+        session.save()
+        actions.apply(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"]["name"], "Mira")
+        self.assertIn("[Appearance]", chats.read(chat)["persona"]["description"])
+        actions.undo(session, out["proposal"])
+        self.assertEqual(chats.read(chat)["persona"], {})
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaChatPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaChatPersonaTests, _name, None)
+
+
+class BulbaBasicsTests(BulbaTests):
+    """Point of view, reply length and the other form settings, from Bulba in a chat: the same lines the form writes."""
+    def test_basics_replace_their_own_line(self):
+        from mainapp import basics, chats, presets
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-basics", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        out, _ = doctor.tool_propose_basics(session, {"pov": "second", "why": "x"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data)).get("pov"), "second")
+        out, _ = doctor.tool_propose_basics(session, {"pov": "first", "why": "they asked"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(basics.read(data).get("pov"), "first")
+        text = json.dumps(data, ensure_ascii=False)
+        self.assertNotIn("Narrate in second person", text)  # replaced, not a second rule beside it
+        self.assertEqual(text.count("Narrate in first person"), 1)
+        actions.undo(session, out["proposal"])
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data)).get("pov"), "second")
+
+    def test_applied_preset_changes_are_remembered_for_a_rebuild(self):
+        from mainapp import chats, presets
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-log", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        out, _ = doctor.tool_propose_preset_edit(session, {"edits": [{"action": "remind", "content": "Short."}], "why": "x"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        log = presets.normalize(presets.get_active(self.user).data)["extras"]["bulba_edits"]
+        self.assertEqual(log[-1]["edits"], [{"action": "remind", "content": "Short."}])
+        actions.undo(session, out["proposal"])
+        self.assertFalse(presets.normalize(presets.get_active(self.user).data)["extras"].get("bulba_edits"))
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaBasicsTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaBasicsTests, _name, None)
+
+
+class AfterNewCardTests(BulbaTests):
+    """🧭 After a new character, Bulba goes on to the persona, the world and the extras."""
+    def test_bulba_is_told_to_go_on_after_a_new_character(self):
+        self.script = [("Here.", [self.call("propose_character", name="Rafe", description="A tired detective. Tall, grey coat.",
+                                            scenario="A rainy city.", greeting="You again.")])]
+        made = self.api(action="say", text="make me a detective").json()["state"]["proposals"][-1]
+        self.script = [("Who are you in this story?", [])]
+        self.bulba_calls.clear()
+        self.api(action="apply", id=made["id"])
+        sent = json.dumps(self.bulba_calls[-1]["messages"])
+        self.assertIn("NEXT, after this new character", sent)
+        self.assertIn("propose_persona with scope account / story / chat", sent)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(AfterNewCardTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(AfterNewCardTests, _name, None)
+
+
+class BulbaModelChangeTests(TestCase):
+    """🔁 After Bulba changes the chat's model, it hears whether the preset still fits (as the chat page would)."""
+    def test_the_preset_offer_reaches_bulba(self):
+        from unittest import mock
+        from mainapp.bulba import connections, doctor
+        user = get_user_model().objects.create_user(username="switcher", password="pw12345!")
+        offer = {"kind": "offer_rebuild", "preset": "Drama · Gemini", "from": "Gemini 4 Argon", "to": "MiMo v2.6 Pro", "pair": "a>b"}
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=offer):
+            note = connections.after_model_change(user)
+        self.assertIn("rebuild it for MiMo v2.6 Pro", note)
+        with mock.patch("mainapp.preset_upgrade.pending", return_value=None):
+            self.assertEqual(connections.after_model_change(user), "")
+        self.assertIn("propose_connection_change", {t["function"]["name"] for t in doctor.tools()})  # in chats too
