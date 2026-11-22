@@ -89,14 +89,35 @@ class EpisodeTests(TestCase):
             {"speaker_slug": "`MIRA`", "text": "I found the map."},
         ])
         self.assertEqual(boxes[0]["speaker_slug"], self.char.slug)
-        with self.assertRaisesMessage(ai_client.AIError, "outside the selected cast"):
-            vn_scenes._enrich_beats(self.user, [self.char], [
-                {"speaker_slug": "uninvited", "text": "I took the map."},
-            ])
+        boxes = vn_scenes._enrich_beats(self.user, [self.char], [
+            {"speaker_slug": "barista", "text": "Your coffee."},
+            {"speaker_slug": "Mira", "text": "Thank you."},
+            {"speaker_slug": "Rowan", "text": "I agree."},
+            {"speaker_slug": "Mira", "text": "This must wait."},
+        ], user_participant={"name": "Rowan", "sprites": {}, "avatar_url": ""})
+        self.assertEqual(len(boxes), 2)
+        self.assertTrue(boxes[0]["hide_sprite"])
+        self.assertIn("barista", boxes[0]["text"])
 
-    def test_generated_user_dialogue_is_rejected_instead_of_attributed_to_a_character(self):
-        with self.assertRaises(ai_client.AIError):
-            vn_scenes._enrich_beats(self.user, [self.char], [{"speaker_slug": "user", "text": "I agree."}])
+    def test_vn_generation_leaves_main_chat_pictures_unchanged(self):
+        self.char.photo_neutral.name = "photos/canon.png"
+        self.char.save()
+        with patch.object(messenger, "_read_storage_image", return_value=(b"image", "image/png")) as read:
+            self.assertEqual(vn_scenes.screen_references(self.char), [])
+            read.assert_not_called()
+        with patch.object(messenger, "make_picture", return_value=(b"image", 0)):
+            sprite = vn_scenes.resolve_or_generate_sprite(self.user, self.char, "happy", auto_generate=True)
+        self.char.refresh_from_db()
+        self.assertEqual(self.char.photo_neutral.name, "photos/canon.png")
+        self.assertFalse(self.char.photo_happy)
+        self.assertIn("messenger/vn_sprites", sprite["url"])
+
+    def test_cut_off_json_keeps_complete_beats(self):
+        with patch.object(ai_client, "resolve", return_value=(None, "test/model")), \
+             patch.object(ai_client, "complete", return_value='{"beats":[{"speaker_slug":"mira","text":"Hello."},{"text":"Unfinished'):
+            parsed = vn_scenes._call_vn_json(self.user, "scene")
+        self.assertEqual(parsed["beats"][0]["text"], "Hello.")
+        self.assertEqual(len(parsed["beats"]), 1)
 
     def test_long_history_is_preserved_and_continuity_reaches_next_turn(self):
         scene = self.start()
@@ -173,7 +194,7 @@ class EpisodeTests(TestCase):
         def references(c):
             return [(c.slug.encode(), "image/png"), (b"extra-" + c.slug.encode(), "image/png")]
         with patch.object(vn_scenes, "_call_vn_json", return_value={"summary": "They met."}), \
-             patch.object(messenger, "load_character_references", side_effect=references), \
+             patch.object(vn_scenes, "screen_references", side_effect=references), \
              patch.object(messenger, "make_picture", return_value=(b"image", 0)) as image:
             vn_scenes.finish_scene_with_cg(self.user)
         self.assertEqual(image.call_args.kwargs["references"][:2],

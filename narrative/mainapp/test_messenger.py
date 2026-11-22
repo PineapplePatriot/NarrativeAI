@@ -524,7 +524,8 @@ class MessengerHubTests(TestCase):
         self.assertEqual(sp_data["emotion"], "flustered")
         self.assertTrue(sp_data["sprite_url"].endswith(".png"))
         self.char1.refresh_from_db()
-        self.assertIn("flustered", sprites.extras(self.char1))
+        self.assertNotIn("flustered", sprites.extras(self.char1))
+        self.assertTrue(sp_data["scene"]["sprite_cache"])
 
         # Step the scene forward with user action/dialogue
         fake_step = json.dumps({

@@ -8,7 +8,7 @@ the Digital Screen transitions into a Visual Novel environment:
 - Splits narration/action and character dialogue into step-by-step Visual Novel beats, matching an
   expression mood (`emotion`) to every line and deciding when to hand input to the user (`handoff`).
 - Dynamically generates new expression sprites when a beat calls for a mood the character doesn't have yet,
-  and stores them permanently on the character (`Character.photo_<mood>` or `sprites.save`).
+  and stores them as episode assets.
 - Saves a completed episode and its full transcript independently of optional illustration generation,
   writes its summary back to the originating TeleChat thread, and lets the user return to the phone.
 - Carries an explicit continuity record and participant references into image requests; outfit-specific
@@ -37,7 +37,7 @@ MEETUP_CUE_RE = re.compile(
     r"\b(meet\s+up|meet\s+me|on\s+my\s+way|coming\s+over|come\s+over|at\s+the\s+door|outside\s+your|"
     r"see\s+you\s+in|see\s+you\s+at|waiting\s+for\s+you|at\s+the\s+cafe|at\s+the\s+bar|at\s+the\s+lab|"
     r"let's\s+hang|hang\s+out|grab\s+coffee|grab\s+a\s+drink| grab\s+dinner|pick\s+you\s+up|i'm\s+here|"
-    r"knocking|downstairs|lobby)\b",
+    r"knocking|зустрінемось|зустрінемося|зустрічай|я\s+вже\s+тут|біля\s+дверей|зайди\s+до\s+мене)\b",
     re.I,
 )
 
@@ -155,17 +155,28 @@ def detect_meetup_cue(thread):
 
 def all_character_sprites(character):
     """Return `{emotion_lower: url}` of every sprite currently stored for `character`."""
-    out = {}
-    for emo in sprites.BUILT_IN:
-        field = getattr(character, f"photo_{emo}", None)
-        if field and getattr(field, "name", ""):
-            try:
-                out[emo] = field.url
-            except ValueError:
-                pass
-    for emo, url in sprites.extras(character).items():
-        out[emo.lower()] = url
+    prof = character.messenger_profile or {}
+    out = dict((character.messenger_profile or {}).get("vn_sprites") or {})
+    neutral = prof.get("neutral_url") or prof.get("avatar_url")
+    if neutral:
+        out.setdefault("neutral", neutral)
     return out
+
+
+def screen_references(character):
+    prof = character.messenger_profile or {}
+    urls = [prof.get("neutral_url"), *(prof.get("extra_refs") or []),
+            prof.get("avatar_url"), *all_character_sprites(character).values()]
+    refs, seen = [], set()
+    for url in urls:
+        if url and url not in seen:
+            seen.add(url)
+            image = messenger._read_storage_image(url)
+            if image:
+                refs.append(image)
+        if len(refs) == 5:
+            break
+    return refs
 
 
 def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, outfit="", scene_assets=None):
@@ -174,17 +185,17 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, ou
     - If `character` already has a sprite for `emotion`, return `{url, emotion, is_new: False, needs_gen: False}`.
     - If missing and `auto_generate=True`, dynamically generate a waist-up Visual Novel character sprite for
       `emotion` using `messenger.make_picture` (with 1 neutral + up to 4 extra references and art style lock)
-      and store it permanently on `character` (`photo_<emotion>` or `sprites.save`).
+      and store it in the episode sprite cache.
     - If missing and `auto_generate=False`, fall back to their neutral/avatar image and flag `needs_gen: True`
       so the user can generate and save it with one click on the VN stage.
     """
     emo_clean = sprites.clean_name(emotion) or "neutral"
     existing = all_character_sprites(character)
-    scoped = scene_assets is not None and (bool(outfit) or character.author_id != user.pk)
+    scene_assets = scene_assets if scene_assets is not None else {}
     asset_key = hashlib.sha256(f"{character.slug}|{emo_clean}|{outfit}".encode()).hexdigest()[:24]
-    if scoped and asset_key in scene_assets:
+    if asset_key in scene_assets:
         return {**scene_assets[asset_key], "is_new": False, "needs_gen": False}
-    if emo_clean in existing and not scoped:
+    if emo_clean in existing and not outfit:
         return {
             "url": existing[emo_clean],
             "emotion": emo_clean,
@@ -193,7 +204,7 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, ou
         }
 
     prof = messenger.char_profile(character)
-    fallback_url = existing.get("neutral") or prof.get("neutral_url") or prof.get("avatar_url") or ""
+    fallback_url = existing.get("neutral") or ""
 
     if not auto_generate:
         return {
@@ -204,7 +215,7 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, ou
         }
 
     # Dynamically generate the missing expression sprite and store it permanently!
-    refs = messenger.load_character_references(character)
+    refs = screen_references(character)
     appearance = prof.get("appearance_notes") or (character.description or "")[:650]
     art_style = prof.get("art_style_notes") or "exact same visual art style, linework, shading, and color palette as the attached reference portrait(s)"
     setting_note = "modern-day outfit" if prof.get("mode") == "modern_au" else "signature outfit"
@@ -218,24 +229,9 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, ou
     )
     img_bytes, cost = messenger.make_picture(user, prompt, references=refs)
 
-    if scoped:
-        path = default_storage.save(f"messenger/vn_sprites/{user.pk}/{asset_key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img_bytes))
-        new_url = default_storage.url(path)
-        scene_assets[asset_key] = {"url": new_url, "emotion": emo_clean, "cost": cost}
-    elif emo_clean in sprites.BUILT_IN:
-        field_name = f"photo_{emo_clean}"
-        rel_path = f"photos/vn/{character.slug}-{emo_clean}-{uuid.uuid4().hex[:6]}.png"
-        saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
-        getattr(character, field_name).name = saved_path
-        character.save(update_fields=[field_name])
-        new_url = default_storage.url(saved_path)
-    else:
-        try:
-            new_url = sprites.save(character, emo_clean, img_bytes, ext="png")
-        except ValueError:
-            rel_path = f"photos/vn/{character.slug}-{emo_clean.replace(' ', '-')}-{uuid.uuid4().hex[:6]}.png"
-            saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
-            new_url = default_storage.url(saved_path)
+    path = default_storage.save(f"messenger/vn_sprites/{user.pk}/{asset_key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img_bytes))
+    new_url = default_storage.url(path)
+    scene_assets[asset_key] = {"url": new_url, "emotion": emo_clean, "cost": cost}
 
     return {
         "url": new_url,
@@ -270,7 +266,7 @@ VISUAL NOVEL ENGINE RULES:
    - Just like a real visual novel, each item in `"beats"` must be EITHER:
      * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
      * A **Character Dialogue block** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
-   - Write as much or as little as the scene and user directions call for.
+   - Return 6–10 complete beats per request, ending at a natural input point. Continue in the next request.
 2. DYNAMIC EXPRESSION SPRITES:
    - On every block with character speech or a silent reaction, set `"emotion"` to the exact mood that matches their face right now.
    - You can pick from their existing moods ({existing_moods}) OR invent a specific new mood (1-2 lowercase words like `"flustered"`, `"smug"`, `"tired"`, `"blushing"`, `"laughing"`, `"annoyed"`, `"lovestruck"`, `"drenched"`, `"scheming"`) — the engine can dynamically generate and store new expression sprites!
@@ -371,11 +367,35 @@ def _call_vn_json(user, prompt, scene=None, generation="normal"):
     params = dict(pack["params"]) if pack else {}
     params.setdefault("max_tokens", 4500 + (thinking.LEASH_ROOM if thinks else 0))
     params.setdefault("temperature", 0.82)
-    raw = ai_client.complete(user, "chat", pack["messages"] if pack else [{"role": "user", "content": prompt}], **params)
-    parsed = messenger._read_json(raw)
-    if not isinstance(parsed, dict) or not parsed:
-        raise ai_client.AIError("Could not parse Visual Novel scene blocks from model. Try again.")
-    return parsed
+    messages = pack["messages"] if pack else [{"role": "user", "content": prompt}]
+    for attempt in range(2):
+        raw = ai_client.complete(user, "chat", messages, **params)
+        parsed = messenger._read_json(raw)
+        if isinstance(parsed, dict) and set(parsed).intersection(
+                {"beats", "blocks", "choices", "summary", "visual_prompt", "chat_summary", "camera_angle"}):
+            return parsed
+        # Recover fully received beats without guessing the missing prose or JSON values.
+        match = re.search(r'"(?:beats|blocks)"\s*:\s*\[', raw)
+        if match:
+            tail = raw[match.end():].lstrip()
+            complete = []
+            decoder = json.JSONDecoder()
+            while tail:
+                try:
+                    beat, end = decoder.raw_decode(tail)
+                except ValueError:
+                    break
+                if isinstance(beat, dict) and beat.get("text"):
+                    complete.append(beat)
+                tail = tail[end:].lstrip()
+                if not tail.startswith(","):
+                    break
+                tail = tail[1:].lstrip()
+            if complete:
+                return {"beats": complete, "handoff": "user_turn"}
+        logging.getLogger(__name__).warning("VN response could not be parsed (attempt %s): %r", attempt + 1, raw[:2000])
+        messages = [*messages, {"role": "user", "content": "Return valid JSON with at most 8 complete beats. The previous response could not be parsed."}]
+    raise ai_client.AIError("The model returned incomplete or invalid scene JSON twice. Your saved episode and draft are preserved. Retry the request.")
 
 
 def _build_char_roster(chars, user=None, context=None):
@@ -436,13 +456,15 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
         sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip().strip("`").strip()
         sp_low = sp_raw.casefold()
         narrator = rb.get("kind") == "narration" or sp_low in ("narrator", "narration", "system", "")
-        user_speaks = sp_low == "user" and not narrator
+        user_speaks = sp_low in ("user", user_participant["name"].casefold()) and not narrator
         speaker_char = char_by_slug.get(sp_raw) or next((c for c in chars if sp_low in (
             c.slug.casefold(), c.name.casefold(), messenger.char_profile(c)["display_name"].casefold())), None)
         if user_speaks and authoring_mode != "director":
-            raise ai_client.AIError("The model wrote for your character. Your previous scene is saved; try again.")
+            break
         if not narrator and not user_speaks and speaker_char is None:
-            raise ai_client.AIError("The model wrote dialogue for someone outside the selected cast. Try again with the same setup.")
+            txt = f"{sp_raw}: {txt}"
+            narrator = True
+        side_character = speaker_char is None and not user_speaks and not sp_low in ("narrator", "narration", "system", "")
         stage_slug = str(rb.get("character_slug") or ("user" if user_speaks else speaker_char.slug if speaker_char else chars[0].slug))
         if stage_slug == "user" and authoring_mode != "director":
             stage_slug = speaker_char.slug if speaker_char else chars[0].slug
@@ -456,8 +478,13 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
             stage_name = messenger.char_profile(stage_char)["display_name"]
             outfits = (current.get("continuity") or {}).get("outfits") or {}
             outfit = str(outfits.get(stage_slug) or "") if isinstance(outfits, dict) else ""
-            sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=auto_generate_sprites and not narrator,
-                                                 outfit=outfit, scene_assets=scene_assets)
+            try:
+                sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=auto_generate_sprites and not narrator,
+                                                     outfit=outfit, scene_assets=scene_assets)
+            except ai_client.AIError as exc:
+                sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=False,
+                                                     outfit=outfit, scene_assets=scene_assets)
+                sp_info["error"] = str(exc)
         block_id = "vnb_" + uuid.uuid4().hex[:8]
         speaker = "narrator" if narrator else "user" if user_speaks else speaker_char.slug
         speaker_name = "Narrator" if narrator else user_participant["name"] if user_speaks else messenger.char_profile(speaker_char)["display_name"]
@@ -466,7 +493,8 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
                           "kind": "narration" if narrator else "dialogue", "generated": True,
                           "speaker": speaker, "speaker_slug": speaker, "speaker_name": speaker_name,
                           "character_slug": stage_slug, "character_name": stage_name, "emotion": sp_info["emotion"],
-                          "sprite_url": sp_info["url"], "is_new_sprite": sp_info.get("is_new", False),
+                          "sprite_url": "" if side_character else sp_info["url"], "hide_sprite": side_character, "is_new_sprite": sp_info.get("is_new", False),
+                          "sprite_error": sp_info.get("error", ""),
                           "needs_sprite_gen": False if narrator else sp_info.get("needs_gen", False),
                           "text": part, "block_text": txt if i == 0 else "",
                           "original_text": (rb.get("original_text") or "") if i == 0 else "",
@@ -852,7 +880,7 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     extra_refs = []
     ref_labels = []
     for c in chars:
-        images = messenger.load_character_references(c)
+        images = screen_references(c)
         if images and len(refs) < 5:
             refs.append(images[0])
             ref_labels.append(f"Reference {len(refs)}: {messenger.char_profile(c)['display_name']}")
@@ -949,6 +977,10 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
                         "ts": time.time(),
                         "reactions": {"❤️": [lead_prof["display_name"]]},
                     })
+                td["memory"] = (td.get("memory") or "") + (
+                    f"\nCompleted in-person episode: {scene.get('title')} at {scene.get('location')}. "
+                    f"{chat_summary}\nThe next phone exchange follows this meeting; do not replay it as a future plan."
+                )
                 messenger.save_thread_data(thread, td)
 
     return gallery_entry, float(cost or 0.0)

@@ -53,6 +53,8 @@ def scene_context(user, thread=None):
         "memory": data.get("memory") or "",
         "scenario": data.get("scenario_override") or "",
         "share_memory": data.get("share_memory"),
+        "scene": data.get("scene") or {},
+        "events": data.get("events") or [],
         "conversation": "\n".join(lines),
     }
 

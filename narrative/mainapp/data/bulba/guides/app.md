@@ -132,3 +132,11 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - Tokens: the pieces of text models count and charge for; more text in and out costs more.
 - Bulba itself runs on MiMo v2.6 Pro (cheap). When MiMo's provider filter refuses a request ("considered high risk"), that one request is retried on Gemini 4 Argon, and only if Argon refuses too, on DeepSeek V4 Flash; the next request starts on MiMo again. Gemini requests (Bulba's and the chat's) go out with Gemini's adjustable safety filters set to block nothing.
 - Cost: everything runs on your OpenRouter key; the pen menu shows this month's total; the app stops at the limit. The Notebook page shows the all-time total.
+
+
+### Visual novel episodes on Screen
+Scenes continues the selected TeleChat conversation in person. Open Scenes, review the place,
+cast, roleplay/directing mode and optional image generation, then launch. Writing and image
+generation use the user's configured providers. Episode preferences change writing and response
+mode. Scene appearance changes music and the backdrop. Finish and save returns a summary to
+the source chat. Generated episode expressions are separate from the main roleplay card.

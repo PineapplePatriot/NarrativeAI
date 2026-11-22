@@ -235,7 +235,7 @@
         this.lastFinaleEntry = null;
         this.render();
         this.syncAudioTrack(!!document.getElementById('app-scenes')?.classList.contains('active'));
-        this.notify(data.scene.background_error || data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error));
+        this.notify(data.scene.background_error || data.scene.polish_error || data.scene.beats?.find(b => b.sprite_error)?.sprite_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error || data.scene.beats?.some(b => b.sprite_error)));
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -276,6 +276,7 @@
       const idx = Math.max(0, Math.min(this.beatIndex, sc.beats.length - 1));
       for (let i = idx; i >= 0; i--) {
         const b = sc.beats[i];
+        if (b?.hide_sprite) return null;
         if (b && b.character_slug && (b.character_slug !== "user" || sc.authoring_mode === "director")) {
           // The camera may show the listener while somebody else is speaking.
           return { ...b, speaker: b.character_slug, speaker_name: b.character_name || b.speaker_name };

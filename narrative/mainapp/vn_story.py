@@ -60,6 +60,15 @@ def prepare(user, scene, prompt, generation="normal"):
     latest = tail.partition("LATEST INPUT / DIRECTION FOR THIS STEP:")[2].partition("Return ONLY")[0]
     engine = start + "\n" + latest + "\nReturn ONLY a valid JSON object" + output if found and output_found else prompt
     engine += "\n" + mode_rules(scene) + "\nUse the preset's writing guidance within this JSON presentation format."
+    if thread:
+        phone = messenger.thread_data(thread)
+        engine += "\nSCREEN CONTINUITY: " + json.dumps({
+            "scene": phone.get("scene"), "plans": phone.get("events"),
+            "linked_memory": messenger.linked_block(user, thread, phone),
+            "profiles": [messenger.char_profile(c) for c in chars],
+        }, ensure_ascii=False)
+    engine += ("\nWrite 6–10 complete beats per turn. The opening must bridge directly from the last phone "
+               "conversation, respecting the agreed meeting, current place, clothing and story time.")
     cast = [{"slug": c.slug, "name": c.name, "display_name": messenger.char_profile(c)["display_name"]}
             for c in chars]
     engine += (
