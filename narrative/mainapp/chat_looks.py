@@ -352,8 +352,18 @@ def css(recipe, char_name="", user_name=""):
 {S} .tr-icon[data-item="add"] {{ color: {c['accent']}; border-color: {c['accent']}88; }}
 {S} .tr-gap {{ background: {c['outline']}44; }}""")
     # The tracker cards (quests, milestones…): the look's own panel colour, so its text colours stay readable on it
-    out.append(f"""{S} .tracker-panel {{ background: linear-gradient(180deg, {c['accent']}1a, transparent 200px), {c['surface']}f5;
-  border-color: {c['outline']}55; color: {c['text']}; }}""")
+    # (the rail itself is see-through: only its icon strip and the card that slides out of it get a colour)
+    out.append(f"""{S} .tracker-panel:not(.tracker-rail), {S} .tr-flyout {{ background: linear-gradient(180deg, {c['accent']}1a, transparent 200px), {c['surface']}f5;
+  border-color: {c['outline']}55; color: {c['text']}; }}
+{S} .tr-head {{ background: {c['surface']}f2; border-bottom: 1px solid {c['outline']}33; }}
+{S} .tr-head b, {S} .tr-stop p {{ color: {c['text']}; }}
+{S} .tr-foot, {S} .tr-note, {S} .tr-addrow small {{ color: {c['muted']}; }}
+{S} .tr-addrow {{ color: {c['text']}; }}
+{S} .tr-btn {{ background: {c['bubble_ai']}; color: {c['text']}; border-color: {c['outline']}55; }}
+{S} .tlr-card {{ background: {c['bubble_ai']}; border-color: {c['outline']}33; }}
+{S} .tlr-ribbon {{ background: {c['accent']}26; color: {c['text']}; }}
+{S} .tlr-bar {{ background: {c['outline']}22; }}
+@media (max-width: 768px) {{ {S} .tracker-panel.tracker-rail {{ background: {c['surface']}; border-color: {c['outline']}55; }} }}""")
     return "\n".join(out)
 
 

@@ -521,7 +521,7 @@
         $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
         const gard = (x, on) => `<div class="g-gard${on ? '' : ' resting'}"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br>
             <span class="muted">${esc(x.about)}</span><br><button type="button" class="na-btn g-crew" data-crew="${x.id}" data-on="${on ? '' : '1'}">
-            ${on ? '🛖 Send to the shed' : `🌱 Bring to work${st.gardeners.length >= st.crew_max ? ' (send one to the shed first)' : ''}`}</button></div></div>`;
+            ${on ? '🛖 Send to the shed' : '🌱 Bring to work'}</button>${!on && st.gardeners.length >= st.crew_max ? '<span class="muted g-crew-why">The crew is full: send one to the shed first.</span>' : ''}</div></div>`;
         const shed = st.shed || [];
         $('gGardeners').innerHTML = st.gardeners.length || shed.length
             ? `<p class="muted g-small">${st.crew_max} at work at a time; the rest rest in the shed.</p>`

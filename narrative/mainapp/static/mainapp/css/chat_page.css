@@ -2254,7 +2254,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 
 /* The ✏️ panel's two tabs */
 .tools-tabs { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
-.tools-tab { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent;
+.tools-tab { flex: 1 1 0; min-width: 0; white-space: nowrap; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent;
     color: var(--text-secondary, #cbd5e1); font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; }
 .tools-tab.on { background: rgba(139, 92, 246, .22); border-color: rgba(167, 139, 250, .8); color: #fff; }
 .tools-x { flex: none; background: none; border: none; color: inherit; cursor: pointer; font-size: .85rem; padding: 6px; }
