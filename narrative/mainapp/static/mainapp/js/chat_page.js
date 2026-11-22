@@ -2855,9 +2855,7 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
     let favs = JSON.parse(document.getElementById('favourites-data')?.textContent || '[]') || [];
     const post = body => fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                                                       body: JSON.stringify(body) }).then(r => r.json());
-    const textOf = msg => decodeURIComponent(msg.querySelector('.message-text')?.getAttribute('data-raw') || '')
-        .replace(/<\/?[a-z]+(?::[a-z]+)?>/gi, '');
-    const starred = (i, msg) => favs.some(f => f.i === i && (!msg || f.text.trim() === textOf(msg).trim()));
+    const starred = i => favs.some(f => f.i === i);  // (the server finds each one's place by its text)
     function stars() {
         document.querySelectorAll('#messagesContainer .message:not(#typingMessage)').forEach(msg => {
             const actions = msg.querySelector('.message-actions'), any = msg.querySelector('[data-index]');
@@ -2869,9 +2867,15 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
                 b.type = 'button'; b.className = 'message-btn fav-btn';
                 actions.insertBefore(b, actions.querySelector('.copy') || null);
             }
-            const on = starred(i, msg);
+            const on = starred(i);
+            msg.classList.toggle('is-fav', on);
+            const bubble = msg.querySelector('.message-content');
+            if (on && bubble && !bubble.querySelector(':scope > .fav-badge')) {
+                const s = document.createElement('span'); s.className = 'fav-badge'; s.textContent = '★'; s.title = 'A favourite';
+                bubble.appendChild(s);
+            }
             if (b.dataset.on !== String(on) || b.dataset.i !== String(i)) {
-                b.dataset.on = on; b.dataset.i = i; b.textContent = on ? '⭐' : '☆';
+                b.dataset.on = on; b.dataset.i = i; b.textContent = on ? '★' : '☆';
                 b.title = on ? 'A favourite (click to unstar)' : 'Star it: keep it in ⭐ Favourite messages (pen menu → This chat)';
             }
         });
@@ -2892,7 +2896,12 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
             b.disabled = true;
             const d = await post({ action: 'favourite', index: Number(b.dataset.i) }).catch(() => ({}));
             b.disabled = false;
-            if (d.success) { favs = d.favourites; stars(); draw(); } else showChatNotice(d.error || 'Could not star it.');
+            if (!d.success) { showChatNotice(d.error || 'Could not star it.'); return; }
+            favs = d.favourites; stars(); draw();
+            const msg = b.closest('.message');
+            if (d.starred && msg) { msg.classList.remove('fav-pop'); void msg.offsetWidth; msg.classList.add('fav-pop'); }
+            showChatNotice(d.starred ? '⭐ Starred. Read it again any time: pen menu → ⚙ This chat → ⭐ Favourite messages.'
+                                     : 'Unstarred.');
             return;
         }
         const t = e.target.closest('.fav-text');

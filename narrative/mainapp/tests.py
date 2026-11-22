@@ -1757,6 +1757,10 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         chat = self.character.chats.first()
         session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
         self.assertIn("Replies they starred", doctor.context(session))
+        from mainapp.views import _fav_places
+        moved = _fav_places(self.chat_file()["favourites"], self.chat_file()["messages"][1:])  # one before it deleted
+        self.assertEqual(moved[0]["i"], 1)
+        self.assertEqual(_fav_places(self.chat_file()["favourites"], [])[0]["i"], -1)  # gone: the copy stays
         out = self.post({"action": "favourite", "index": 2}).json()  # again: unstarred
         self.assertEqual(out["favourites"], [])
         self.assertFalse(self.post({"action": "favourite", "index": 99}).json()["success"])
