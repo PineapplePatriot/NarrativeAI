@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=48">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=49">
     <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=5">
     {% if look %}{% if look_fonts %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ look_fonts }}">{% endif %}
@@ -275,6 +275,12 @@
 
                     </div>
                     <div class="tools-pane tool-section" id="paneChat" hidden>
+                        <details class="tool-details" id="favBox">
+                            <summary>⭐ Favourite messages <small id="favCount"></small></summary>
+                            <p class="tool-help">Star a message with ⭐ (beside ✏️ and the others) to keep it here and read it again.
+                                🥔 asks Bulba what made it work, and whether the preset should do more of that (you approve any change).</p>
+                            <div id="favList"></div>
+                        </details>
                         {% if lore_terms %}<label class="lore-switch"><input type="checkbox" id="loreSwitch" checked>
                             📖 Underline lore in replies <small>(hover or tap a word to see what the lorebook says)</small></label>{% endif %}
                         <span class="tool-sublabel">🙂 You in this chat</span>
@@ -426,7 +432,7 @@
                     <span class="persona-hint-btns"><button type="button" data-preset-hint="switch">Switch</button>
                         <button type="button" class="ghost" data-preset-hint="keep">Keep mine</button></span>
                     {% else %}
-                    <span>🔁 <b>New model, same style?</b> “{{ preset_hint.preset }}” was made for {{ preset_hint.from }}; you now chat with {{ preset_hint.to }}. Rebuild it for {{ preset_hint.to }} (same experience, modules and taste)?</span>
+                    <span>🔁 <b>New model, same style?</b> “{{ preset_hint.preset }}” was made for {{ preset_hint.from }}; you now chat with {{ preset_hint.to }}. Rebuild it for {{ preset_hint.to }}? Your onboarding answers, taste, modules, reply length and adult setting come along{% if preset_hint.changes %}, and so do Bulba's {{ preset_hint.changes|length }} change{{ preset_hint.changes|length|pluralize }} ({{ preset_hint.changes|join:"; " }}){% endif %}. Model settings like temperature start from the new model's own.</span>
                     <span class="persona-hint-btns"><button type="button" data-preset-hint="rebuild">Rebuild it</button>
                         <button type="button" class="ghost" data-preset-hint="keep">Keep as is</button></span>
                     {% endif %}
@@ -585,6 +591,7 @@
     {{ speech|json_script:"speech-settings" }}
     {{ speech_page|json_script:"speech-page" }}
     {{ lore_terms|json_script:"lore-terms" }}
+    {{ favourites|json_script:"favourites-data" }}
     <style>{{ speech_css|safe }}</style>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');

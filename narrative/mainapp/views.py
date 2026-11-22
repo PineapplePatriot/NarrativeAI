@@ -339,6 +339,7 @@ def _story_text(user, chat_state, count):
 
 
 LINKED_CHATS = 3
+FAVOURITES = 60  # ⭐ starred messages kept per chat
 
 
 def _what_a_chat_has(data):
@@ -565,6 +566,7 @@ def chat(request, slug):
         "out_of_view": 0,  # the oldest messages the last reply's request couldn't hold (they need the summary)
         "memory": {},  # story memory (mainapp/story_memory.py)
         "linked": [],  # 🔗 up to 3 other chats this one remembers: [{chat_id, character, title, text, how, count}]
+        "favourites": [],  # ⭐ messages they starred to read again: [{"i", "who", "text", "at"}] (a copy of the text)
         "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
         "current_bg": "",
@@ -620,6 +622,7 @@ def chat(request, slug):
                 chat_state["out_of_view"] = int(data.get("out_of_view") or 0)
                 chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
                 chat_state["linked"] = [x for x in (data.get("linked") or []) if isinstance(x, dict) and x.get("text")][:LINKED_CHATS]
+                chat_state["favourites"] = [x for x in (data.get("favourites") or []) if isinstance(x, dict) and x.get("text")][-FAVOURITES:]
                 chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
@@ -741,6 +744,7 @@ def chat(request, slug):
             "out_of_view": chat_state["out_of_view"],
             "memory": chat_state["memory"],
             "linked": chat_state["linked"],
+            "favourites": chat_state["favourites"],
             "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
             "tracker_history": chat_state["tracker_history"],
@@ -1329,6 +1333,24 @@ def chat(request, slug):
             messages[index] = chats.with_condensed(messages[index], text)
             save_messages(messages)
             return JsonResponse({"success": True, "condensed": text, "spending": ai_client.spending(request.user)})
+        elif action == "favourite":  # ⭐ star a message to read it again (or unstar it)
+            try:
+                index = int(data.get("index"))
+                msg = messages[index]
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such message."})
+            text = speaker_colors.strip_tags(msg[2])
+            had = [x for x in chat_state["favourites"] if x.get("i") == index and x.get("text") == text]
+            if had or data.get("remove"):
+                chat_state["favourites"] = [x for x in chat_state["favourites"]
+                                            if not (x.get("i") == index and (x.get("text") == text or data.get("remove")))]
+            else:
+                names = prompt_names(request.user, character, chat_state["persona"])
+                chat_state["favourites"] = (chat_state["favourites"] + [{
+                    "i": index, "who": names["user"] if msg[0] == "user" else character.name, "role": msg[0],
+                    "text": text[:20000], "at": datetime.now().strftime("%Y-%m-%d")}])[-FAVOURITES:]
+            save_messages(messages)
+            return JsonResponse({"success": True, "favourites": chat_state["favourites"]})
         elif action == "ai_saw":  # the pen menu's "What the AI saw": summary, pinned note, trackers, lore
             from .bulba import memory
             return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
@@ -2291,6 +2313,7 @@ def chat(request, slug):
         "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
         "lore_terms": _lore_terms(character),  # 📖 lore terms highlighted in replies
+        "favourites": chat_state["favourites"],  # ⭐
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
@@ -2658,8 +2681,10 @@ def preset_upgrade_action(request):
         return JsonResponse({"ok": preset_upgrade.undo(user), "text": "Back to your previous preset."})
     if action == "rebuild":
         obj = preset_upgrade.rebuild(user)
-        return JsonResponse({"ok": bool(obj), "text": f"Rebuilt for your current model: “{obj.name}”." if obj else
-                             "Couldn't rebuild: check your connection first."})
+        if not obj:
+            return JsonResponse({"ok": False, "text": "Couldn't rebuild: check your connection first."})
+        return JsonResponse({"ok": True, "text": f"Rebuilt for your current model: “{obj.name}”."
+                             + preset_upgrade.carried_text(getattr(obj, "carried", {}))})
     if action == "undo_rebuild":
         return JsonResponse({"ok": preset_upgrade.undo_rebuild(user), "text": "Back as it was."})
     if action in ("keep", "later"):

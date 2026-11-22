@@ -110,6 +110,11 @@ def convert(data, profile):
     new["extras"] = {**new["extras"], "starter": {"id": starter["id"], "model": starter["model"], "based_on": []}}
     if mature.is_on(data):
         new = mature.set_on(new, True)
+    # 🔁 Bulba's changes to the old preset, made again here (the ones that still fit)
+    from mainapp.bulba import doctor
+    new, kept, skipped = doctor.replay_edits(data, new)
+    new["extras"]["carried"] = {"kept": [e.get("title") for e in kept], "skipped": [e.get("title") for e in skipped],
+                                "skipped_taste": [t for e in skipped for t in e.get("from_taste") or []]}
     return new, starter
 
 
@@ -134,6 +139,7 @@ def switch(user, mark="switched"):
         return None
     old = presets.get_active(user)
     data, starter = convert(presets.normalize(old.data), profile)
+    data["extras"].pop("carried", None)
     new = Preset.objects.create(user=user, data=data, name=presets.unique_name(user, _name(starter)))
     presets.activate(new)
     _remember(user, KEY, {"state": mark, "from": old.id, "to": new.id, "from_name": old.name})
@@ -161,13 +167,28 @@ def rebuild(user):
     extras = data.get("extras") or {}
     before_model = (extras.get("starter") or {}).get("model") or (extras.get("original_experience") or {}).get("model", "")
     new, starter = convert(data, profile)
-    _remember(user, "preset_rebuild_undo", {"id": obj.id, "data": data, "name": obj.name})
+    carried = new["extras"].pop("carried", {})
+    if carried.get("skipped_taste"):  # tastes that lived in a change that didn't fit: Bulba may offer them again
+        from mainapp.bulba import watch
+        watch.mark_taste_in_preset(user, carried["skipped_taste"], undo=True)
+    _remember(user, "preset_rebuild_undo", {"id": obj.id, "data": data, "name": obj.name, "carried": carried})
     old_auto = before_model and obj.name.endswith(" · " + (model_profiles.by_id(before_model) or {}).get("name", "\0"))
     obj.data = new
     if old_auto:  # a name the app gave it ("Heartstrings · MiMo v2.6 Pro") follows the model
         obj.name = presets.unique_name(user, _name(starter), exclude_id=obj.id)
     obj.save()
+    obj.carried = carried
     return obj
+
+
+def carried_text(carried):
+    """A sentence on Bulba's changes after a rebuild: kept, and any that no longer fit."""
+    kept, skipped = (carried or {}).get("kept") or [], (carried or {}).get("skipped") or []
+    out = f" Bulba's {len(kept)} change{'s' if len(kept) != 1 else ''} came along." if kept else ""
+    if skipped:
+        out += (" These didn't fit the new preset (ask Bulba to redo them if you want them): "
+                + "; ".join(t or "a change" for t in skipped) + ".")
+    return out
 
 
 def undo_rebuild(user):
@@ -177,6 +198,9 @@ def undo_rebuild(user):
     if obj is None:
         return False
     obj.data, obj.name = saved["data"], presets.unique_name(user, saved["name"], exclude_id=obj.id)
+    if (saved.get("carried") or {}).get("skipped_taste"):  # back in the preset
+        from mainapp.bulba import watch
+        watch.mark_taste_in_preset(user, saved["carried"]["skipped_taste"])
     obj.save()
     return True
 
@@ -212,6 +236,7 @@ def pending(user):
     made_for = (extras.get("starter") or {}).get("model") or (extras.get("original_experience") or {}).get("model", "")
     if made_for and made_for != profile["id"] and f"{made_for}>{profile['id']}" not in (appearance.get(REBUILD) or []):
         return {"kind": "offer_rebuild", "preset": active.name,
+                "changes": [e.get("title") or "a change" for e in (extras.get("bulba_edits") or []) if isinstance(e, dict)],
                 "from": (model_profiles.by_id(made_for) or {}).get("name", made_for), "to": profile["name"],
                 "pair": f"{made_for}>{profile['id']}"}
     return None

@@ -2597,3 +2597,12 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .message-after { flex-basis: 100%; display: flex; flex-direction: column; gap: 6px; padding-left: 48px; margin-top: -8px; }
 .message.user .message-after { padding-left: 0; padding-right: 48px; align-items: flex-end; }
 .message-after .story-extra.milestone { max-width: min(520px, 75%); }
+
+/* ⭐ favourite messages */
+.fav-btn[data-on="true"] { opacity: 1; }
+.fav-row { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.fav-head small { color: var(--text-muted); }
+.fav-text { font-size: .85rem; line-height: 1.5; max-height: 9.5em; overflow: hidden; margin: 4px 0; -webkit-mask-image: linear-gradient(#000 75%, transparent); mask-image: linear-gradient(#000 75%, transparent); cursor: pointer; }
+.fav-text.open { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.fav-acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.message.fav-flash .message-content { box-shadow: 0 0 0 2px #facc15, 0 0 24px rgba(250, 204, 21, .45); transition: box-shadow .3s; }

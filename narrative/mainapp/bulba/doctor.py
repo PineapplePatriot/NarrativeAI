@@ -54,6 +54,17 @@ def _lore_line(character):
     return f"“{character.worldbook.title}”, {len(entries)} entries: " + "; ".join(titles)
 
 
+def _favourites_section(data, char_name):
+    """⭐ The replies they starred: the clearest sign of their taste there is."""
+    favs = [x for x in data.get("favourites") or [] if isinstance(x, dict) and x.get("role", "assistant") != "user"][-5:]
+    if not favs:
+        return ""
+    return ("### Replies they starred ⭐ (their favourites: what they love; when they ask what made one great, "
+            "compare it with the other replies here and name concrete things, then offer changes they approve)\n"
+            + "\n\n".join(f"[message {x.get('i', 0) + 1}] {x.get('who') or char_name}: {_clip(x.get('text'), 1500)}"
+                            for x in favs))
+
+
 def context(session):
     from mainapp.views import prompt_names
     chat = session.chat
@@ -96,6 +107,7 @@ def context(session):
         "### What the model thought before its last reply\n" + (_clip(thoughts, THOUGHTS_CHARS) if thoughts
                                                                   else "(nothing: this model didn't send its thinking)"),
         memory.context_section(chat),
+        _favourites_section(data, character.name),
         _watch_section(user, chat),
     ]
     return "\n\n".join(filter(None, parts))
@@ -189,6 +201,25 @@ def _remind(preset, line):
     block["enabled"] = True
     if line not in block["content"]:
         block["content"] = (block["content"].rstrip() + "\n" + line).strip()
+
+
+EDIT_LOG = "bulba_edits"  # preset extras: Bulba's applied changes, replayed when the preset is rebuilt
+
+
+def replay_edits(old, new):
+    """Bulba's changes to `old` made again on `new` (a rebuild for another model). Returns (new, kept, skipped):
+    each logged change goes in whole or not at all (a block the new preset doesn't have, say)."""
+    kept, skipped = [], []
+    for entry in (old.get("extras") or {}).get(EDIT_LOG) or []:
+        if not isinstance(entry, dict) or not entry.get("edits"):
+            continue
+        try:
+            new = apply_edits(copy.deepcopy(new), entry["edits"])
+            kept.append(entry)
+        except (ValueError, KeyError, TypeError):
+            skipped.append(entry)
+    new["extras"] = {**(new.get("extras") or {}), EDIT_LOG: kept}
+    return new, kept, skipped
 
 
 def apply_edits(preset, edits):
@@ -519,7 +550,13 @@ def apply(session, p):
             raise ValueError("That preset is gone.")
         before = copy.deepcopy(obj.data)
         if data["edits"]:
-            obj.data = apply_edits(presets.normalize(obj.data), data["edits"])
+            new = apply_edits(presets.normalize(obj.data), data["edits"])
+            # 🔁 kept with the preset, so a rebuild for another model can make the same changes again
+            log = list((new.get("extras") or {}).get(EDIT_LOG) or [])[-39:] + [
+                {"title": p.get("title") or "", "summary": [l for l in (p.get("summary") or []) if l != "Why:"][:4],
+                 "edits": data["edits"], "from_taste": data.get("from_taste") or []}]
+            new["extras"] = {**(new.get("extras") or {}), EDIT_LOG: log}
+            obj.data = new
             obj.save(update_fields=["data", "time_update"])
         p["undo"] = {"preset_id": obj.id, "data": before}
         if data.get("basics"):  # the form's own lines, written the way the form writes them

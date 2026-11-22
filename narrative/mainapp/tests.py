@@ -1747,6 +1747,20 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertIn("Ivan: a guard", out["linked"][0]["text"])
         self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
 
+    def test_starred_messages_are_kept_and_bulba_sees_them(self):
+        from mainapp.models import BulbaSession
+        from mainapp.bulba import doctor
+        self.build_story()
+        out = self.post({"action": "favourite", "index": 2}).json()  # the first reply
+        self.assertEqual([(f["i"], f["role"]) for f in out["favourites"]], [(2, "assistant")])
+        self.assertEqual(self.chat_file()["favourites"][0]["text"], "A reply.")
+        chat = self.character.chats.first()
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        self.assertIn("Replies they starred", doctor.context(session))
+        out = self.post({"action": "favourite", "index": 2}).json()  # again: unstarred
+        self.assertEqual(out["favourites"], [])
+        self.assertFalse(self.post({"action": "favourite", "index": 99}).json()["success"])
+
     def test_a_live_link_follows_the_other_chat_until_frozen(self):
         from mainapp import chats
         self.build_story()
@@ -9263,6 +9277,12 @@ class SmallFixesNovemberTests(SimpleTestCase):
         self.assertIn("[[extra 1]]", out)
         self.assertIn("never type a marker", extras.PLACING)
 
+    def test_ukrainian_quotes_take_the_colour_too(self):
+        from mainapp import speaker_colors as S
+        out = S.tag_greeting("«Ти прийшов», — сказала вона. „Добре“, відповів він.", "plum")
+        self.assertIn("<plum>«Ти прийшов»</plum>", out)
+        self.assertIn("<plum>„Добре“</plum>", out)
+
     def test_story_colours_start_with_the_characters_and_remind_before_the_note(self):
         import types
         from mainapp import speaker_colors as S
@@ -10662,6 +10682,20 @@ class BulbaBasicsTests(BulbaTests):
         self.assertEqual(text.count("Narrate in first person"), 1)
         actions.undo(session, out["proposal"])
         self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data)).get("pov"), "second")
+
+    def test_applied_preset_changes_are_remembered_for_a_rebuild(self):
+        from mainapp import chats, presets
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-log", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        out, _ = doctor.tool_propose_preset_edit(session, {"edits": [{"action": "remind", "content": "Short."}], "why": "x"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        log = presets.normalize(presets.get_active(self.user).data)["extras"]["bulba_edits"]
+        self.assertEqual(log[-1]["edits"], [{"action": "remind", "content": "Short."}])
+        actions.undo(session, out["proposal"])
+        self.assertFalse(presets.normalize(presets.get_active(self.user).data)["extras"].get("bulba_edits"))
 
 
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:

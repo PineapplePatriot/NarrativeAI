@@ -313,9 +313,17 @@ function wrapQuoted(text) {
     return parts.map((part, i) => {
         if (i % 2 === 1) return part;
 
-        return part.replace(/"([^"\n]+)"/g, (_m, inner) =>
-            `<span class="quoted">"${inner}"</span>`
-        );
+        // straight, curly, «angle» and „low-high“ quotes (Ukrainian, German, French...)
+        let out = part.replace(/(["“«„])([^"“”«»„\n]+)(["”»“])/g, (m, open, inner, close) =>
+            ({ '"': '"', '“': '”', '«': '»', '„': '“' })[open] === close || (open === '„' && close === '”')
+                ? `<span class="quoted">${open}${inner}${close}</span>` : m);
+        // dialogue with dashes: "— Words, — she said. — More words." (the spoken parts are every other piece)
+        out = out.replace(/(^|\n)([ \t]*)([—–])[ \u00a0]([^\n]+)/g, (m, nl, pad, dash, line) => {
+            if (line.includes('class="quoted"')) return m;
+            const bits = line.split(/([ \u00a0][—–][ \u00a0])/);
+            return nl + pad + dash + ' ' + bits.map((b, j) => (j % 4 === 0 && b.trim()) ? `<span class="quoted">${b}</span>` : b).join('');
+        });
+        return out;
     }).join('');
 }
 
@@ -2837,4 +2845,85 @@ document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
         });
         box.addEventListener('click', e => { if (!e.target.closest('.sprite-size')) box.classList.toggle('show-size'); });
     });
+})();
+
+
+// ⭐ Favourite messages: a star on every message keeps a copy here to read again; Bulba can say what made it work
+(function favourites() {
+    const box = document.getElementById('favBox'); if (!box) return;
+    const list = document.getElementById('favList'), count = document.getElementById('favCount');
+    let favs = JSON.parse(document.getElementById('favourites-data')?.textContent || '[]') || [];
+    const post = body => fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                                                      body: JSON.stringify(body) }).then(r => r.json());
+    const textOf = msg => decodeURIComponent(msg.querySelector('.message-text')?.getAttribute('data-raw') || '')
+        .replace(/<\/?[a-z]+(?::[a-z]+)?>/gi, '');
+    const starred = (i, msg) => favs.some(f => f.i === i && (!msg || f.text.trim() === textOf(msg).trim()));
+    function stars() {
+        document.querySelectorAll('#messagesContainer .message:not(#typingMessage)').forEach(msg => {
+            const actions = msg.querySelector('.message-actions'), any = msg.querySelector('[data-index]');
+            if (!actions || !any) return;
+            const i = Number(any.dataset.index);
+            let b = actions.querySelector('.fav-btn');
+            if (!b) {
+                b = document.createElement('button');
+                b.type = 'button'; b.className = 'message-btn fav-btn';
+                actions.insertBefore(b, actions.querySelector('.copy') || null);
+            }
+            const on = starred(i, msg);
+            if (b.dataset.on !== String(on) || b.dataset.i !== String(i)) {
+                b.dataset.on = on; b.dataset.i = i; b.textContent = on ? '⭐' : '☆';
+                b.title = on ? 'A favourite (click to unstar)' : 'Star it: keep it in ⭐ Favourite messages (pen menu → This chat)';
+            }
+        });
+    }
+    function draw() {
+        count.textContent = favs.length ? `(${favs.length})` : '';
+        list.innerHTML = favs.length ? favs.slice().reverse().map(f => `<div class="fav-row" data-i="${f.i}">
+            <div class="fav-head"><b>${escapeHtml(f.who || '')}</b> <small>· message ${f.i + 1} · starred ${escapeHtml(f.at || '')}</small></div>
+            <div class="fav-text">${escapeHtml(f.text).replace(/\n/g, '<br>')}</div>
+            <div class="fav-acts"><button type="button" class="link-btn" data-fav-go="${f.i}">↪ Show in the chat</button>
+            ${f.role !== 'user' ? `<button type="button" class="link-btn" data-fav-why="${f.i}">🥔 What made it great?</button>` : ''}
+            <button type="button" class="link-btn" data-fav-off="${f.i}" title="Unstar">✕</button></div></div>`).join('')
+            : '<p class="tool-help">None yet.</p>';
+    }
+    document.addEventListener('click', async e => {
+        const b = e.target.closest('.fav-btn');
+        if (b) {
+            b.disabled = true;
+            const d = await post({ action: 'favourite', index: Number(b.dataset.i) }).catch(() => ({}));
+            b.disabled = false;
+            if (d.success) { favs = d.favourites; stars(); draw(); } else showChatNotice(d.error || 'Could not star it.');
+            return;
+        }
+        const t = e.target.closest('.fav-text');
+        if (t) { t.classList.toggle('open'); return; }
+        const go = e.target.closest('[data-fav-go]');
+        if (go) {
+            const el = document.querySelector(`#messagesContainer [data-index="${go.dataset.favGo}"]`)?.closest('.message');
+            if (!el) { showChatNotice('That message isn\'t in the chat any more: its copy stays here.'); return; }
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('fav-flash'); setTimeout(() => el.classList.remove('fav-flash'), 1800);
+            return;
+        }
+        const why = e.target.closest('[data-fav-why]');
+        if (why && window.askBulba) {
+            const f = favs.find(x => String(x.i) === why.dataset.favWhy) || {};
+            window.askBulba(`⭐ This is one of my favourite replies (message ${Number(f.i) + 1}): “${(f.text || '').slice(0, 300)}${(f.text || '').length > 300 ? '…' : ''}”. ` +
+                'What makes it work better than the other replies in this chat? Be concrete. If it shows something the preset ' +
+                'should ask for more often, propose that change for me to approve.');
+            return;
+        }
+        const off = e.target.closest('[data-fav-off]');
+        if (off) {
+            const d = await post({ action: 'favourite', index: Number(off.dataset.favOff), remove: true }).catch(() => ({}));
+            if (d.success) { favs = d.favourites; stars(); draw(); }
+        }
+    });
+    draw(); stars();
+    const container = document.getElementById('messagesContainer');
+    if (container) {
+        let queued = false;
+        new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; stars(); }); })
+            .observe(container, { childList: true, subtree: true });
+    }
 })();
