@@ -715,6 +715,7 @@ function setGame(messageEl, lines) {
 function setExtras(messageEl, htmlList, append = false) {
     if (!messageEl) return;
     let box = messageEl.querySelector('.story-extras');
+    if (!append) messageEl.querySelector('.message-after')?.remove();  // (milestones moved under the bubble go too)
     if (!append && (!htmlList || !htmlList.length)) { if (box) box.remove(); return; }
     if (!box) {
         box = document.createElement('div');
@@ -2015,6 +2016,17 @@ function placeExtras(root) {
     // Suggested actions only make sense under the newest reply
     const replies = [...document.querySelectorAll('#messagesContainer .message.assistant:not(#typingMessage)')];
     replies.forEach((m, i) => m.classList.toggle('latest-reply', i === replies.length - 1));
+    // 💞 Relationship milestones are about the story, not part of the reply: they sit under the bubble, not in it
+    (root || document).querySelectorAll('.message-content .story-extras > .story-extra.milestone').forEach(card => {
+        const content = card.closest('.message-content');
+        let after = content.nextElementSibling;
+        if (!after || !after.classList.contains('message-after')) {
+            after = document.createElement('div');
+            after.className = 'message-after';
+            content.after(after);
+        }
+        after.appendChild(card);
+    });
     (root || document).querySelectorAll('.extra-slot').forEach(slot => {
         if (slot.firstChild) return;
         const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
