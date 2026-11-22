@@ -8,8 +8,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=45">
-    <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=49">
+    <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=5">
     {% if look %}{% if look_fonts %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ look_fonts }}">{% endif %}
     <style id="lookStyle">{{ look_css|safe }}</style>{% endif %}
@@ -247,8 +247,9 @@
                         </div>
                         <details class="tool-details" id="linkedBox">
                             <summary>🔗 Other chats this one remembers (up to 3)</summary>
-                            <p class="tool-help">Bring in what happened in another chat, with any character: it's summarized and the AI
-                                reads it as part of the story so far. Good for a new chat that continues an old one.</p>
+                            <p class="tool-help">Bring in what happened in another chat, with any character: the AI reads it as part
+                                of the story so far. 🔴 Live follows that chat's story memory (or summary) as it goes on, for free;
+                                ❄ freeze keeps it as it is now. Good for a new chat that continues an old one.</p>
                             <div id="linkedList"></div>
                             <div id="linkedPick"></div>
                         </details>
@@ -274,6 +275,12 @@
 
                     </div>
                     <div class="tools-pane tool-section" id="paneChat" hidden>
+                        <details class="tool-details" id="favBox">
+                            <summary>⭐ Favourite messages <small id="favCount"></small></summary>
+                            <p class="tool-help">Star a message with ⭐ (beside ✏️ and the others) to keep it here and read it again.
+                                🥔 asks Bulba what made it work, and whether the preset should do more of that (you approve any change).</p>
+                            <div id="favList"></div>
+                        </details>
                         {% if lore_terms %}<label class="lore-switch"><input type="checkbox" id="loreSwitch" checked>
                             📖 Underline lore in replies <small>(hover or tap a word to see what the lorebook says)</small></label>{% endif %}
                         <span class="tool-sublabel">🙂 You in this chat</span>
@@ -425,7 +432,7 @@
                     <span class="persona-hint-btns"><button type="button" data-preset-hint="switch">Switch</button>
                         <button type="button" class="ghost" data-preset-hint="keep">Keep mine</button></span>
                     {% else %}
-                    <span>🔁 <b>New model, same style?</b> “{{ preset_hint.preset }}” was made for {{ preset_hint.from }}; you now chat with {{ preset_hint.to }}. Rebuild it for {{ preset_hint.to }} (same experience, modules and taste)?</span>
+                    <span>🔁 <b>New model, same style?</b> “{{ preset_hint.preset }}” was made for {{ preset_hint.from }}; you now chat with {{ preset_hint.to }}. Rebuild it for {{ preset_hint.to }}? Your onboarding answers, taste, modules, reply length and adult setting come along{% if preset_hint.changes %}, and so do Bulba's {{ preset_hint.changes|length }} change{{ preset_hint.changes|length|pluralize }} ({{ preset_hint.changes|join:"; " }}){% endif %}. Model settings like temperature start from the new model's own.</span>
                     <span class="persona-hint-btns"><button type="button" data-preset-hint="rebuild">Rebuild it</button>
                         <button type="button" class="ghost" data-preset-hint="keep">Keep as is</button></span>
                     {% endif %}
@@ -556,6 +563,11 @@
                 <label class="branch-option"><input type="radio" name="branchSummary" value="rerun"> <span><strong>Re-run</strong>: summarize all <span class="branch-n"></span> messages again with <span id="branchModel"></span>. <em>Costs tokens</em>, more for long chats.</span></label>
                 <label class="branch-option"><input type="radio" name="branchSummary" value="clear"> <span><strong>Leave clear</strong>: start without a summary</span></label>
             </div>
+            <div class="branch-group" id="branchMemoryGroup" hidden>
+                <div class="branch-label">🧠 Story memory</div>
+                <label class="branch-option"><input type="radio" name="branchMemory" value="keep" checked> <span><strong>Keep</strong> the <span id="branchMilestones"></span> milestones up to here, with who's who, relationships and secrets (free)</span></label>
+                <label class="branch-option"><input type="radio" name="branchMemory" value="clear"> <span><strong>Start empty</strong></span></label>
+            </div>
             <div class="branch-group">
                 <div class="branch-label">📊 Trackers</div>
                 <label class="branch-option"><input type="radio" name="branchTrackers" value="copy" checked> <span><strong>Copy</strong> them as they were at this message</span></label>
@@ -579,6 +591,7 @@
     {{ speech|json_script:"speech-settings" }}
     {{ speech_page|json_script:"speech-page" }}
     {{ lore_terms|json_script:"lore-terms" }}
+    {{ favourites|json_script:"favourites-data" }}
     <style>{{ speech_css|safe }}</style>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');

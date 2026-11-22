@@ -16,7 +16,7 @@ def _clip(text, n):
 def what_the_ai_saw(chat):
     """What the next reply (or a rewrite of the last one) gets besides the preset and the messages."""
     from mainapp.utils import build_ai_request
-    from mainapp.views import pinned_note
+    from mainapp.views import linked_now, pinned_note
     character, user = chat.character, chat.character.author
     data = chats.read(chat)
     messages = data.get("messages") or []
@@ -42,7 +42,8 @@ def what_the_ai_saw(chat):
         "recalled": [r for r in data.get("last_recall") or [] if isinstance(r, dict)],
         # 🔗 other chats this one remembers: they go in before this chat's own summary
         "linked": [{"title": x.get("title") or "", "character": x.get("character") or "", "how": x.get("how") or "",
-                    "text": x["text"]} for x in data.get("linked") or [] if isinstance(x, dict) and x.get("text")],
+                    "text": x["text"], "live": bool(x.get("live"))}
+                   for x in linked_now(user, data.get("linked")) if x.get("text")],
     }
 
 

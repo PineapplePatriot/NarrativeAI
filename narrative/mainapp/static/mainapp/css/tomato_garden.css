@@ -94,3 +94,6 @@
 .g-chip { padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); font-size: .9rem; font-variant-numeric: tabular-nums; }
 .g-chip.full { border-color: rgba(134, 239, 172, .5); color: #86efac; }
 .g-new { font-size: .72rem; background: #ffc531; color: #1a1a1a; border-radius: 999px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+.g-gard > div { min-width: 0; flex: 1; }
+.g-gard .g-crew { max-width: 100%; white-space: normal; text-align: left; }
+.g-gard .g-crew-why { display: block; margin-top: 4px; font-size: .75rem; }

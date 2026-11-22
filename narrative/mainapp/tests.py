@@ -1700,6 +1700,99 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         from mainapp.models import Chat
         return Chat.objects.get(id=resp["go_to"])
 
+    def give_memory(self):
+        """Two milestones (messages 0-3 and 3-5) and an arc over the first, in the chat file."""
+        from mainapp import chats
+        chat = self.character.chats.get(parent=None)
+        data = chats.read(chat)
+        data["summary_mode"] = "memory"
+        data["memory"] = {"version": 1, "upto": 5, "arcs": [{"id": "a1", "text": "The arc.", "from": 0, "to": 3, "milestones": ["m1"]}],
+                          "milestones": [{"id": "m1", "from": 0, "to": 3, "title": "The cellar", "summary": "They met.", "arc": "a1"},
+                                         {"id": "m2", "from": 3, "to": 5, "title": "The lab", "summary": "They argued."}],
+                          "facts": [{"text": "A secret.", "source": "m2"}], "people": [{"name": "Ivan", "identity": "a guard"}],
+                          "relationships": []}
+        chats.write(chat, data)
+        return chat
+
+    def test_branch_keeps_story_memory_up_to_the_branch_point(self):
+        self.build_story()
+        self.give_memory()
+        info = self.post({"action": "branch_info", "index": 3}).json()
+        self.assertEqual(info["milestones"], 2)  # m2 starts at 3, before message 4
+        data = self.chat_file(self.branch(summary_mode="clear"))
+        self.assertEqual(data["summary_mode"], "memory")
+        self.assertEqual([m["id"] for m in data["memory"]["milestones"]], ["m1", "m2"])
+        self.assertTrue(data["memory"]["milestones"][1]["stale"])  # cut in half: looked at again
+        data = self.chat_file(self.branch(summary_mode="clear", memory_mode="clear"))
+        self.assertFalse(data.get("memory"))
+
+    def test_deleting_scenes_drops_the_arc_that_told_them(self):
+        from mainapp import story_memory
+        self.build_story()
+        mem = story_memory.trim_to(self.chat_file(self.give_memory())["memory"], 0)
+        self.assertEqual((mem["arcs"], mem["milestones"]), ([], []))
+
+    def test_a_chat_can_remember_another_chats_story_memory(self):
+        from mainapp import chats
+        self.build_story()
+        old = self.give_memory()
+        new = chats.create(self.character)
+        self.url = self.url + f"?chat={new.id}"
+        listing = self.post({"action": "linkable_chats"}).json()
+        self.assertEqual(next(c for c in listing["chats"] if c["id"] == old.id)["milestones"], 2)
+        calls = len(self.all_calls)
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "memory"}).json()
+        self.assertEqual(out["linked"][0]["how"], "memory")
+        self.assertIn("They argued.", out["linked"][0]["text"])
+        self.assertIn("Ivan: a guard", out["linked"][0]["text"])
+        self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
+
+    def test_starred_messages_are_kept_and_bulba_sees_them(self):
+        from mainapp.models import BulbaSession
+        from mainapp.bulba import doctor
+        self.build_story()
+        out = self.post({"action": "favourite", "index": 2}).json()  # the first reply
+        self.assertEqual([(f["i"], f["role"]) for f in out["favourites"]], [(2, "assistant")])
+        self.assertEqual(self.chat_file()["favourites"][0]["text"], "A reply.")
+        chat = self.character.chats.first()
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chat)
+        self.assertIn("Replies they starred", doctor.context(session))
+        out = self.post({"action": "favourite", "index": 2}).json()  # again: unstarred
+        self.assertEqual(out["favourites"], [])
+        self.assertFalse(self.post({"action": "favourite", "index": 99}).json()["success"])
+
+    def test_a_live_link_follows_the_other_chat_until_frozen(self):
+        from mainapp import chats
+        self.build_story()
+        old = self.give_memory()
+        new = chats.create(self.character)
+        self.url = self.url + f"?chat={new.id}"
+        out = self.post({"action": "link_chat", "chat_id": old.id, "how": "live"}).json()
+        self.assertTrue(out["linked"][0]["live"])
+        data = chats.read(old)  # that chat goes on: a new scene
+        data["memory"]["milestones"].append({"id": "m3", "from": 5, "to": 7, "title": "The roof", "summary": "They kissed."})
+        chats.write(old, data)
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertIn("They kissed.", saw["linked"][0]["text"])
+        self.post({"action": "freeze_link", "chat_id": old.id, "freeze": True})
+        data["memory"]["milestones"].append({"id": "m4", "from": 7, "to": 9, "title": "The fall", "summary": "He fell."})
+        chats.write(old, data)
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertIn("They kissed.", saw["linked"][0]["text"])
+        self.assertNotIn("He fell.", saw["linked"][0]["text"])
+        self.assertFalse(saw["linked"][0]["live"])
+
+    def test_a_live_link_reads_an_old_style_summary_too(self):
+        from mainapp import chats
+        self.build_story()  # summary pieces, no story memory
+        old = self.character.chats.first()
+        listing = self.post({"action": "new_chat_sources"}).json()
+        self.assertEqual(next(c for c in listing["chats"] if c["id"] == old.id)["free"], "summary")
+        go = self.post({"action": "new_chat", "continue_from": old.id}).json()["go_to"]
+        linked = chats.read(self.character.chats.get(id=go))["linked"]
+        self.assertEqual((linked[0]["chat_id"], linked[0]["live"], linked[0]["how"]), (old.id, True, "summary"))
+        self.assertIn("Summary 1.", linked[0]["text"])
+
     def test_branch_transfer(self):
         self.build_story()
         original = self.character.chats.get()
@@ -3927,6 +4020,9 @@ class SpriteMakerTests(ChatPromptTests):
         self.assertAlmostEqual(data["spending"]["spent"], 0.04)
         bad = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
         self.assertEqual(bad.status_code, 400)
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):  # ↻ a redo with their note
+            self.client.post(url, json.dumps({"emotion": "happy", "note": "her eyes are green"}), content_type="application/json")
+        self.assertIn("her eyes are green", json.dumps(seen[-1]["messages"]))
 
     def test_needs_a_neutral_picture(self):
         url = reverse("character_sprite", args=[self.character.slug])
@@ -9181,6 +9277,12 @@ class SmallFixesNovemberTests(SimpleTestCase):
         self.assertIn("[[extra 1]]", out)
         self.assertIn("never type a marker", extras.PLACING)
 
+    def test_ukrainian_quotes_take_the_colour_too(self):
+        from mainapp import speaker_colors as S
+        out = S.tag_greeting("«Ти прийшов», — сказала вона. „Добре“, відповів він.", "plum")
+        self.assertIn("<plum>«Ти прийшов»</plum>", out)
+        self.assertIn("<plum>„Добре“</plum>", out)
+
     def test_story_colours_start_with_the_characters_and_remind_before_the_note(self):
         import types
         from mainapp import speaker_colors as S
@@ -9444,6 +9546,18 @@ class StoryMemoryTests(ChatPromptTests):
         self.assertEqual((mem["relationships"][0]["route"], mem["relationships"][0]["stage"]), ("enemies_to_lovers", "grudging respect"))
         text = M.prompt_text(mem)
         self.assertIn("Rose toward Sam: grudging respect (route: enemies to lovers; trust", text)
+
+    def test_cutting_memory_rolls_relationships_back(self):
+        from mainapp import story_memory as M
+        ch = lambda a, b, t, why: {"from": a, "to": b, "trust": t, "why": why}
+        mem = M.fold(M.empty(), {"summary": "1", "relationships": [ch("Rose", "Sam", 2, "Saved her.")]}, 0, 4)
+        mem = M.fold(mem, {"summary": "2", "relationships": [ch("Rose", "Sam", -2, "Lied."), ch("Sam", "Ivan", 1, "Met.")]}, 4, 8)
+        mem = M.fold(mem, {"summary": "3", "relationships": [ch("Rose", "Sam", -2, "Betrayed.")]}, 8, 12)
+        self.assertEqual(mem["relationships"][0]["trust"], 3)
+        cut = M.trim_to(mem, 6)  # inside the second scene: back to after the first
+        self.assertEqual([(r["from"], r["to"], r["trust"]) for r in cut["relationships"]], [("Rose", "Sam", 7)])
+        self.assertEqual(mem["relationships"][0]["trust"], 3)  # the original is untouched
+        self.assertEqual(len(mem["relationships"]), 2)
 
     def test_the_panel_edits_and_old_chats_build_in_chunks(self):
         from unittest import mock
@@ -10544,6 +10658,49 @@ class BulbaChatPersonaTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaChatPersonaTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(BulbaChatPersonaTests, _name, None)
+
+
+class BulbaBasicsTests(BulbaTests):
+    """Point of view, reply length and the other form settings, from Bulba in a chat: the same lines the form writes."""
+    def test_basics_replace_their_own_line(self):
+        from mainapp import basics, chats, presets
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-basics", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        out, _ = doctor.tool_propose_basics(session, {"pov": "second", "why": "x"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data)).get("pov"), "second")
+        out, _ = doctor.tool_propose_basics(session, {"pov": "first", "why": "they asked"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(basics.read(data).get("pov"), "first")
+        text = json.dumps(data, ensure_ascii=False)
+        self.assertNotIn("Narrate in second person", text)  # replaced, not a second rule beside it
+        self.assertEqual(text.count("Narrate in first person"), 1)
+        actions.undo(session, out["proposal"])
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data)).get("pov"), "second")
+
+    def test_applied_preset_changes_are_remembered_for_a_rebuild(self):
+        from mainapp import chats, presets
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-log", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        out, _ = doctor.tool_propose_preset_edit(session, {"edits": [{"action": "remind", "content": "Short."}], "why": "x"})
+        session.save()
+        actions.apply(session, out["proposal"])
+        log = presets.normalize(presets.get_active(self.user).data)["extras"]["bulba_edits"]
+        self.assertEqual(log[-1]["edits"], [{"action": "remind", "content": "Short."}])
+        actions.undo(session, out["proposal"])
+        self.assertFalse(presets.normalize(presets.get_active(self.user).data)["extras"].get("bulba_edits"))
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaBasicsTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaBasicsTests, _name, None)
 
 
 class AfterNewCardTests(BulbaTests):

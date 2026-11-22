@@ -1254,6 +1254,8 @@ def branch_chat(user, thread, message_id):
     raw.update({"messages": kept, "unread": 0, "regen_prev": [], "last_auto_at": None,
                 "pinned_id": data["pinned_id"] if any(m.get("id") == data["pinned_id"] for m in kept) else None,
                 "branch_of": {"thread_id": thread.id, "message_id": message_id, "title": thread.title}})
+    if data["memory_upto"] > len(kept):  # the memory also tells what came after the branch point: refresh it
+        raw.update({"memory_upto": len(kept), "memory_stale": True})
     branch = MessengerThread.objects.create(user=user, title=f"{thread.title or 'Chat'} · branch", is_group=thread.is_group, data=raw)
     branch.characters.set(list(thread.characters.all()))
     return branch
@@ -1624,6 +1626,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     reminder = (
         f"[Reply as the character(s) on Telegram at {rt['clock']}. Pure texting only — NO *asterisks* or narration. "
         f"Use `|||BUBBLE|||` between separate bubbles."
+        + (" In this group everyone texts as themselves: their own voice, slang, emoji habits, opinions and what "
+           "they know, from their own profile. They don't echo each other or agree by default."
+           if (thread.is_group or len(chars) > 1) else "")
         + (f" Special direction for this turn: {extra_instruction}" if extra_instruction else "")
         + "]"
     )

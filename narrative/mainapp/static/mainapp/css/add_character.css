@@ -272,3 +272,4 @@ body { margin: 0; }
 .sprite-redo { background: rgba(126, 58, 242, .16) !important; border: 1px solid rgba(167, 139, 250, .5) !important; color: #e9e3ff !important;
   font-weight: 600; }
 .sprite-redo:hover { background: rgba(126, 58, 242, .3) !important; }
+.sprite-note-label { display: grid; gap: 4px; font-size: .85rem; width: 100%; max-width: 560px; }

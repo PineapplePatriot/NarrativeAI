@@ -147,7 +147,9 @@ def for_prompt(s, user_name="{{user}}"):
     lines = ["### Speech colours",
              "Wrap every spoken line in its speaker's colour tag; the tag's name is the colour: "
              "<plum>\"Spoken words.\"</plum>. Only the quoted words go inside: never narration, actions or who said "
-             "it. One line, one tag, closed right after the closing quote.",
+             "it. One line, one tag, closed right after the closing quote. In a language that marks speech with "
+             "«angle quotes», „low-high quotes“ or dashes (Ukrainian, Russian, French...), tag the same way: "
+             "<plum>«Слова.»</plum>, and for a dash line — <plum>Слова,</plum> — сказала вона. — <plum>Ще слова.</plum>",
              ("Colours already given (keep them exactly, every time): " + "; ".join(given) + ".") if given else "",
              "Anyone else who speaks takes a colour nobody has yet, from: " + ", ".join(free or PALETTE)
              + "; and keeps it for the rest of the story.",
@@ -175,6 +177,8 @@ def tag_greeting(text, color):
     for i in range(0, len(parts), 2):
         parts[i] = re.sub(r"\"([^\"\n]+)\"", lambda m: f"<{color}>\"{m.group(1)}\"</{color}>", parts[i])
         parts[i] = re.sub(r"“([^”\n]+)”", lambda m: f"<{color}>“{m.group(1)}”</{color}>", parts[i])
+        parts[i] = re.sub(r"«([^»\n]+)»", lambda m: f"<{color}>«{m.group(1)}»</{color}>", parts[i])
+        parts[i] = re.sub(r"„([^“”\n]+)([“”])", lambda m: f"<{color}>„{m.group(1)}{m.group(2)}</{color}>", parts[i])
     return "".join(parts)
 
 

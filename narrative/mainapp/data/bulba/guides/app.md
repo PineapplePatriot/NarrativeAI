@@ -96,8 +96,17 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   you can change each speaker's colour; "Tone marks" make whispers and shouts look different) or "One colour"
   (all speech the same colour; the AI isn't told about colours). Also 🙂 your own speech colour.
 - Pen menu → 🎬 Steer the story → 🧠 Story memory → 🔗 **Other chats this one remembers** (up to 3, any character):
-  a chat is summarized anew, or its own summary plus the newer messages, and the AI reads it as part of the story
-  so far. Long chats are summarized in pieces (it warns first). Good for a new chat that continues an old one.
+  the AI reads that chat's story as part of this one. 🔴 Live (the default, free) follows the other chat's story
+  memory, or its summary, as that chat goes on; ❄ freezes it as it is now (▶ makes it live again). Or it's
+  summarized anew / its summary plus the newer messages (a frozen copy; long chats go in pieces, it warns first).
+  💬 Chats → + New chat → "Continue from" starts a new chat already remembering one, live.
+- ⭐ On every message: star it. Pen menu → ⚙ This chat → ⭐ **Favourite messages** keeps a copy of each to read
+  again (↪ shows it in the chat), and 🥔 "What made it great?" asks you to compare it with the other replies and
+  offer preset changes they approve. You see their starred replies in this chat: the clearest sign of their taste.
+- 🔁 Rebuilding a preset for a new model keeps your applied preset changes (made again on the new one; any that
+  don't fit are named) along with their onboarding answers, taste, modules, reply length and adult setting.
+- ⑂ Branching keeps the story memory up to that message (milestones, who's who, relationships rolled back to how
+  they stood then), free; the branch dialog can start it empty instead.
 - Pen menu → ⚙ This chat → 📖 **Underline lore in replies**: the first mention of a lorebook keyword in a reply is
   underlined; hover or tap it to see what the lorebook says.
 - Regenerating or swiping a reply puts the trackers back to before it; they update from the version shown.

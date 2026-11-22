@@ -39,7 +39,7 @@
         status(`Drawing “${name}” from the neutral picture… (a few cents, on your key)`);
         try {
             const resp = await fetch(box.dataset.make, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-                body: JSON.stringify({ emotion: name }) });
+                body: JSON.stringify({ emotion: name, note: document.getElementById('spriteNote')?.value || '' }) });
             const d = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(d.error || 'The picture maker failed.');
             await load(); $('mmName').value = ''; status(`✓ “${name}” made.`);
