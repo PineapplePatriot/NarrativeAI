@@ -4899,7 +4899,7 @@ def screen_hub(request):
             "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
             "look_packs": vn_scenes.look_packs(request.user, vn_scenes.get_vn_state(request.user)["active_scene"]),
             "music_tracks": vn_scenes.available_music_tracks(chars),
-            "backgrounds": vn_scenes.available_backgrounds(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
         },
     }
@@ -6090,7 +6090,7 @@ def vn_scenes_api(request):
             "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
             "look_packs": vn_scenes.look_packs(request.user, st.get("active_scene")),
             "music_tracks": vn_scenes.available_music_tracks(chars),
-            "backgrounds": vn_scenes.available_backgrounds(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
         }
 
@@ -6248,6 +6248,41 @@ def vn_scenes_api(request):
             return JsonResponse({"error": str(exc)}, status=400)
         return JsonResponse({"error": "Unknown look action."}, status=400)
 
+    if action in ("casting_propose", "place_draw", "place_delete"):
+        from . import vn_casting
+        from .models import EpisodePlace
+        try:
+            if action == "casting_propose":  # Bulba's casting sheet for this chat (one call to Bulba's model)
+                t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
+                if not t_obj:
+                    return JsonResponse({"error": "Open the chat this episode continues first."}, status=400)
+                cast = list(t_obj.characters.all())
+                pulse_event = None
+                if body.get("pulse_event_id") is not None:
+                    from . import pulse, screen_apps
+                    from .models import ScreenEntry
+                    event = ScreenEntry.objects.filter(owner=request.user, thread=t_obj, kind="event",
+                                                       pk=screen_apps.positive(body["pulse_event_id"])).first()
+                    if event:
+                        pulse_event = pulse.scene_seed(request.user, event, screen_apps.positive(body.get("pulse_event_revision")))
+                sheet = vn_casting.propose(request.user, t_obj, cast, pulse_event=pulse_event,
+                                           wish=str(body.get("wish") or "")[:600], director=body.get("authoring_mode") == "director")
+                return JsonResponse({"casting": sheet,
+                                     "backgrounds": vn_scenes.available_backgrounds(cast, request.user)})
+            if action == "place_draw":  # draw the written-out place once and keep it as a backdrop
+                place = body.get("place") if isinstance(body.get("place"), dict) else {}
+                place = vn_casting.checked({"place": place}, [], request.user)["place"]
+                kept, cost = vn_casting.draw_place(request.user, place, "modern" if body.get("setting") == "modern" else "canon")
+                return JsonResponse({"place": vn_casting.pack_place(kept), "cost": cost})
+            kept = EpisodePlace.objects.filter(author=request.user, pk=str(body.get("place_id") or "").replace("place_", "") or 0).first()
+            if kept:
+                from django.core.files.storage import default_storage
+                default_storage.delete(kept.image)
+                kept.delete()
+            return JsonResponse({"ok": True})
+        except (ValueError, ai_client.AIError) as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+
     if action == "start_scene":
         tid = body.get("thread_id")
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
@@ -6291,6 +6326,7 @@ def vn_scenes_api(request):
                 authoring_mode=body.get("authoring_mode", "roleplay"),
                 pulse_event=pulse_event,
                 generate_background=bool(body.get("generate_background", False)),
+                casting=body.get("casting") if isinstance(body.get("casting"), dict) else None,
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -6345,7 +6381,7 @@ def vn_scenes_api(request):
             beat = (scene.get("beats") or [{}])[-1]
         change = {k: body[src] for k, src in (("music", "music_id"), ("background", "background_id")) if body.get(src)}
         stage = vn_story.advance_stage(beat.get("stage") or vn_story.stage_of(scene), change,
-                                      vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars))
+                                      vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars, request.user))
         group = beat.get("block_id") or beat.get("id")
         for collection in (scene.get("beats", []), scene.get("history", []), scene.get("current_beats", [])):
             for item in collection:

@@ -371,3 +371,19 @@ class EpisodeLook(models.Model):
 
     class Meta:
         ordering = ("-updated",)
+
+
+class EpisodePlace(models.Model):
+    """A place drawn for an episode and kept, so it looks the same the next time the story goes there.
+
+    `card` is the place written out (layout, light, objects); the picture is drawn from it once.
+    """
+    author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="episode_places")
+    name = models.CharField(max_length=120)
+    card = models.TextField(blank=True)
+    setting = models.CharField(max_length=10, default="canon")
+    image = models.CharField(max_length=300)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created",)

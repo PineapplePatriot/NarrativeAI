@@ -175,7 +175,7 @@
 
     render() {
       if (!this.root) return;
-      const rows = this.cast.map((m) => {
+      const rows = this.cast.filter((m) => !window.CASTING || CASTING.inCast(m.key)).map((m) => {
         const look = this.lookOf(m);
         const you = m.key === "user";
         const options = m.looks.map((l) => `<option value="${l.id}" ${look && l.id === look.id ? "selected" : ""}>${esc(l.name)}</option>`).join("");
@@ -188,8 +188,9 @@
             <div class="ep-look-head">
               <strong>${esc(m.name)}</strong>
               <span class="ep-badge">${m.setting === "modern" ? "Modern" : "Canon"}</span>
-              ${you ? `<span class="ep-looks-note">on stage only when directing</span>` : ""}
+              ${you ? `<span class="ep-looks-note">on stage because you're directing</span>` : ""}
             </div>
+            ${window.CASTING ? CASTING.outfitCard(m.key) : ""}
             ${m.looks.length ? `
               <label class="ep-inline">Look
                 <select class="tg-select" onchange="EPISODE_LOOKS.pick('${esc(m.key)}', this.value)">${options}${you ? `<option value="" ${look ? "" : "selected"}>None</option>` : ""}</select>
@@ -217,10 +218,7 @@
               </details>` : `<p class="ep-looks-note">Add a ${m.setting === "modern" ? "phone portrait" : "neutral sprite"} first; looks are drawn from it.</p>`}
           </div>`;
       }).join("");
-      this.root.innerHTML = `
-        <div class="ep-looks-title"><strong>Episode looks</strong>
-          <span class="ep-looks-note">Each look is one outfit with its moods, all edited from one picture so they match. Made once, used in every episode.</span>
-        </div>${rows}`;
+      this.root.innerHTML = rows;
     },
 
     pick(key, value) {
@@ -251,8 +249,25 @@
       const row = btn.closest(".ep-look-row");
       const name = row.querySelector("[data-new-name]").value.trim();
       const outfit = row.querySelector("[data-new-outfit]").value.trim();
-      if (!outfit) {window.VN_SCENES?.notify("Write the outfit item by item first: that's what keeps it the same in every picture.", true); return;}
-      return this.run(btn, "Drawing the look…", async () => {
+      return this.createFrom(key, name, outfit, btn);
+    },
+
+    /* Put an outfit into a person's "New look" form, for the user to change before drawing it. */
+    prefill(key, name, outfit) {
+      this.render();
+      const row = this.root?.querySelector(`.ep-look-row[data-key="${CSS.escape(key)}"]`);
+      const form = row?.querySelector(".ep-new");
+      if (!form) {window.VN_SCENES?.notify("Add a picture of them first: looks are drawn from it.", true); return;}
+      form.open = true;
+      form.querySelector("[data-new-name]").value = name || "";
+      form.querySelector("[data-new-outfit]").value = outfit || "";
+      form.querySelector("[data-new-outfit]").focus();
+    },
+
+    async createFrom(key, name, outfit, btn) {
+      if (!outfit) {window.VN_SCENES?.notify("Write the outfit item by item first: that's what keeps it the same in every picture.", true); return false;}
+      let made = false;
+      await this.run(btn, "Drawing the look…", async () => {
         const data = await post({action: "episode_look_create", key, name, outfit});
         this.replace(data.look);
         this.picks[key] = data.look.id;
@@ -260,7 +275,9 @@
         window.VN_SCENES?.notify("Look drawn. Cutting it out in your browser…");
         this.replace(await this.cutLook(data.look));
         window.VN_SCENES?.notify(data.errors?.length ? `Look ready, but some moods failed: ${data.errors.join("; ")}` : "Look ready.", !!data.errors?.length);
+        made = true;
       });
+      return made;
     },
 
     recut(id, strength, all, btn) {

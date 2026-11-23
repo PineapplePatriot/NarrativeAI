@@ -86,7 +86,7 @@ def edit(user, beat_id, text):
     patch = result["stage"]
     if (passage.get("speaker_slug") == "user" or passage.get("kind") == "direction") and not passage.get("generated"):
         stage = vn_story.advance_stage(base["current_stage"], patch,
-                                       vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars))
+                                       vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars, user))
         replacement = [{**passage, "id": "vnb_" + uuid.uuid4().hex[:8], "text": text, "stage": stage}]
     else:
         replacement = vn_scenes._enrich_beats(user, chars, [{**passage, "text": text, "original_text": "", "stage": patch}],

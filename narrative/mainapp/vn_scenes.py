@@ -107,10 +107,17 @@ def available_music_tracks(characters=None):
     return tracks
 
 
-def available_backgrounds(characters=None):
-    """Return all available scene backgrounds from `media_library.built_in('backgrounds')` plus character theme BGs."""
+def available_backgrounds(characters=None, user=None):
+    """Every backdrop an episode may use: the user's kept places (drawn for earlier episodes), the characters'
+    theme backdrops, then the built-in and uploaded ones."""
     bgs = []
     seen = set()
+    if user is not None:
+        from mainapp.models import EpisodePlace
+        for place in EpisodePlace.objects.filter(author=user)[:60]:
+            url = default_storage.url(place.image)
+            bgs.append({"id": f"place_{place.pk}", "name": place.name, "url": url, "kept": True})
+            seen.add(url)
     for c in (characters or []):
         t_bg = (getattr(c, "theme", None) or {}).get("bg")
         if t_bg and isinstance(t_bg, str) and t_bg not in seen:
@@ -430,7 +437,7 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
     char_by_slug = {c.slug: c for c in chars}
     current = copy.deepcopy(initial_stage or {"continuity": continuity or {}})
     user_participant = user_participant or vn_story.user_participant(user, vn_support.scene_context(user))
-    tracks, bgs = available_music_tracks(chars), available_backgrounds(chars)
+    tracks, bgs = available_music_tracks(chars), available_backgrounds(chars, user)
     boxes = []
     for rb in raw_beats:
         if not isinstance(rb, dict) or not str(rb.get("text") or "").strip():
@@ -502,7 +509,8 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
 
 
 def start_scene(user, thread=None, characters=None, location_hint="", looks=None,
-                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False):
+                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False,
+                casting=None):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
@@ -513,6 +521,10 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     chars = list(characters or (thread.characters.all() if thread else []))
     if not chars:
         raise ai_client.AIError("Pick at least one character for the scene.")
+    from mainapp import vn_casting
+    casting = vn_casting.checked(casting, chars, user) if casting else None
+    if casting and casting["cast"] and not pulse_event:
+        chars = [c for c in chars if c.slug in casting["cast"]] or chars  # Bulba's sheet says who is there
 
     context = vn_support.scene_context(user, thread)
     if pulse_event:
@@ -530,7 +542,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     clock_str = context["clock"]
 
     tracks = available_music_tracks(chars)
-    bgs = available_backgrounds(chars)
+    bgs = available_backgrounds(chars, user)
     picked_looks = pick_looks(user, chars, looks, director=authoring_mode == "director")
     roster_text = _build_char_roster(chars, user, context, scene_looks(user, {"looks": picked_looks}))
 
@@ -558,17 +570,25 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         telechat_context=telechat_context,
         scene_history="(Scene is just beginning — set the stage as they meet!)",
         step_input=(location_hint or "Begin the in-person scene right where the latest texts left off.")
+                   + ("\n" + vn_casting.brief(casting) if casting else "")
                    + "\nUser's writing directions: " + direction,
     )
 
     parsed = _call_vn_json(user, prompt, seed)
     chosen_music = _match_track(tracks, parsed.get("music_id") or parsed.get("music"))
     chosen_bg = _match_bg(bgs, parsed.get("background_id") or parsed.get("background"))
+    cast_bg = (casting or {}).get("place", {}).get("background_id")
+    if cast_bg:
+        chosen_bg = next((b for b in bgs if b["id"] == cast_bg), chosen_bg)  # the backdrop the casting fixed
     raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
     raw_blocks, polish_error = vn_support.polish_blocks(user, raw_blocks, telechat_context, polish_enabled)
     continuity = {"time": context["clock"]}
+    if casting and casting["place"].get("name"):
+        continuity = {"time": casting["place"].get("time") or context["clock"],
+                      "location": vn_casting.place_card(casting["place"])}
     beats = _enrich_beats(user, chars, raw_blocks, looks=scene_looks(user, seed), continuity=continuity,
-                        initial_stage={"background": chosen_bg, "music": chosen_music, "location": parsed.get("location") or location_hint,
+                        initial_stage={"background": chosen_bg, "music": chosen_music,
+                                       "location": (casting or {}).get("place", {}).get("name") or parsed.get("location") or location_hint,
                                        "continuity": continuity, "looks": dict(picked_looks)},
                         authoring_mode=seed["authoring_mode"], user_participant=seed["user_participant"])
     if not beats:
@@ -586,7 +606,9 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         "character_slugs": [c.slug for c in chars],
         "character_names": [messenger.char_profile(c)["display_name"] for c in chars],
         "title": str(parsed.get("title") or f"Meet-Up with {chars[0].name}").strip()[:120],
-        "location": str(parsed.get("location") or location_hint or now_local.strftime("%H:%M")).strip()[:120],
+        "location": str((casting or {}).get("place", {}).get("name") or parsed.get("location") or location_hint
+                        or now_local.strftime("%H:%M")).strip()[:120],
+        "casting": casting,
         "background": chosen_bg,
         "music": chosen_music,
         "handoff": parsed.get("handoff") if parsed.get("handoff") in ("user_turn", "auto_continue", "climax_ready") else "user_turn",
@@ -598,20 +620,25 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         "started_at": now_local.strftime("%d %b %H:%M"),
         "ts": time.time(),
     }
-    if generate_background:
+    if generate_background and not cast_bg:
         opening = beats[0]["stage"]
         location = opening.get("location") or scene["location"]
         try:
-            image, cost = messenger.make_picture(user, (
-                f"Create an immersive visual novel background of {location}. "
-                f"Scene context: {beats[0]['text']}\n"
-                f"Setting details: {json.dumps(opening.get('continuity') or {}, ensure_ascii=False)}\n"
-                "Environment only, no people, no portraits, no lettering. Wide establishing shot."
-            ))
-            path = default_storage.save(
-                f"messenger/vn_backgrounds/{user.pk}/{uuid.uuid4().hex}.png", ContentFile(image))
-            generated_bg = {"id": "generated_" + scene["id"], "name": location,
-                            "url": default_storage.url(path)}
+            if casting and casting["place"].get("name"):
+                # The casting's place, drawn from its card and kept, so the story can come back to it.
+                kept, _ = vn_casting.draw_place(user, casting["place"], scene_setting(chars))
+                generated_bg = {"id": f"place_{kept.pk}", "name": kept.name, "url": default_storage.url(kept.image), "kept": True}
+            else:
+                image, cost = messenger.make_picture(user, (
+                    f"Create an immersive visual novel background of {location}. "
+                    f"Scene context: {beats[0]['text']}\n"
+                    f"Setting details: {json.dumps(opening.get('continuity') or {}, ensure_ascii=False)}\n"
+                    "Environment only, no people, no portraits, no lettering. Wide establishing shot."
+                ))
+                path = default_storage.save(
+                    f"messenger/vn_backgrounds/{user.pk}/{uuid.uuid4().hex}.png", ContentFile(image))
+                generated_bg = {"id": "generated_" + scene["id"], "name": location,
+                                "url": default_storage.url(path)}
             original_bg = opening.get("background")
             for beat in beats:
                 for key in ("stage", "stage_before"):
@@ -676,7 +703,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
         hist_lines.append(f"- {b.get('speaker_name') or b.get('speaker')}{emo_tag}: {b.get('text')}")
 
     tracks = available_music_tracks(chars)
-    bgs = available_backgrounds(chars)
+    bgs = available_backgrounds(chars, user)
     looks = scene_looks(user, scene)
     roster_text = _build_char_roster(chars, user, context, looks, (scene.get("continuity") or {}).get("outfits"))
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.

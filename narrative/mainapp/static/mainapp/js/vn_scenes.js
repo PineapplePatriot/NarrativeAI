@@ -178,18 +178,27 @@
       this.tab='stage';TG.switchApp('scenes');this.render();
     },
 
-    showLaunchTransition(visible, autoImages = false) {
+    /* The wait while the opening is written: what is happening, step by step, over the place's backdrop. */
+    showLaunchTransition(visible, drawing = false) {
       const transition = document.getElementById('vnLaunchTransition');
       const root = document.getElementById('vnScenesRoot');
+      clearTimeout(this.launchStepTimer);
       if (visible) {
         document.getElementById('vnNotice').hidden = true;
-        document.getElementById('vnLaunchDetail').textContent = autoImages
-          ? 'Writing the opening scene. Generating missing expressions can take longer.'
-          : 'Writing the opening scene from your TeleChat conversation.';
+        const steps = ['Reading the casting sheet', 'Writing the opening', ...(drawing ? ['Drawing the backdrop'] : []), 'Putting everyone on stage'];
+        document.getElementById('vnLaunchDetail').innerHTML = `<ol class="ep-wait-steps">${steps.map((s, i) =>
+          `<li data-step="${i}" class="${i === 0 ? 'is-now' : ''}">${s}</li>`).join('')}</ol>`;
+        let at = 0;
+        const tick = () => {
+          const items = transition.querySelectorAll('[data-step]');
+          if (at >= items.length - 1) return;
+          items[at].className = 'is-done'; at += 1; items[at].className = 'is-now';
+          this.launchStepTimer = setTimeout(tick, at === 1 ? 9000 : 7000);
+        };
+        this.launchStepTimer = setTimeout(tick, 1200);
       }
       root.hidden = visible;
       transition.hidden = !visible;
-      if (visible) transition.scrollIntoView({block: 'start'});
     },
 
     async launchFromActiveThread() {
@@ -199,6 +208,8 @@
         this.notify("Select a TeleChat conversation first.");
         return;
       }
+      if (window.CASTING?.pending() && !window.confirm("Some of Bulba's suggestions aren't applied yet, so they won't be used. Start anyway?")) return;
+      const casting = window.CASTING?.payload() || null;
       const hintEl = document.getElementById("vnLocationHintInput");
       const hint = hintEl ? hintEl.value.trim() : "";
       const direction = (document.getElementById("vnWritingDirection") || {}).value || "";
@@ -207,7 +218,8 @@
       const authoringMode = (document.getElementById("vnAuthoringMode") || {}).value || "roleplay";
       this.tab = "stage";
       if (!document.getElementById('app-scenes').classList.contains('active')) TG.switchApp("scenes");
-      this.showLaunchTransition(true, false);
+      const drawPlace = !!(casting && casting.place && !casting.place.background_id);
+      this.showLaunchTransition(true, drawPlace || !!document.getElementById("vnGenerateBackground")?.checked);
       try {
         const data = await this.apiPost({
           action: "start_scene",
@@ -215,7 +227,9 @@
           ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
           looks: window.EPISODE_LOOKS?.chosen() || {},
-          generate_background: !!document.getElementById("vnGenerateBackground")?.checked,
+          casting,
+          ...(casting?.cast?.length ? {character_slugs: casting.cast} : {}),
+          generate_background: drawPlace || !!document.getElementById("vnGenerateBackground")?.checked,
           direction,
           polish_enabled: polishEnabled,
           interaction_mode: interactionMode, authoring_mode: authoringMode,
@@ -223,6 +237,7 @@
         TG.state.vn_scenes = data.vn_scenes;
         this.pendingPulse = null;
         window.ScreenDrafts?.clear('launch:' + t.id);
+        window.CASTING?.clear(t.id);
         this.beatIndex = 0;
         this.lastFinaleEntry = null;
         this.render();
@@ -672,49 +687,11 @@
       }
 
       const sc = this.activeScene();
-      // 2. If no active scene yet, show the Scene Launcher card
+      // 2. No episode open: the casting sheet it will start from.
       if (!sc) {
         const t = TG.state.active_thread;
-        const threadTitle = t ? t.title : "your active chat";
-        const cue = (TG.state.vn_scenes && TG.state.vn_scenes.meetup_cue) || {};
-        root.innerHTML = `
-          <div class="vn-gallery-pane" style="display:flex; align-items:center; justify-content:center;">
-            <div style="max-width:620px; width:100%; background:rgba(15,23,42,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:26px; display:flex; flex-direction:column; gap:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
-              <div>
-                <span style="font-size:11.5px; font-weight:700; color:#f472b6; text-transform:uppercase; letter-spacing:0.05em;">In-person episode</span>
-                <h2 style="margin:4px 0 6px; font-size:22px;">Step Out of the Phone & Meet In Person</h2>
-                <p style="margin:0; font-size:13.5px; color:#94a3b8; line-height:1.55;">
-                  Continue your conversation in <strong>${this.attr(threadTitle)}</strong> in person. Save the episode when you finish, with an illustration if you like.
-                </p>
-              </div>
-              ${cue.ready ? `
-                <div style="padding:10px 13px; border-radius:12px; background:rgba(219,39,119,0.16); border:1px solid rgba(236,72,153,0.4); font-size:12.5px; color:#fbcfe8;">
-                  ✨ <strong>Recent chat cue:</strong> <em>"${this.attr(cue.reason)}"</em>
-                </div>
-              ` : ""}
-              ${this.pendingPulse ? `<div class="screen-preview" id="vnPulsePlan"><strong>Pulse plan: ${this.attr(this.pendingPulse.title)}</strong><p>${this.attr(this.pendingPulse.when_label)} · ${this.attr(this.pendingPulse.location)}</p><p>${this.attr(this.pendingPulse.purpose)}</p><small>Uses only the plan’s invited cast. Preparing this screen is free; launching generates the episode. The phone clock stays unchanged.</small></div>` : ''}
-              <div class="tg-field-group">
-                <label>Where are you meeting up? (optional — leave blank for the model to pick from your chat)</label>
-                <input type="text" class="tg-input" id="vnLocationHintInput" data-screen-field="location" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
-              </div>
-              <div class="tg-field-group">
-                <label for="vnInteractionMode">How you respond</label>
-                <select class="tg-select" id="vnInteractionMode" data-screen-field="mode"><option value="mixed">Choices and writing</option><option value="choices">Classic choices</option><option value="write">Write yourself</option></select>
-                <label for="vnAuthoringMode">Who writes the cast</label>
-                <select class="tg-select" id="vnAuthoringMode" data-screen-field="authoring"><option value="roleplay">Roleplay — I control my character</option><option value="director">Directing — the model may write my character too</option></select>
-                <label for="vnWritingDirection">Writing preferences (optional)</label>
-                <textarea class="tg-textarea" id="vnWritingDirection" data-screen-field="direction" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
-              </div>
-              <label><input type="checkbox" id="vnGenerateBackground" data-screen-field="generate_background" checked> Generate a background for this location (uses image tokens)</label>
-              <label><input type="checkbox" id="vnPolishEnabled" data-screen-field="polish"> Let Bulba polish the habits I approved before displaying each turn</label>
-              <div id="vnLooksPanel" class="ep-looks"></div>
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="tg-fmt-btn" onclick="TG.switchApp('messenger')">← Back to TeleChat</button>
-                <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread()">🎬 Launch Meet-Up Scene · uses model tokens ➤</button>
-              </div>
-            </div>
-          </div>
-        `;
+        document.getElementById("app-scenes")?.classList.add("ep-playing");
+        window.CASTING.render(root, t);
         this.bindDrafts(root, "launch:" + (t?.id || "none"));
         window.EPISODE_LOOKS?.mount(document.getElementById("vnLooksPanel"), t);
         return;

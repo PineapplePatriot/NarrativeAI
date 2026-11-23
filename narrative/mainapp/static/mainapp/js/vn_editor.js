@@ -108,6 +108,7 @@
       original(); const root = document.getElementById('vnScenesRoot'), scene = vn().activeScene();
       if (root && scene && vn().tab === 'stage') {settings(root, scene); passageTools(root, scene); vn().setBusy(vn().busy);}
     };
+    vn().openVersions = versions;
     const nav = document.querySelector('#app-scenes .vn-nav-tabs');
     if (nav) nav.append(button('Versions', versions));
     const gallery = vn().renderGallery.bind(vn());
