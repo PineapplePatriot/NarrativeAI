@@ -525,6 +525,7 @@ class SmallThingsTests(MessengerActionTests):
         tid = self.thread()
         sent = self.post(action="send_user_message", thread_id=tid, text="I hate you").json()
         mid = (sent.get("user_message") or sent.get("message"))["id"]
+        self.post(action="generate_reply", thread_id=tid)  # they read it and answered: an edit now is noticed
         self.post(action="edit_message", thread_id=tid, message_id=mid, text="I hate that I miss you")
         self.post(action="edit_message", thread_id=tid, message_id=mid, text="I miss you")
         table = "| day | shift |\n|---|---|\n" + "\n".join(f"| d{i} | late |" for i in range(80))

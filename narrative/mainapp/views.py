@@ -5018,6 +5018,16 @@ def messenger_api(request):
             messenger.save_user_profile(request.user, {"custom_stickers": stickers})
             return JsonResponse({"sticker": st_item, "url": url})
 
+        if kind == "group_avatar":  # 🖼️ a group chat's own picture, uploaded by the user
+            thread = MessengerThread.objects.filter(user=request.user, id=request.POST.get("thread_id") or 0, is_group=True).first()
+            if not thread:
+                return JsonResponse({"error": "Group chat not found."}, status=404)
+            raw = dict(thread.data or {})
+            raw["group_avatar"], raw["group_avatar_changed"] = url, time.time()
+            thread.data = raw
+            thread.save(update_fields=["data"])
+            return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
         if kind == "char_avatar":  # 🖼️ their profile picture, uploaded by the user
             c_obj = next((c for c in _user_characters(request.user) if c.slug == (request.POST.get("char_slug") or "")), None)
             if not c_obj:
@@ -5239,7 +5249,7 @@ def messenger_api(request):
                 msg["reply_to_sender"] = target_m.get("sender_name") or "Message"
                 msg["reply_to_text"] = (target_m.get("text") or "Media")[:120]
         if sticker:
-            msg["sticker"] = sticker
+            msg["sticker"] = messenger.see_sticker(request.user, sticker)
         if file_obj:
             msg["file"] = file_obj
         if photo_obj:
@@ -5383,6 +5393,22 @@ def messenger_api(request):
         messenger.save_thread_data(thread, td)
         return JsonResponse({"message_id": mid, "reactions": reacts})
 
+    if action == "group_avatar":  # 🖼️ a group's picture: made from the members' pictures, or back to their two
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0, is_group=True).first()
+        if not thread:
+            return JsonResponse({"error": "Group chat not found."}, status=404)
+        if body.get("clear"):
+            raw = dict(thread.data or {})
+            raw["group_avatar"] = ""
+            thread.data = raw
+            thread.save(update_fields=["data"])
+        else:
+            try:
+                messenger.new_group_avatar(request.user, thread, str(body.get("what") or "all of them together, at ease").strip()[:400])
+            except ai_client.AIError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
     if action == "edit_message":
         tid = body.get("thread_id")
         mid = body.get("message_id")
@@ -5394,8 +5420,12 @@ def messenger_api(request):
         target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
         if not target_m:
             return JsonResponse({"error": "Message not found."}, status=404)
-        if target_m.get("role") == "user" and "edited_from" not in target_m:  # what they first said (the character may notice)
-            target_m["edited_from"] = target_m.get("text") or ""
+        if target_m.get("role") == "user" and "edited_from" not in target_m:
+            # what they first said: the characters know it only if they'd already answered it (they read it then);
+            # an edit before anyone answered is just the message
+            i = td["messages"].index(target_m)
+            if any(m.get("role") == "assistant" for m in td["messages"][i + 1:]):
+                target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
         messenger.touch_memory(td, mid)
@@ -5446,6 +5476,8 @@ def messenger_api(request):
             td["share_memory"] = bool(body["share_memory"])
         if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
             td["leave_on_read"] = bool(body["leave_on_read"])
+        if body.get("group_mode") in messenger.GROUP_MODES:  # 👥 conversation or lively
+            td["group_mode"] = body["group_mode"]
         if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
             td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
         if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)

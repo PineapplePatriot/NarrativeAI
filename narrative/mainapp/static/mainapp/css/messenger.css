@@ -1755,3 +1755,18 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-story-made img { max-width: 180px; max-height: 180px; border-radius: 10px; display: block; margin-top: 8px; cursor: zoom-in; }
 .tg-story-made small { color: var(--tg-muted); font-size: 12px; }
 .tg-setup-ideas { align-self: flex-start; margin: 2px 0 10px; }
+
+/* 👥 a group without its own picture: the members' pictures side by side in the round avatar */
+.tg-av-split { display: flex; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
+.tg-av-split img { width: 50%; height: 100%; object-fit: cover; }
+.tg-av-split img + img { border-left: 2px solid var(--tg-bg, #0f1420); }
+.tg-group-pic { width: 84px; height: 84px; flex: 0 0 auto; font-size: 32px; }
+.tg-group-pic img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.tg-group-members { display: grid; gap: 8px; margin: 12px 0; }
+.tg-group-member { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px 10px; border-radius: 12px;
+    border: 1px solid var(--tg-border); background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.tg-group-member:hover { background: rgba(255, 255, 255, .05); }
+.tg-group-member span { display: grid; gap: 2px; min-width: 0; }
+.tg-group-member small { color: var(--tg-muted, #94a3b8); font-size: 12.5px; line-height: 1.4; }
+.tg-group-pic-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.tg-group-pic-actions label { cursor: pointer; }
