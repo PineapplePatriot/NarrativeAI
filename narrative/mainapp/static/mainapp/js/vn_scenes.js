@@ -623,6 +623,7 @@
       if (badgeEl) badgeEl.textContent = galleryCount;
 
       if (this.tab === "gallery") {
+        document.getElementById("app-scenes")?.classList.remove("ep-playing");
         this.renderGallery(root);
       } else {
         this.renderStageOnly();
@@ -632,6 +633,8 @@
     renderStageOnly() {
       const root = document.getElementById("vnScenesRoot");
       if (!root || this.tab !== "stage") return;
+      document.getElementById("app-scenes")?.classList.remove("ep-playing");
+      this.seenBeats = this.seenBeats || new Set();
 
       // 1. If a Finale CG was just generated, display the Finale Event CG Showcase
       if (this.lastFinaleEntry) {
@@ -717,7 +720,7 @@
         return;
       }
 
-      // 3. Active Visual Novel Stage
+      // 3. The stage: one frame with the backdrop, the cast standing on its floor and the text box.
       const beats = sc.beats || [];
       const idx = Math.max(0, Math.min(this.beatIndex, Math.max(0, beats.length - 1)));
       const beat = beats[idx] || { speaker: "narrator", speaker_name: "Narrator", kind: "narration", text: "…" };
@@ -725,182 +728,318 @@
         this.savedCursor = {...this.savedCursor, [sc.id]: beat.id};
         try {localStorage.setItem("vn-cursor-" + sc.id, beat.id);} catch (_) {}
       }
-      const spBeat = this.activeSpriteBeat();
       const isLastBeat = idx >= beats.length - 1;
       const visual = beat.stage || sc;
       const bgUrl = (visual.background && visual.background.url) || "";
-
       const tracks = (TG.state.vn_scenes && TG.state.vn_scenes.music_tracks) || [];
       const bgs = (TG.state.vn_scenes && TG.state.vn_scenes.backgrounds) || [];
-
       const musicOpts = [{id: "none", name: "Silence"}, ...tracks].map((t) =>
-        `<option value="${this.attr(t.id)}" ${visual.music && visual.music.id === t.id ? "selected" : ""}>🎵 ${this.attr(t.name)}</option>`
-      ).join("");
-
+        `<option value="${this.attr(t.id)}" ${visual.music && visual.music.id === t.id ? "selected" : ""}>${this.attr(t.name)}</option>`).join("");
       const bgOpts = [{id: "none", name: "No backdrop"}, ...bgs].map((b) =>
-        `<option value="${this.attr(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>🖼️ ${this.attr(b.name)}</option>`
-      ).join("");
+        `<option value="${this.attr(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>${this.attr(b.name)}</option>`).join("");
 
-      // Outfit changes the story made at this passage, waiting for a picture decision.
       const blockFirst = beats.find((b) => (b.block_id || b.id) === (beat.block_id || beat.id)) || beat;
-      const outfitNotes = (blockFirst.outfit_change || []).map((c) => {
-        const worn = (TG.state.vn_scenes?.looks || {})[c.slug];
-        const count = worn ? Object.keys(worn.moods || {}).length : 0;
-        return `<div class="vn-outfit-note" role="status">
-            <strong>${this.attr(c.name)}'s clothes change</strong>
-            <p>${this.attr(c.outfit)}</p>
-            <div class="ep-actions">
-              ${worn ? `<button type="button" class="tg-send-btn" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {outfit: ${this.attr(JSON.stringify(c.outfit))}}, this)">Draw the new look · ${count} pictures</button>
-              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.editOutfitThenDraw('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', ${this.attr(JSON.stringify(c.outfit))}, this)">Edit the outfit first</button>` : ""}
-              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {keep: true}, this)">Keep the current picture</button>
-            </div>
-          </div>`;
-      }).join("");
-      const lookPickers = (this.lookChoices || []).filter((m) => m.looks.length && (m.key !== "user" || sc.authoring_mode === "director")).map((m) => {
-        const wornId = ((beat.stage || {}).looks || {})[m.key];
-        return `<label>${this.attr(m.name)}<select class="tg-select" onchange="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(m.key)}', {look_id: Number(this.value)}, this)">
-            ${wornId ? "" : `<option value="" selected>No look</option>`}
-            ${m.looks.map((l) => `<option value="${l.id}" ${l.id === wornId ? "selected" : ""}>👗 ${this.attr(l.name)}</option>`).join("")}
-          </select></label>`;
-      }).join("");
-
+      const cast = this.castOnStage(sc, beat);
+      const spBeat = this.activeSpriteBeat();
       const isDirection = beat.kind === "direction";
       const isNarrator = beat.kind === "narration" || beat.speaker === "narrator";
       const handoff = sc.handoff || "user_turn";
       const choices = sc.interaction_mode === "write" ? [] : Array.isArray(sc.choices) ? sc.choices : [];
+      const fresh = !this.seenBeats.has(beat.id) && !this.cutNext;
+      this.cutNext = false;
+      if (beat.id) this.seenBeats.add(beat.id);
+
+      const outfitNotes = (blockFirst.outfit_change || []).map((c) => {
+        const worn = (TG.state.vn_scenes?.looks || {})[c.slug];
+        const count = worn ? Object.keys(worn.moods || {}).length : 0;
+        return `<div class="ep-note" role="status">
+            <strong>${this.attr(c.name)}'s clothes change</strong>
+            <p>${this.attr(c.outfit)}</p>
+            <div class="ep-note-actions">
+              ${worn ? `<button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {outfit: ${this.attr(JSON.stringify(c.outfit))}}, this)">Draw the new look · ${count} pictures</button>
+              <button type="button" class="ep-btn" onclick="VN_SCENES.editOutfitThenDraw('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', ${this.attr(JSON.stringify(c.outfit))}, this)">Edit the outfit first</button>` : ""}
+              <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {keep: true}, this)">Keep the picture</button>
+            </div>
+          </div>`;
+      }).join("");
+      const moodChip = spBeat && spBeat.look_id && spBeat.asked_emotion && spBeat.asked_emotion !== spBeat.emotion
+        ? `<button type="button" class="ep-chip" onclick="VN_SCENES.drawLookMood(null, this)">Showing “${this.attr(spBeat.emotion)}” for “${this.attr(spBeat.asked_emotion)}” · draw it, 1 picture</button>` : "";
+      const lookPickers = (this.lookChoices || []).filter((m) => m.looks.length && (m.key !== "user" || sc.authoring_mode === "director")).map((m) => {
+        const wornId = ((beat.stage || {}).looks || {})[m.key];
+        return `<label>${this.attr(m.name)}<select class="tg-select" onchange="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(m.key)}', {look_id: Number(this.value)}, this)">
+            ${wornId ? "" : `<option value="" selected>No look</option>`}
+            ${m.looks.map((l) => `<option value="${l.id}" ${l.id === wornId ? "selected" : ""}>${this.attr(l.name)}</option>`).join("")}
+          </select></label>`;
+      }).join("");
+
+      const name = isDirection ? "Direction" : isNarrator ? "" : (beat.speaker_name || beat.speaker);
+      const turnEnd = isLastBeat ? `
+        ${choices.length ? `<div class="ep-choices" role="group" aria-label="Choices">${choices.map((c, i) =>
+          `<button type="button" class="ep-choice" data-choice-index="${i}">${this.attr(c)}</button>`).join("")}</div>` : ""}
+        <div class="ep-well">
+          ${sc.interaction_mode !== "choices" ? `
+            <textarea class="ep-input" id="vnShortInput" rows="1" data-screen-field="reply"
+              placeholder="${sc.authoring_mode === "director" ? "Direct the cast…" : "What you do or say…"}"
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); VN_SCENES.submitUserBeatInput(this.nextElementSibling);}"></textarea>
+            <button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.submitUserBeatInput(this)">${sc.authoring_mode === "director" ? "Direct" : "Send"}</button>` : ""}
+          <button type="button" class="ep-btn ${handoff === "auto_continue" ? "ep-btn-primary" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the scene go on without you">Continue</button>
+          ${!choices.length && sc.interaction_mode !== "write" ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.suggestChoices()">Suggest options</button>` : ""}
+          ${handoff === "climax_ready" ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.openSheet('finish')">A good place to end</button>` : ""}
+        </div>` : "";
 
       root.innerHTML = `
-        <div class="vn-stage-wrap" >
-          <div class="vn-stage-overlay"></div>
-
-          <div class="vn-stage-hud">
-            <span class="vn-hud-pill">📍 ${this.attr(visual.location || sc.title || "Episode")}</span>
-            <button type="button" class="vn-hud-pill" id="vnMusicToggleBtn" onclick="VN_SCENES.toggleMusic()" title="${this.attr(visual.music?.name || 'Silence')}">
-              ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${this.attr(visual.music?.name || "Silence")}
-            </button>
-            <details class="vn-visual-settings" data-screen-field="visuals_open" ontoggle="this.open && VN_SCENES.loadLookChoices()">
-              <summary>Scene appearance</summary>
-              <div class="vn-editor-content">
-                ${lookPickers ? `<p class="ep-looks-note">Looks change from this passage on.</p>${lookPickers}` : ""}
-                <label>Music<select class="tg-select" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">${musicOpts}</select></label>
-                <label>Backdrop<select class="tg-select" onchange="VN_SCENES.changeStageSetting('bg', this.value)" title="Switch stage backdrop">${bgOpts}</select></label>
+        <div class="ep-stage ${this.chromeHidden ? "ep-chrome-off" : ""}" id="epStage">
+          <div class="ep-frame" id="epFrame">
+            <div class="ep-bg" id="epBg"></div>
+            <div class="ep-cast" aria-hidden="true">
+              ${cast.map((f, i) => `<img class="ep-figure ${f.speaking ? "is-speaking" : cast.some((o) => o.speaking) ? "is-listening" : ""}" src="${this.attr(f.url)}" alt=""
+                  style="--x:${this.castX(i, cast.length)}%; --z:${f.speaking ? 3 : 1}" data-name="${this.attr(f.name)}">`).join("")}
+            </div>
+            <div class="ep-top">
+              <span class="ep-where" title="${this.attr(visual.location || sc.title || "Episode")}">${this.attr(visual.location || sc.title || "Episode")}</span>
+              <div class="ep-icons">
+                <button type="button" class="ep-icon" onclick="VN_SCENES.toggleMusic()" aria-label="${this.musicPlaying ? "Pause music" : "Play music"}" title="${this.attr(visual.music?.name || "Silence")}">${this.icon(this.musicPlaying ? "music" : "mute")}</button>
+                <button type="button" class="ep-icon" onclick="VN_SCENES.openLog()" aria-label="Backlog" title="Backlog">${this.icon("log")}</button>
+                <button type="button" class="ep-icon ${this.autoPlay ? "is-on" : ""}" onclick="VN_SCENES.toggleAuto()" aria-label="Auto" title="Auto">${this.icon("auto")}</button>
+                <button type="button" class="ep-icon" onclick="VN_SCENES.toggleChrome()" aria-label="Hide the interface (H)" title="Hide (H)">${this.icon("hide")}</button>
+                <button type="button" class="ep-icon" onclick="VN_SCENES.openSheet()" aria-label="Menu" title="Menu">${this.icon("menu")}</button>
               </div>
-            </details>
-          </div>
-
-          <!-- Central Character Sprite Stage -->
-          <div class="vn-sprite-stage">
-            ${spBeat ? `
-              <div class="vn-central-sprite-card">
-                ${spBeat.sprite_url ? `
-                  <img class="vn-central-sprite-img" src="${this.attr(spBeat.sprite_url)}" alt="${this.attr(spBeat.speaker_name)}">
-                ` : `
-                  <div class="vn-empty-sprite" style="width:180px; height:180px; border-radius:18px; background:rgba(15,23,42,0.85); border:1px dashed rgba(244,114,182,0.45); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#fbcfe8;">
-                    <span style="font-size:42px;">🎭</span>
-                    <strong>${this.attr(spBeat.speaker_name)}</strong>
-                  </div>
-                `}
-                <div class="vn-sprite-mood-bar">
-                  <span class="vn-mood-badge">🎭 ${this.attr(spBeat.speaker_name)} · ${this.attr(spBeat.emotion || "neutral")}</span>
-                  ${!spBeat.look_id ? `<span class="vn-mood-note">No episode look yet</span>` :
-                    spBeat.asked_emotion && spBeat.asked_emotion !== spBeat.emotion ? `
-                    <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.drawLookMood(null, this)" title="Showing the closest mood this look has. Draw the asked one as an edit of the neutral picture (one image request).">
-                      Draw “${this.attr(spBeat.asked_emotion)}” · 1 picture
-                    </button>
-                  ` : `
-                    <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptLookMood(this)" title="Add a mood to this look (one image request)">
-                      Add a mood
-                    </button>
-                  `}
+            </div>
+            <div class="ep-asides">${outfitNotes}${moodChip}</div>
+            <div class="ep-dock">
+              <div class="ep-box ${isNarrator ? "is-narration" : ""} ${isDirection ? "is-direction" : ""}">
+                ${name ? `<div class="ep-name">${this.attr(name)}</div>` : ""}
+                <div class="ep-text" id="epText">${TG.formatText ? TG.formatText(beat.text || "") : this.attr(beat.text || "")}</div>
+                <div class="ep-box-foot">
+                  <button type="button" class="ep-step" onclick="VN_SCENES.prevBeat()" ${idx <= 0 ? "disabled" : ""} aria-label="Back">${this.icon("back")}</button>
+                  <span class="ep-count">${idx + 1} / ${beats.length}</span>
+                  ${!isLastBeat ? `<button type="button" class="ep-step" onclick="VN_SCENES.nextBeat()" aria-label="Next">${this.icon("next")}</button>
+                    <button type="button" class="ep-step ep-skip" onclick="VN_SCENES.cutNext = true; VN_SCENES.beatIndex = ${beats.length - 1}; VN_SCENES.renderStageOnly();" aria-label="Skip to your turn" title="Skip to your turn">${this.icon("skip")}</button>` : ""}
                 </div>
+                ${turnEnd}
               </div>
-            ` : ""}
-          </div>
-
-          ${outfitNotes ? `<div class="vn-outfit-notes">${outfitNotes}</div>` : ""}
-
-          <!-- Classic Visual Novel Dialogue Box -->
-          <div class="vn-dialogue-dock">
-            <div class="vn-dialogue-box">
-              <div class="vn-speaker-plate ${isNarrator ? "narrator" : ""}">
-                <span>${isDirection ? "Direction" : isNarrator ? "📖 Narration" : `💬 ${this.attr(beat.speaker_name || beat.speaker)}`}</span>
-                ${!isNarrator && beat.emotion && (beat.speaker_slug || beat.speaker) === beat.character_slug ? `<span style="font-weight:500; opacity:0.88; font-size:11.5px;">· ${this.attr(beat.emotion)}</span>` : ""}
-              </div>
-              <div class="vn-beat-counter">${sc.authoring_mode === "director" ? "Directing · " : ""}Page ${idx + 1} / ${beats.length}</div>
-
-              <div class="vn-beat-text ${isNarrator ? "narration-line" : ""}">
-                ${TG.formatText ? TG.formatText(beat.text || "") : this.attr(beat.text || "")}
-              </div>
-              ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${this.attr(beat.original_text)}</div></details>` : ""}
-
-              <div class="vn-beat-nav-row">
-                <div style="display:flex; gap:8px; align-items:center;">
-                  <button type="button" class="tg-fmt-btn" ${idx <= 0 ? "disabled style='opacity:0.4'" : ""} onclick="VN_SCENES.prevBeat()">◀ Back</button>
-                  ${!isLastBeat ? `
-                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.nextBeat()">Next ▶ (${idx + 2}/${beats.length})</button>
-                  ` : `
-                    <span style="font-size:12px; color:#fbcfe8; font-weight:600;">
-                      ${handoff === "climax_ready"
-                        ? "You can finish here, or keep going."
-                        : handoff === "auto_continue"
-                        ? "Continue, or respond when you’re ready."
-                        : sc.interaction_mode === "choices" ? "Choose an option" : sc.authoring_mode === "director" ? "Your direction" : "Your turn"}
-                    </span>
-                  `}
-                </div>
-                ${!isLastBeat ? `
-                  <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.beatIndex = ${beats.length - 1}; VN_SCENES.renderStageOnly();">Skip to Turn End ⏭</button>
-                ` : ""}
-              </div>
-
-              ${isLastBeat ? `
-                <div class="vn-turn-director">
-                  ${!choices.length && sc.interaction_mode !== "write" ? `<button type="button" class="tg-fmt-btn" onclick="VN_SCENES.suggestChoices()">Suggest options (uses tokens)</button>` : ""}
-                  ${choices.length ? `
-                    <div class="vn-choices-row">
-                      ${choices.map((c, i) => `
-                        <button type="button" class="vn-choice-chip" data-choice-index="${i}">
-                          ✨ ${this.attr(c)}
-                        </button>
-                      `).join("")}
-                    </div>
-                  ` : ""}
-                  <div class="vn-input-row">
-                    ${sc.interaction_mode !== "choices" ? `
-                    <textarea class="vn-short-input" id="vnShortInput" data-screen-field="reply" placeholder="${sc.authoring_mode === 'director' ? 'Direct the cast, including your character…' : 'Your action or dialogue…'}" onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput();}"></textarea>
-                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.submitUserBeatInput(this)">${sc.authoring_mode === "director" ? "Send direction ➤" : "Act / Speak ➤"}</button>
-                    ` : ""}
-                    <button type="button" class="tg-bulba-btn" style="${handoff === "auto_continue" ? "box-shadow:0 0 14px rgba(168,85,247,0.65);" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the characters continue the scene without user input">
-                      Continue Scene ▶▶
-                    </button>
-                    <details class="vn-end-options" data-screen-field="finish_open"><summary>Finish this episode</summary><div class="vn-editor-content">
-                    <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.finishScene(this)">Finish & Save</button>
-                    <details class="vn-illustration-options"><summary>Illustration hint (optional)</summary><textarea class="tg-textarea" id="vnIllustrationHint" data-screen-field="illustration_hint" placeholder="What should the illustration show?"></textarea></details>
-                    <button type="button" class="vn-climax-btn ${handoff === "climax_ready" ? "pulse" : ""}" onclick="VN_SCENES.finishScene(this, true)" title="Finish the episode and request an optional illustration">
-                      Finish & Illustrate
-                    </button>
-                    </div></details>
-                  </div>
-                </div>
-              ` : ""}
             </div>
           </div>
+          <aside class="ep-sheet" id="epSheet" ${this.sheetOpen ? "" : "hidden"} aria-label="Episode menu">
+            <div class="ep-sheet-head"><strong>${this.attr(sc.title || "Episode")}</strong>
+              <button type="button" class="ep-icon" onclick="VN_SCENES.closeSheet()" aria-label="Close">${this.icon("close")}</button></div>
+            <section class="ep-sheet-part" id="epSheetPassage"><h4>This passage</h4>
+              ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${this.attr(beat.original_text)}</div></details>` : ""}
+              ${spBeat && spBeat.look_id ? `<button type="button" class="ep-btn" onclick="VN_SCENES.promptLookMood(this)">Add a mood to ${this.attr(spBeat.speaker_name)}'s look · 1 picture</button>` : ""}
+            </section>
+            <section class="ep-sheet-part"><h4>Scene</h4>
+              <details ontoggle="this.open && VN_SCENES.loadLookChoices()" data-screen-field="visuals_open"><summary>Looks, music and backdrop</summary>
+                <div class="vn-editor-content">
+                  ${lookPickers ? `<p class="ep-looks-note">Looks change from this passage on.</p>${lookPickers}` : ""}
+                  <label>Music<select class="tg-select" onchange="VN_SCENES.changeStageSetting('music', this.value)">${musicOpts}</select></label>
+                  <label>Backdrop<select class="tg-select" onchange="VN_SCENES.changeStageSetting('bg', this.value)">${bgOpts}</select></label>
+                </div>
+              </details>
+            </section>
+            <section class="ep-sheet-part" id="epSheetEpisode"><h4>Episode</h4></section>
+            <section class="ep-sheet-part" id="epSheetFinish"><h4>Finish</h4>
+              <button type="button" class="ep-btn" onclick="VN_SCENES.finishScene(this)">Finish and save</button>
+              <details class="vn-illustration-options"><summary>Illustration hint (optional)</summary><textarea class="tg-textarea" id="vnIllustrationHint" data-screen-field="illustration_hint" placeholder="What should the illustration show?"></textarea></details>
+              <button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.finishScene(this, true)">Finish with an illustration</button>
+            </section>
+            <section class="ep-sheet-part">
+              <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.closeSheet(); VN_SCENES.switchTab('gallery')">Saved episodes</button>
+              <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.closeSheet(); VN_SCENES.returnToPhone()">Back to the phone</button>
+            </section>
+          </aside>
+          <div class="ep-log" id="epLog" hidden role="dialog" aria-label="Backlog"></div>
         </div>
       `;
-      if (bgUrl) root.querySelector(".vn-stage-wrap").style.backgroundImage = `url(${JSON.stringify(bgUrl)})`;
-      root.querySelector('.vn-central-sprite-img')?.addEventListener('error', event => {
-        if (!event.target.isConnected) return;
-        const fallback = document.createElement('div'); fallback.className = 'vn-empty-sprite vn-unavailable-sprite';
-        const name = document.createElement('strong'); name.textContent = spBeat?.speaker_name || 'Character';
-        const note = document.createElement('span'); note.textContent = 'Image unavailable';
-        fallback.append(name, note); event.target.replaceWith(fallback);
-      }, {once: true});
+      document.getElementById("app-scenes")?.classList.add("ep-playing");
+      this.paintBackground(bgUrl);
+      root.querySelectorAll(".ep-figure").forEach((img) => img.addEventListener("error", () => img.remove(), {once: true}));
+      this.typeText(document.getElementById("epText"), fresh);
       this.bindDrafts(root, "vn:" + sc.id);
       this.syncAudioTrack(this.musicPlaying);
       root.querySelectorAll("[data-choice-index]").forEach((button) => {
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
       });
+      this.bindStage();
     },
+
+    /* Everyone standing on stage at this passage: their look's picture for the face they show, the one on
+       camera in front. Older episodes without per-passage looks show only the one on camera. */
+    castOnStage(sc, beat) {
+      const stage = beat.stage || {};
+      const packs = TG.state.vn_scenes?.look_packs || {};
+      const current = TG.state.vn_scenes?.looks || {};
+      const camera = (this.activeSpriteBeat() || {}).speaker;
+      const talking = beat.kind === "dialogue" && beat.speaker !== "narrator" ? camera : null;
+      const keys = [...(sc.character_slugs || []), ...(sc.authoring_mode === "director" ? ["user"] : [])];
+      const out = [];
+      keys.forEach((key) => {
+        const lookId = (stage.looks || {})[key];
+        const pack = lookId ? packs[String(lookId)] || Object.values(current).find((l) => l.id === lookId) : null;
+        let url = "";
+        if (pack) {
+          const mood = (stage.faces || {})[key] || "neutral";
+          url = (pack.moods[mood] || pack.moods.neutral || {}).url || "";
+        }
+        if (key === camera && beat.character_slug === key && beat.sprite_url) url = beat.sprite_url;
+        if (!url && key === camera) url = (this.activeSpriteBeat() || {}).sprite_url || "";
+        if (!url) return;
+        const person = (TG.state.characters || []).find((c) => c.slug === key);
+        out.push({key, url, speaking: key === talking, name: key === "user" ? (sc.user_participant?.name || "You") : (person?.display_name || person?.name || key)});
+      });
+      return out;
+    },
+
+    castX(i, n) {
+      if (n <= 1) return 50;
+      const span = n === 2 ? 40 : Math.min(76, 24 * (n - 1));
+      return 50 - span / 2 + (span / (n - 1)) * i;
+    },
+
+    icon(name) {
+      const paths = {
+        music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+        mute: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><path d="M3 3l18 18"/>',
+        log: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+        auto: '<path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/>',
+        hide: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><path d="M3 3l18 18"/>',
+        menu: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+        close: '<path d="M6 6l12 12M18 6L6 18"/>',
+        back: '<path d="M15 18l-6-6 6-6"/>',
+        next: '<path d="M9 18l6-6-6-6"/>',
+        skip: '<path d="M5 18l6-6-6-6M13 18l6-6-6-6"/>',
+      };
+      return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ""}</svg>`;
+    },
+
+    /* The backdrop crossfades when it changes and cuts when it doesn't. */
+    paintBackground(url) {
+      const bg = document.getElementById("epBg");
+      if (!bg) return;
+      const before = this.lastBgUrl;
+      bg.style.backgroundImage = url ? `url(${JSON.stringify(url)})` : "none";
+      if (before !== undefined && before !== url) {
+        bg.classList.remove("ep-bg-in"); void bg.offsetWidth; bg.classList.add("ep-bg-in");
+      }
+      this.lastBgUrl = url;
+    },
+
+    /* New text arrives word by word; a passage read before, or a rewind, is shown whole. */
+    typeText(el, fresh) {
+      clearTimeout(this.autoTimer);
+      if (!el) return;
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      this.typing = false;
+      if (!fresh || reduce) {this.afterTyped(); return;}
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      let n = 0;
+      nodes.forEach((node) => {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach((part) => {
+          if (!part) return;
+          if (/^\s+$/.test(part)) {frag.append(part); return;}
+          const span = document.createElement("span");
+          span.className = "ep-word"; span.textContent = part; span.style.animationDelay = `${n++ * 38}ms`;
+          frag.append(span);
+        });
+        node.replaceWith(frag);
+      });
+      el.classList.add("ep-typing");
+      this.typing = true;
+      this.typeTimer = setTimeout(() => this.finishTyping(), n * 38 + 260);
+    },
+
+    finishTyping() {
+      clearTimeout(this.typeTimer);
+      const el = document.getElementById("epText");
+      el?.classList.remove("ep-typing");
+      el?.querySelectorAll(".ep-word").forEach((w) => {w.style.animation = "none"; w.style.opacity = "1";});
+      this.typing = false;
+      this.afterTyped();
+    },
+
+    afterTyped() {
+      clearTimeout(this.autoTimer);
+      const sc = this.activeScene();
+      if (!this.autoPlay || !sc || this.beatIndex >= (sc.beats || []).length - 1) return;
+      const words = (document.getElementById("epText")?.textContent || "").split(/\s+/).length;
+      this.autoTimer = setTimeout(() => this.nextBeat(), 1400 + words * 160);
+    },
+
+    toggleAuto() {
+      this.autoPlay = !this.autoPlay;
+      this.renderStageOnly();
+    },
+
+    toggleChrome() {
+      this.chromeHidden = !this.chromeHidden;
+      document.getElementById("epStage")?.classList.toggle("ep-chrome-off", this.chromeHidden);
+    },
+
+    openSheet(part) {
+      this.sheetOpen = true;
+      const sheet = document.getElementById("epSheet");
+      if (sheet) sheet.hidden = false;
+      if (part === "finish") document.getElementById("epSheetFinish")?.scrollIntoView({block: "start"});
+    },
+
+    closeSheet() {
+      this.sheetOpen = false;
+      const sheet = document.getElementById("epSheet");
+      if (sheet) sheet.hidden = true;
+    },
+
+    openLog() {
+      const sc = this.activeScene(), log = document.getElementById("epLog");
+      if (!sc || !log) return;
+      const upto = (sc.beats || []).slice(0, this.beatIndex + 1);
+      log.innerHTML = `<div class="ep-log-head"><strong>Backlog</strong>
+          <button type="button" class="ep-icon" onclick="document.getElementById('epLog').hidden = true" aria-label="Close">${this.icon("close")}</button></div>
+        <ol class="ep-log-list">${upto.map((b, i) => `<li><button type="button" data-log-index="${i}">
+          ${b.kind === "narration" || b.speaker === "narrator" ? "" : `<strong>${this.attr(b.speaker_name || b.speaker)}</strong>`}
+          <span>${this.attr(b.text)}</span></button></li>`).join("")}</ol>`;
+      log.hidden = false;
+      log.querySelectorAll("[data-log-index]").forEach((btn) => btn.addEventListener("click", () => {
+        this.cutNext = true; this.beatIndex = Number(btn.dataset.logIndex); this.renderStageOnly();
+      }));
+      log.querySelector(".ep-log-list li:last-child")?.scrollIntoView({block: "end"});
+    },
+
+    /* A click or tap on the bare stage finishes the words first, then turns the page. Keys: Space, Enter and
+       the right arrow go on; the left arrow steps back; H hides the interface; Escape closes what's open. */
+    bindStage() {
+      const frame = document.getElementById("epFrame");
+      const box = frame?.querySelector(".ep-box"), picks = frame?.querySelector(".ep-choices");
+      if (frame && box) frame.style.setProperty("--ep-box-h", `${box.offsetHeight + 14 + (picks ? picks.offsetHeight + 16 : 0)}px`);
+      frame?.addEventListener("click", (event) => {
+        if (event.target.closest("button, a, input, textarea, select, label, details, .ep-choices, .ep-well, .ep-note")) return;
+        if (this.chromeHidden) {this.toggleChrome(); return;}
+        this.advance();
+      });
+      if (this.keysBound) return;
+      this.keysBound = true;
+      document.addEventListener("keydown", (event) => {
+        if (!document.getElementById("app-scenes")?.classList.contains("active") || this.tab !== "stage" || !this.activeScene()) return;
+        if (event.target.closest?.("input, textarea, select, [contenteditable]") || event.ctrlKey || event.metaKey || event.altKey) return;
+        const log = document.getElementById("epLog");
+        if (event.key === "Escape") {if (log) log.hidden = true; this.closeSheet(); return;}
+        if (this.chromeHidden && event.key.length) {this.toggleChrome(); event.preventDefault(); return;}
+        if (event.key === "h" || event.key === "H") {this.toggleChrome(); event.preventDefault();}
+        else if (event.key === " " || event.key === "Enter" || event.key === "ArrowRight") {
+          if (event.target.closest?.("button") && event.key !== "ArrowRight") return;
+          this.advance(); event.preventDefault();
+        } else if (event.key === "ArrowLeft") {this.cutNext = true; this.prevBeat(); event.preventDefault();}
+      });
+    },
+
+    advance() {
+      if (this.typing) {this.finishTyping(); return;}
+      const sc = this.activeScene();
+      if (sc && this.beatIndex < (sc.beats || []).length - 1) this.nextBeat();
+      else document.getElementById("vnShortInput")?.focus();
+    },
+
 
     renderGallery(root) {
       const gallery = (TG.state.vn_scenes && TG.state.vn_scenes.gallery) || [];

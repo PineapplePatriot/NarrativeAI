@@ -4897,6 +4897,7 @@ def screen_hub(request):
         "vn_scenes": {
             **vn_scenes.get_vn_state(request.user),
             "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
+            "look_packs": vn_scenes.look_packs(request.user, vn_scenes.get_vn_state(request.user)["active_scene"]),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6087,6 +6088,7 @@ def vn_scenes_api(request):
         return {
             **st,
             "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
+            "look_packs": vn_scenes.look_packs(request.user, st.get("active_scene")),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},

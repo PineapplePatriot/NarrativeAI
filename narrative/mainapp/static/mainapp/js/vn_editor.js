@@ -62,13 +62,14 @@
       try {const result = await vn().apiPost({action: 'inspect_request'}); const pre = node('pre', JSON.stringify(result.request || {note: 'No generation request stored for this version.'}, null, 2)); pre.style.whiteSpace = 'pre-wrap'; inspect.append(pre);}
       catch (error) {vn().notify(error.message, true);}
     });
-    content.append(inspect); root.prepend(details);
+    content.append(inspect, button('Versions', versions));
+    (root.querySelector('#epSheetEpisode') || root).append(details);
     window.ScreenDrafts?.bind(details, 'vn:' + scene.id);
   }
   function passageTools(root, scene) {
     const current = vn().currentBeat(); if (!current) return;
-    const dock = root.querySelector('.vn-dialogue-box'); if (!dock) return;
-    const tools = node('details', null, 'vn-passage-tools'); tools.append(node('summary', 'Edit, regenerate or branch'));
+    const dock = root.querySelector('#epSheetPassage'); if (!dock) return;
+    const tools = node('details', null, 'vn-passage-tools'); tools.append(node('summary', 'Edit, regenerate or branch from here'));
     tools.dataset.screenField = 'open';
     const body = node('div', null, 'vn-editor-content'); tools.append(body);
     body.append(node('p', 'A passage may span several pages. Editing or regenerating replaces its continuation in this version; the previous version is saved.'));

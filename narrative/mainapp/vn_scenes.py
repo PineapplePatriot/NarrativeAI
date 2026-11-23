@@ -192,6 +192,17 @@ def looks_payload(user, scene):
     return {k: episode_looks.pack(look) for k, look in scene_looks(user, scene).items()}
 
 
+def look_packs(user, scene):
+    """{look id: packed look} for every look any passage of the episode wears, so reading back draws them."""
+    ids = set()
+    for beat in (scene or {}).get("beats") or []:
+        for value in ((beat.get("stage") or {}).get("looks") or {}).values():
+            if str(value).isdigit():
+                ids.add(int(value))
+    return {str(look.pk): episode_looks.pack(look)
+            for look in EpisodeLook.objects.filter(author=user, pk__in=ids).select_related("character")}
+
+
 def _look_reference(look):
     """The neutral picture of a look, for illustrations: identity and the outfit worn in the episode."""
     try:
@@ -462,7 +473,6 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
         faces = dict(current.get("faces") or {})
         if narrator and emotion == "neutral" and faces.get(stage_slug):
             emotion = faces[stage_slug]  # narration keeps the face they last showed; no flip back to neutral
-        current["faces"] = {**faces, stage_slug: emotion}
         if stage_slug == "user":
             stage_name = user_participant["name"]
         else:
@@ -472,6 +482,8 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
         look = (looks or {}).get(stage_slug)
         picture, shown = episode_looks.url(look, emotion)
         sp_info = {"url": picture, "emotion": shown, "asked": emotion, "look_id": look.pk if look else None}
+        if not side_character:
+            current["faces"] = {**faces, stage_slug: shown}  # the face each person shows from here on
         block_id = "vnb_" + uuid.uuid4().hex[:8]
         speaker = "narrator" if narrator else "user" if user_speaks else speaker_char.slug
         speaker_name = "Narrator" if narrator else user_participant["name"] if user_speaks else messenger.char_profile(speaker_char)["display_name"]
