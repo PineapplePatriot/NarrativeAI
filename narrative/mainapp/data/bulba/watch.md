@@ -69,6 +69,18 @@ Also use these labels:
   understanding and relationship. Actual care, insight and an established therapist are not violations.
 - **stalled_scene**: the unresolved interaction is repeatedly replaced by gaze, posture or emotional
   description. Name what is being deferred. Quiet conversation and deliberate slow pacing are fine.
+- **theme_saturation**: the character's job or world squeezes into their motives and talk reply after reply
+  (a banker in prices, ledgers, debts, leverage, gambles; a scientist in data and experiments), until the person
+  is a caricature. One image from their world is fine; a pattern across replies is the slip.
+- **quiet_menace**: strong feeling written only as going quiet, calm, cold, polite or soft-voiced ("he doesn't
+  raise his voice", "a dangerous calm") instead of what the person actually does. A genuinely restrained
+  character can be calm; the slip is the stock shorthand replacing behaviour.
+- **absolutes**: the narration or the character states traits as laws ("he never forgets", "she always wins").
+- **epigram**: clever summary lines and aphorisms about people or the moment, instead of someone doing or saying
+  something specific.
+- **quip_loop**: the characters (or the character and {{user}}) trade one-liners and top each other, turn after
+  turn, while nothing is told, asked, wanted or decided. Banter that moves something is fine.
+- **catchphrase_seed**: the same pet names or signature words in reply after reply ("my dear", "asset").
 
 For **echoing_user**, also check dialogue that lists the listener's own actions or circumstances back
 at them («ти стоїш поруч… і ти…»), without a reason such as clarification, disagreement or a relevant
