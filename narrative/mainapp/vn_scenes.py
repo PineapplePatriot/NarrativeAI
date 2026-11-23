@@ -180,7 +180,8 @@ def pick_looks(user, chars, chosen=None, director=False):
 
 def scene_looks(user, scene):
     """{slug or "user": EpisodeLook} for the looks this episode uses."""
-    ids = {k: v for k, v in (scene.get("looks") or {}).items() if str(v).isdigit()}
+    worn = (scene.get("current_stage") or {}).get("looks")
+    ids = {k: v for k, v in (worn if isinstance(worn, dict) else scene.get("looks") or {}).items() if str(v).isdigit()}
     found = {look.pk: look for look in EpisodeLook.objects.filter(author=user, pk__in=[int(v) for v in ids.values()])
              .select_related("character")}
     return {k: found[int(v)] for k, v in ids.items() if int(v) in found}
@@ -227,6 +228,7 @@ VISUAL NOVEL ENGINE RULES:
 2. EXPRESSIONS AND OUTFITS:
    - On every block with character speech or a silent reaction, set `"emotion"` to the face they show right now, chosen ONLY from that character's own mood list in PARTICIPATING CHARACTER(S). Do not invent moods; pick the closest listed one.
    - Each character wears exactly the outfit written under their name. Describe it only with those items. Clothes change only when the story makes them change.
+   - When the story does change someone's clothes (a coat comes off, they get soaked, they change for bed), add to THAT block's `stage`: `"outfit_change": {{"<character slug>": "their whole new outfit, item by item"}}`. Once, at the block where it happens; never to restate an unchanged outfit.
 3. MUSIC & BACKDROP SELECTION:
    - Choose `"music"` from the available music tracks list below that best matches the current emotional tone of the scene.
    - Choose `"background"` from the available backgrounds list below (or keep the current one).
@@ -355,17 +357,22 @@ def _call_vn_json(user, prompt, scene=None, generation="normal"):
     raise ai_client.AIError("The model returned incomplete or invalid scene JSON twice. Your saved episode and draft are preserved. Retry the request.")
 
 
-def _look_lines(look):
+def _look_lines(look, worn=""):
+    """A person's moods and clothes for the storyteller. `worn` is the outfit the story has changed them into."""
     if not look:
         return ("  Moods: neutral (no episode look yet: the stage shows only their name)\n"
-                "  Outfit: as in their description\n")
+                f"  Outfit: {worn or 'as in their description'}\n")
+    if worn and worn != look.outfit:
+        return (f"  Moods: {', '.join(sorted(look.moods or {'neutral': {}}))}\n"
+                f"  Outfit now: {worn}\n")
     return (f"  Moods: {', '.join(sorted(look.moods or {'neutral': {}}))}\n"
             f"  Outfit ({look.name}): {look.outfit or 'as in their description'}\n")
 
 
-def _build_char_roster(chars, user=None, context=None, looks=None):
+def _build_char_roster(chars, user=None, context=None, looks=None, worn=None):
     lines = []
     looks = looks or {}
+    worn = worn if isinstance(worn, dict) else {}
     for c in chars:
         p = messenger.char_profile(c)
         context = context or {}
@@ -374,12 +381,12 @@ def _build_char_roster(chars, user=None, context=None, looks=None):
         app = p.get("appearance_notes") or (c.description or "")
         lines.append(
             f"- {p['display_name']} (slug: `{c.slug}`, mode: {p['mode']})\n"
-            + _look_lines(looks.get(c.slug))
+            + _look_lines(looks.get(c.slug), str(worn.get(c.slug) or ""))
             + f"  Appearance: {app}\n"
             f"  Persona & voice: {persona}"
         )
     if "user" in looks:
-        lines.append("- The user's character (slug: `user`)\n" + _look_lines(looks["user"]).rstrip())
+        lines.append("- The user's character (slug: `user`)\n" + _look_lines(looks["user"], str(worn.get("user") or "")).rstrip())
     return "\n".join(lines)
 
 
@@ -419,7 +426,23 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
             continue
         txt = str(rb["text"]).strip()
         before = copy.deepcopy(current)
-        current = vn_story.advance_stage(current, rb.get("stage"), tracks, bgs)
+        change = rb.get("stage") if isinstance(rb.get("stage"), dict) else {}
+        outfit_changes = []
+        raw_changes = change.get("outfit_change")
+        if isinstance(raw_changes, dict):
+            for slug, outfit in raw_changes.items():
+                person = char_by_slug.get(str(slug)) if str(slug) != "user" else None
+                outfit = " ".join(str(outfit or "").split())[:600]
+                if outfit and (person or (str(slug) == "user" and authoring_mode == "director")):
+                    outfit_changes.append({"slug": str(slug), "outfit": outfit, "name": (
+                        messenger.char_profile(person)["display_name"] if person else user_participant["name"])})
+            if outfit_changes:
+                # The new clothes are a story fact from here on; the picture follows once the user draws it.
+                patch = dict(change.get("continuity") or {}) if isinstance(change.get("continuity"), dict) else {}
+                patch["outfits"] = {**(patch.get("outfits") if isinstance(patch.get("outfits"), dict) else {}),
+                                    **{c["slug"]: c["outfit"] for c in outfit_changes}}
+                change = {**change, "continuity": patch}
+        current = vn_story.advance_stage(current, change, tracks, bgs)
         sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip().strip("`").strip()
         sp_low = sp_raw.casefold()
         narrator = rb.get("kind") == "narration" or sp_low in ("narrator", "narration", "system", "")
@@ -436,6 +459,10 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
         if stage_slug == "user" and authoring_mode != "director":
             stage_slug = speaker_char.slug if speaker_char else chars[0].slug
         emotion = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
+        faces = dict(current.get("faces") or {})
+        if narrator and emotion == "neutral" and faces.get(stage_slug):
+            emotion = faces[stage_slug]  # narration keeps the face they last showed; no flip back to neutral
+        current["faces"] = {**faces, stage_slug: emotion}
         if stage_slug == "user":
             stage_name = user_participant["name"]
         else:
@@ -456,6 +483,7 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
                           "asked_emotion": sp_info["asked"], "look_id": sp_info["look_id"],
                           "sprite_url": "" if side_character else sp_info["url"], "hide_sprite": side_character,
                           "text": part, "block_text": txt if i == 0 else "",
+                          **({"outfit_change": outfit_changes} if outfit_changes and i == 0 else {}),
                           "original_text": (rb.get("original_text") or "") if i == 0 else "",
                           "stage": copy.deepcopy(current), "stage_before": before})
     return boxes
@@ -528,7 +556,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     raw_blocks, polish_error = vn_support.polish_blocks(user, raw_blocks, telechat_context, polish_enabled)
     continuity = {"time": context["clock"]}
     beats = _enrich_beats(user, chars, raw_blocks, looks=scene_looks(user, seed), continuity=continuity,
-                        initial_stage={"background": chosen_bg, "music": chosen_music, "location": parsed.get("location") or location_hint, "continuity": continuity},
+                        initial_stage={"background": chosen_bg, "music": chosen_music, "location": parsed.get("location") or location_hint,
+                                       "continuity": continuity, "looks": dict(picked_looks)},
                         authoring_mode=seed["authoring_mode"], user_participant=seed["user_participant"])
     if not beats:
         raise ai_client.AIError("The model returned no scene text. Try starting the episode again.")
@@ -637,7 +666,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
     looks = scene_looks(user, scene)
-    roster_text = _build_char_roster(chars, user, context, looks)
+    roster_text = _build_char_roster(chars, user, context, looks, (scene.get("continuity") or {}).get("outfits"))
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
     step_dir = (
@@ -745,6 +774,59 @@ def add_look_mood(user, beat_id="", emotion=""):
                 b["emotion"] = mood
     save_vn_state(user, {"active_scene": scene}, expected=expected)
     return scene, episode_looks.pack(look), cost
+
+
+def change_look(user, beat_id, key, look_id=None, name="", outfit="", keep=False):
+    """From one passage on, dress `key` (a character slug or "user") in another look.
+
+    `look_id`: one of their existing looks in the same setting (no pictures drawn). `outfit`: a new look edited
+    from the one they wear now (one picture per mood). `keep`: leave the picture as it is and only close the
+    passage's outfit-change note. Earlier passages keep what they showed, so reading back stays true.
+    Returns (scene, cost, errors).
+    """
+    state = get_vn_state(user)
+    scene = state.get("active_scene")
+    if not scene:
+        raise ai_client.AIError("No episode is open.")
+    expected = (scene["id"], scene.get("revision", 0))
+    beats = scene.get("beats") or []
+    start = next((i for i, b in enumerate(beats) if b.get("id") == beat_id), None)
+    if start is None:
+        raise ai_client.AIError("That passage isn't in this episode any more.")
+    group = beats[start].get("block_id") or beats[start].get("id")
+    start = next(i for i, b in enumerate(beats) if (b.get("block_id") or b.get("id")) == group)
+    cost, errors = 0.0, []
+    if not keep:
+        worn_id = ((beats[start].get("stage") or {}).get("looks") or {}).get(key)
+        worn = EpisodeLook.objects.filter(author=user, pk=worn_id or 0).first()
+        if look_id:
+            new = EpisodeLook.objects.filter(author=user, pk=look_id).first()
+            if not new or (new.character.slug if new.character_id else "user") != key or (worn and new.setting != worn.setting):
+                raise ai_client.AIError("Pick one of their own looks for this setting.")
+        elif outfit.strip():
+            if not worn:
+                raise ai_client.AIError("They have no look in this episode yet: make one on the launch screen first.")
+            new, cost, errors = episode_looks.restyle(user, worn, name, outfit)
+        else:
+            raise ai_client.AIError("Choose a look or describe the new outfit.")
+        for i, b in enumerate(beats[start:], start):
+            for field in ("stage", "stage_before") if i > start else ("stage",):
+                if isinstance(b.get(field), dict):
+                    b[field]["looks"] = {**(b[field].get("looks") or {}), key: new.pk}
+            if b.get("character_slug") == key and not b.get("hide_sprite"):
+                b["sprite_url"], b["emotion"] = episode_looks.url(new, b.get("asked_emotion") or b.get("emotion"))
+                b["look_id"] = new.pk
+        if isinstance(scene.get("current_stage"), dict):
+            scene["current_stage"]["looks"] = {**(scene["current_stage"].get("looks") or {}), key: new.pk}
+        scene["looks"] = {**(scene.get("looks") or {}), key: new.pk}
+    for b in beats[start:]:
+        if (b.get("block_id") or b.get("id")) == group and b.get("outfit_change"):
+            b["outfit_change"] = [c for c in b["outfit_change"] if c.get("slug") != key]
+    for collection in ("history", "current_beats"):
+        by_id = {b["id"]: b for b in beats}
+        scene[collection] = [by_id.get(b.get("id"), b) for b in scene.get(collection) or []]
+    save_vn_state(user, {"active_scene": scene}, expected=expected)
+    return scene, cost, errors
 
 
 def finish_scene_with_cg(user, cg_hint="", capture_image=True):

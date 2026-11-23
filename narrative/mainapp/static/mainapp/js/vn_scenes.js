@@ -389,6 +389,48 @@
       this.drawLookMood(mood.trim().toLowerCase(), btnEl);
     },
 
+    async loadLookChoices() {
+      const sc = this.activeScene();
+      if (!sc || this.lookChoicesFor === sc.id) return;
+      try {
+        const data = await this.apiPost({action: "episode_looks", character_slugs: sc.character_slugs || []});
+        this.lookChoices = data.cast || [];
+        this.lookChoicesFor = sc.id;
+        this.renderStageOnly();
+      } catch (e) {this.notify(e.message, true);}
+    },
+
+    async changeLook(beatId, key, how, el) {
+      const orig = el && el.tagName === "BUTTON" ? el.textContent : "";
+      if (el) el.disabled = true;
+      if (orig) el.textContent = how.outfit ? "Drawing the new look…" : "Saving…";
+      try {
+        const data = await this.apiPost({action: "change_look", beat_id: beatId, key, ...how});
+        TG.state.vn_scenes = data.vn_scenes;
+        if (how.outfit) {
+          const look = (data.vn_scenes.looks || {})[key];
+          this.notify("New look drawn. Cutting it out in your browser…");
+          await window.EPISODE_LOOKS?.cutLook(look);
+          const fresh = await fetch(TG_CFG.vn_scenes_api).then((r) => r.json()).catch(() => null);
+          if (fresh?.vn_scenes) TG.state.vn_scenes = fresh.vn_scenes;
+          this.lookChoicesFor = null;
+        }
+        this.renderStageOnly();
+        this.notify(data.errors?.length ? `Some moods failed: ${data.errors.join("; ")}` : how.keep ? "Kept the current picture." : "Look changed from this passage on.", !!data.errors?.length);
+      } catch (e) {
+        this.notify(e.message, true);
+        this.renderStageOnly();
+      } finally {
+        if (el && el.isConnected) {el.disabled = false; if (orig) el.textContent = orig;}
+      }
+    },
+
+    editOutfitThenDraw(beatId, key, outfit, el) {
+      const edited = window.prompt("The new outfit, item by item. This is what every picture of the new look will show.", outfit);
+      if (!edited || !edited.trim()) return;
+      this.changeLook(beatId, key, {outfit: edited.trim()}, el);
+    },
+
     async changeStageSetting(kind, val) {
       const payload = { action: "set_stage", beat_id: this.currentBeat()?.id };
       if (kind === "music") payload.music_id = val;
@@ -699,6 +741,29 @@
         `<option value="${this.attr(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>🖼️ ${this.attr(b.name)}</option>`
       ).join("");
 
+      // Outfit changes the story made at this passage, waiting for a picture decision.
+      const blockFirst = beats.find((b) => (b.block_id || b.id) === (beat.block_id || beat.id)) || beat;
+      const outfitNotes = (blockFirst.outfit_change || []).map((c) => {
+        const worn = (TG.state.vn_scenes?.looks || {})[c.slug];
+        const count = worn ? Object.keys(worn.moods || {}).length : 0;
+        return `<div class="vn-outfit-note" role="status">
+            <strong>${this.attr(c.name)}'s clothes change</strong>
+            <p>${this.attr(c.outfit)}</p>
+            <div class="ep-actions">
+              ${worn ? `<button type="button" class="tg-send-btn" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {outfit: ${this.attr(JSON.stringify(c.outfit))}}, this)">Draw the new look · ${count} pictures</button>
+              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.editOutfitThenDraw('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', ${this.attr(JSON.stringify(c.outfit))}, this)">Edit the outfit first</button>` : ""}
+              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(c.slug)}', {keep: true}, this)">Keep the current picture</button>
+            </div>
+          </div>`;
+      }).join("");
+      const lookPickers = (this.lookChoices || []).filter((m) => m.looks.length && (m.key !== "user" || sc.authoring_mode === "director")).map((m) => {
+        const wornId = ((beat.stage || {}).looks || {})[m.key];
+        return `<label>${this.attr(m.name)}<select class="tg-select" onchange="VN_SCENES.changeLook('${this.attr(blockFirst.id)}', '${this.attr(m.key)}', {look_id: Number(this.value)}, this)">
+            ${wornId ? "" : `<option value="" selected>No look</option>`}
+            ${m.looks.map((l) => `<option value="${l.id}" ${l.id === wornId ? "selected" : ""}>👗 ${this.attr(l.name)}</option>`).join("")}
+          </select></label>`;
+      }).join("");
+
       const isDirection = beat.kind === "direction";
       const isNarrator = beat.kind === "narration" || beat.speaker === "narrator";
       const handoff = sc.handoff || "user_turn";
@@ -713,9 +778,10 @@
             <button type="button" class="vn-hud-pill" id="vnMusicToggleBtn" onclick="VN_SCENES.toggleMusic()" title="${this.attr(visual.music?.name || 'Silence')}">
               ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${this.attr(visual.music?.name || "Silence")}
             </button>
-            <details class="vn-visual-settings" data-screen-field="visuals_open">
+            <details class="vn-visual-settings" data-screen-field="visuals_open" ontoggle="this.open && VN_SCENES.loadLookChoices()">
               <summary>Scene appearance</summary>
               <div class="vn-editor-content">
+                ${lookPickers ? `<p class="ep-looks-note">Looks change from this passage on.</p>${lookPickers}` : ""}
                 <label>Music<select class="tg-select" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">${musicOpts}</select></label>
                 <label>Backdrop<select class="tg-select" onchange="VN_SCENES.changeStageSetting('bg', this.value)" title="Switch stage backdrop">${bgOpts}</select></label>
               </div>
@@ -750,6 +816,8 @@
               </div>
             ` : ""}
           </div>
+
+          ${outfitNotes ? `<div class="vn-outfit-notes">${outfitNotes}</div>` : ""}
 
           <!-- Classic Visual Novel Dialogue Box -->
           <div class="vn-dialogue-dock">

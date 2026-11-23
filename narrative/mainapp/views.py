@@ -4896,6 +4896,7 @@ def screen_hub(request):
         "subtext": subtext.get_subtext_state(request.user, chars),
         "vn_scenes": {
             **vn_scenes.get_vn_state(request.user),
+            "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6318,6 +6319,17 @@ def vn_scenes_api(request):
             return JsonResponse({"error": str(e)}, status=400)
         return JsonResponse({"scene": scene, "look": look, "cost": cost,
                              "looks": vn_scenes.looks_payload(request.user, scene)})
+
+    if action == "change_look":  # from one passage on: another of their looks, a new outfit edited from this one, or keep
+        look_id = body.get("look_id")
+        try:
+            scene, cost, errors = vn_scenes.change_look(
+                request.user, str(body.get("beat_id") or ""), str(body.get("key") or ""),
+                look_id=int(look_id) if str(look_id or "").isdigit() else None,
+                name=str(body.get("name") or ""), outfit=str(body.get("outfit") or "")[:1200], keep=bool(body.get("keep")))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"scene": scene, "cost": cost, "errors": errors, "vn_scenes": _full_vn_payload()})
 
     if action == "set_stage":
         from . import vn_story

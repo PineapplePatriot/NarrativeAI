@@ -21,7 +21,7 @@ def png(alpha=True):
     return out.getvalue()
 
 
-class EpisodeLookTests(TestCase):
+class LooksSetup(TestCase):
     def setUp(self):
         media = tempfile.TemporaryDirectory()
         self.addCleanup(media.cleanup)
@@ -44,6 +44,8 @@ class EpisodeLookTests(TestCase):
         return self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": action, **extra}),
                                 content_type="application/json")
 
+
+class EpisodeLookTests(LooksSetup):
     def test_every_mood_is_an_edit_of_the_one_neutral_picture(self):
         look, image, errors = self.make(moods=("happy", "sad"))
         self.assertEqual(errors, [])
@@ -145,3 +147,87 @@ class EpisodeLookTests(TestCase):
         base = look.moods["neutral"]["raw"]
         episode_looks.delete(look)
         self.assertFalse(default_storage.exists(base))
+
+
+class OutfitChangeTests(LooksSetup):
+    def scene_with_change(self):
+        self.look, _, _ = self.make(moods=("happy",))
+        reply = {"title": "Rain", "handoff": "user_turn", "beats": [
+            {"speaker_slug": self.char.slug, "emotion": "happy", "text": "Finally, you're here."},
+            {"speaker_slug": "narrator", "text": "The downpour soaks them both before they reach the porch.",
+             "stage": {"outfit_change": {self.char.slug: "black wool coat, soaked through; grey scarf, dripping",
+                                         "stranger": "a cape"}}},
+            {"speaker_slug": self.char.slug, "emotion": "happy", "text": "Well. That happened."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply), \
+             patch.object(messenger, "make_picture") as image:
+            scene = vn_scenes.start_scene(self.user, self.thread)
+        image.assert_not_called()  # the story changing clothes never draws by itself
+        return scene
+
+    def test_the_story_notes_the_change_and_keeps_it_as_a_fact(self):
+        scene = self.scene_with_change()
+        first, change, after = scene["beats"]
+        self.assertNotIn("outfit_change", first)
+        self.assertEqual(change["outfit_change"], [{"slug": self.char.slug, "name": "Mira",
+                                                    "outfit": "black wool coat, soaked through; grey scarf, dripping"}])
+        self.assertIn("soaked", after["stage"]["continuity"]["outfits"][self.char.slug])
+        self.assertNotIn("soaked", json.dumps(first["stage"]))
+        roster = vn_scenes._build_char_roster([self.char], self.user, None, {self.char.slug: self.look},
+                                              scene["continuity"]["outfits"])
+        self.assertIn("Outfit now: black wool coat, soaked through", roster)
+
+    def test_drawing_the_new_look_dresses_them_from_that_passage_on(self):
+        scene = self.scene_with_change()
+        first, change, after = scene["beats"]
+        with patch.object(messenger, "make_picture", side_effect=[(b"wet", 0), (b"wet-happy", 0)]) as image:
+            scene, _, errors = vn_scenes.change_look(self.user, change["id"], self.char.slug,
+                                                     outfit=change["outfit_change"][0]["outfit"], name="Soaked")
+        self.assertEqual(errors, [])
+        self.assertIn("Change only the clothes", image.call_args_list[0].args[1])
+        wet = EpisodeLook.objects.get(name="Soaked")
+        self.assertEqual(wet.parent_id, self.look.pk)
+        first, change, after = scene["beats"]
+        self.assertEqual(first["look_id"], self.look.pk)
+        self.assertEqual(after["look_id"], wet.pk)
+        self.assertEqual(change["stage_before"]["looks"][self.char.slug], self.look.pk)  # reading back stays true
+        self.assertEqual(scene["current_stage"]["looks"][self.char.slug], wet.pk)
+        self.assertEqual(change["outfit_change"], [])
+        self.assertEqual(vn_scenes.scene_looks(self.user, scene)[self.char.slug], wet)
+
+    def test_keeping_the_picture_only_closes_the_note(self):
+        scene = self.scene_with_change()
+        change = scene["beats"][1]
+        with patch.object(messenger, "make_picture") as image:
+            scene, cost, _ = vn_scenes.change_look(self.user, change["id"], self.char.slug, keep=True)
+        image.assert_not_called()
+        self.assertEqual(scene["beats"][1]["outfit_change"], [])
+        self.assertEqual(scene["beats"][2]["look_id"], self.look.pk)
+
+    def test_switching_to_someone_elses_look_is_refused(self):
+        scene = self.scene_with_change()
+        other = Character.objects.create(author=self.user, name="Ivo", slug="looks-ivo")
+        theirs = EpisodeLook.objects.create(author=self.user, character=other, setting="canon", name="Ivo's",
+                                            moods={"neutral": {"raw": "x.png", "cut": ""}})
+        with self.assertRaises(Exception):
+            vn_scenes.change_look(self.user, scene["beats"][0]["id"], self.char.slug, look_id=theirs.pk)
+        spare = EpisodeLook.objects.create(author=self.user, character=self.char, setting="canon", name="Evening",
+                                           moods={"neutral": {"raw": "e.png", "cut": ""}})
+        scene, _, _ = vn_scenes.change_look(self.user, scene["beats"][2]["id"], self.char.slug, look_id=spare.pk)
+        self.assertEqual(scene["beats"][0]["look_id"], self.look.pk)
+        self.assertEqual(scene["beats"][2]["look_id"], spare.pk)
+
+
+class FaceTests(LooksSetup):
+    def test_narration_keeps_the_last_face_instead_of_flipping_to_neutral(self):
+        self.make(moods=("happy", "sad"))
+        reply = {"title": "Steps", "handoff": "user_turn", "beats": [
+            {"speaker_slug": self.char.slug, "emotion": "happy", "text": "You came."},
+            {"speaker_slug": "narrator", "emotion": "neutral", "text": "Rain starts."},
+            {"speaker_slug": self.char.slug, "emotion": "sad", "text": "My coat."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply):
+            scene = vn_scenes.start_scene(self.user, self.thread)
+        self.assertEqual([b["emotion"] for b in scene["beats"]], ["happy", "happy", "sad"])
+        follow = {"handoff": "user_turn", "beats": [{"speaker_slug": "narrator", "text": "She wrings out her scarf."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=follow):
+            scene, new = vn_scenes.step_scene(self.user, "I hand her a towel.")
+        self.assertEqual(new[0]["emotion"], "sad")  # carried over from the last turn's stage
