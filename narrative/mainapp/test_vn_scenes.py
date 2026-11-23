@@ -6,8 +6,11 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from mainapp import ai_client, messenger, vn_scenes, vn_support
-from mainapp.models import Character
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+
+from mainapp import ai_client, episode_looks, messenger, vn_scenes, vn_support
+from mainapp.models import Character, EpisodeLook
 
 
 class EpisodeTests(TestCase):
@@ -99,18 +102,19 @@ class EpisodeTests(TestCase):
         self.assertTrue(boxes[0]["hide_sprite"])
         self.assertIn("barista", boxes[0]["text"])
 
-    def test_vn_generation_leaves_main_chat_pictures_unchanged(self):
+    def test_looks_never_touch_the_chat_sprites_or_the_phone_pictures(self):
         self.char.photo_neutral.name = "photos/canon.png"
         self.char.save()
-        with patch.object(messenger, "_read_storage_image", return_value=(b"image", "image/png")) as read:
-            self.assertEqual(vn_scenes.screen_references(self.char), [])
-            read.assert_not_called()
-        with patch.object(messenger, "make_picture", return_value=(b"image", 0)):
-            sprite = vn_scenes.resolve_or_generate_sprite(self.user, self.char, "happy", auto_generate=True)
+        before = dict(self.char.messenger_profile or {})
+        with patch.object(messenger, "_read_storage_image", return_value=(b"canon", "image/png")), \
+             patch.object(messenger, "make_picture", return_value=(b"image", 0)) as image:
+            look, _, _ = episode_looks.create(self.user, self.char, "canon", "Day", "green coat", moods=["happy"])
+        self.assertEqual(image.call_args_list[0].kwargs["references"][0], (b"canon", "image/png"))
         self.char.refresh_from_db()
         self.assertEqual(self.char.photo_neutral.name, "photos/canon.png")
         self.assertFalse(self.char.photo_happy)
-        self.assertIn("messenger/vn_sprites", sprite["url"])
+        self.assertEqual(self.char.messenger_profile or {}, before)
+        self.assertTrue(all(e["raw"].startswith("episode_looks/") for e in look.moods.values()))
 
     def test_cut_off_json_keeps_complete_beats(self):
         with patch.object(ai_client, "resolve", return_value=(None, "test/model")), \
@@ -170,35 +174,37 @@ class EpisodeTests(TestCase):
         generate.assert_not_called()
         self.assertEqual(vn_scenes.get_vn_state(self.user)["active_scene"]["id"], scene["id"])
 
-    def test_default_character_can_continue_and_is_not_modified_by_sprite_generation(self):
+    def test_a_look_for_a_default_character_belongs_to_the_user_and_leaves_the_card_alone(self):
         other = get_user_model().objects.create_user(username="curator")
         self.char.author = other
         self.char.is_default = True
         self.char.save(update_fields=["author", "is_default"])
-        self.start()
-        with patch.object(vn_scenes, "_call_vn_json", return_value=self.reply()):
-            scene, _ = vn_scenes.step_scene(self.user)
-        with patch.object(messenger, "make_picture", return_value=(b"image", .02)):
-            updated, _, _, _ = vn_scenes.generate_beat_sprite(self.user, char_slug=self.char.slug, emotion="curious")
-        self.assertTrue(updated["sprite_cache"])
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(messenger, "make_picture", return_value=(b"image", .02)):
+            look, _, errors = episode_looks.create(self.user, self.char, "canon", "Work", "green coat", moods=["neutral", "curious"])
+        self.assertEqual(errors, [])
+        self.assertEqual(look.author, self.user)
         self.char.refresh_from_db()
         self.assertFalse(self.char.extra_sprites)
+        self.assertFalse(self.char.messenger_profile.get("vn_sprites"))
 
-    def test_finale_uses_each_participants_reference_and_scene_outfits(self):
+    def test_finale_uses_each_participants_look_and_scene_outfits(self):
         second = Character.objects.create(author=self.user, name="Ivo", slug="ivo")
         self.thread.characters.add(second)
+        for c in (self.char, second):
+            path = default_storage.save(f"episode_looks/{c.slug}.png", ContentFile(c.slug.encode()))
+            EpisodeLook.objects.create(author=self.user, character=c, setting="canon", name="Day",
+                                       moods={"neutral": {"raw": path, "cut": ""}})
         self.start()
         scene = vn_scenes.get_vn_state(self.user)["active_scene"]
         scene["continuity"] = {"outfits": {self.char.slug: "green coat", second.slug: "blue shirt"}}
         vn_scenes.save_vn_state(self.user, {"active_scene": scene})
-        def references(c):
-            return [(c.slug.encode(), "image/png"), (b"extra-" + c.slug.encode(), "image/png")]
         with patch.object(vn_scenes, "_call_vn_json", return_value={"summary": "They met."}), \
-             patch.object(vn_scenes, "screen_references", side_effect=references), \
+             patch.object(episode_looks, "references", return_value=[]), \
              patch.object(messenger, "make_picture", return_value=(b"image", 0)) as image:
             vn_scenes.finish_scene_with_cg(self.user)
-        self.assertEqual(image.call_args.kwargs["references"][:2],
-                         [(slug.encode(), "image/png") for slug in scene["character_slugs"]])
+        self.assertEqual([r[0] for r in image.call_args.kwargs["references"][:2]],
+                         [slug.encode() for slug in scene["character_slugs"]])
         for text in ("Mira", "Ivo", "green coat", "blue shirt"):
             self.assertIn(text, image.call_args.args[1])
 
@@ -208,16 +214,19 @@ class EpisodeTests(TestCase):
             vn_scenes.step_scene(self.user, "I answer.")
         self.assertEqual(vn_scenes.get_vn_state(self.user)["active_scene"]["beats"], scene["beats"])
 
-    def test_outfit_cache_does_not_reuse_or_overwrite_a_different_costume(self):
-        cache = {}
-        with patch.object(messenger, "make_picture", return_value=(b"image", .02)) as image:
-            first = vn_scenes.resolve_or_generate_sprite(self.user, self.char, "happy", True, "green coat", cache)
-            repeated = vn_scenes.resolve_or_generate_sprite(self.user, self.char, "happy", False, "green coat", cache)
-            changed = vn_scenes.resolve_or_generate_sprite(self.user, self.char, "happy", False, "blue shirt", cache)
-        image.assert_called_once()
-        self.assertEqual(first["url"], repeated["url"])
-        self.assertFalse(repeated["needs_gen"])
-        self.assertTrue(changed["needs_gen"])
+    def test_outfit_change_is_a_new_look_edited_from_the_old_one(self):
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(messenger, "make_picture", side_effect=[(b"base", 0), (b"happy", 0)]):
+            look, _, _ = episode_looks.create(self.user, self.char, "canon", "Day", "green coat", moods=["happy"])
+        with patch.object(messenger, "make_picture", side_effect=[(b"rain", 0), (b"rain-happy", 0)]) as image:
+            wet, _, errors = episode_looks.restyle(self.user, look, "Soaked", "green coat, soaked through")
+        self.assertEqual(errors, [])
+        self.assertEqual(image.call_args_list[0].kwargs["references"], [(b"base", "image/png")])
+        self.assertIn("Change only the clothes", image.call_args_list[0].args[1])
+        self.assertEqual(wet.parent, look)
+        self.assertEqual(sorted(wet.moods), ["happy", "neutral"])
+        look.refresh_from_db()
+        self.assertEqual(look.outfit, "green coat")
         self.char.refresh_from_db()
         self.assertFalse(self.char.photo_happy)
 

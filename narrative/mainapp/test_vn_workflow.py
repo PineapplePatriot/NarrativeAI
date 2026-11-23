@@ -8,7 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from mainapp import ai_client, messenger, presets, vn_history, vn_scenes, vn_story, vn_support
-from mainapp.models import Character, Preset
+from mainapp.models import Character, EpisodeLook, Preset
 from users.models import ConnectionProfile
 
 
@@ -71,13 +71,13 @@ class EpisodeWorkflowTests(TestCase):
         self.assertIn("Long descriptive narration", generate.call_args.args[1])
 
     def test_directing_can_write_user_character_with_their_own_sprite(self):
-        self.user.persona_photo_happy.name = "personas/rowan-happy.png"
-        self.user.save(update_fields=["persona_photo_happy"])
+        EpisodeLook.objects.create(author=self.user, character=None, setting="canon", name="Travel", outfit="grey coat",
+                                   moods={"neutral": {"raw": "episode_looks/rowan-n.png", "cut": ""},
+                                          "happy": {"raw": "episode_looks/rowan-h.png", "cut": "episode_looks/rowan-h-cut.png"}})
         response = self.response(beats=[{"speaker_slug": "user", "character_slug": "user", "emotion": "happy", "text": "I kept my promise."}])
         scene = self.start(response, authoring_mode="director")
         self.assertEqual(scene["beats"][0]["speaker_name"], "Rowan")
-        self.assertIn("rowan-happy.png", scene["beats"][0]["sprite_url"])
-        self.assertFalse(scene["beats"][0]["needs_sprite_gen"])
+        self.assertIn("rowan-h-cut.png", scene["beats"][0]["sprite_url"])
 
     def test_visual_change_occurs_on_its_passage_not_at_turn_opening(self):
         response = self.response(beats=[
@@ -194,13 +194,18 @@ class EpisodeWorkflowTests(TestCase):
         self.assertEqual(vn_scenes.get_vn_state(self.user)["active_scene"], scene)
 
     def test_custom_expression_updates_the_selected_passage(self):
+        self.look = EpisodeLook.objects.create(author=self.user, character=self.char, setting="canon", name="Work",
+                                               outfit="green coat", moods={"neutral": {"raw": "episode_looks/m.png", "cut": ""}})
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+        default_storage.save("episode_looks/m.png", ContentFile(b"png"))
         scene = self.start()
         selected = scene["beats"][0]
+        self.assertEqual(selected["look_id"], self.look.pk)
         with patch.object(messenger, "make_picture", return_value=(b"image", 0)):
-            updated, url, emotion, _ = vn_scenes.generate_beat_sprite(self.user, beat_id=selected["id"],
-                char_slug=self.char.slug, emotion="curious")
-        self.assertEqual(emotion, "curious")
-        self.assertEqual(updated["beats"][0]["sprite_url"], url)
+            updated, look, _ = vn_scenes.add_look_mood(self.user, beat_id=selected["id"], emotion="curious")
+        self.assertIn("curious", look["moods"])
+        self.assertEqual(updated["beats"][0]["sprite_url"], look["moods"]["curious"]["url"])
         self.assertEqual(updated["beats"][0]["emotion"], "curious")
 
     def test_unrecognized_assets_do_not_replace_the_setting_with_an_arbitrary_picture(self):
@@ -252,18 +257,16 @@ class EpisodeWorkflowTests(TestCase):
         self.assertEqual(updated["choices"], ["Wait here.", "Ask about the key."])
         picture.assert_not_called()
 
-    def test_step_without_image_flag_preserves_the_saved_preference(self):
+    def test_a_turn_never_draws_pictures_by_itself(self):
         self.start()
-        self.post("episode_preferences", auto_generate_sprites=True)
         with patch.object(vn_scenes, "_call_vn_json", return_value=self.response()), \
-             patch.object(messenger, "make_picture", return_value=(b"image", 0)):
+             patch.object(messenger, "make_picture") as image:
             response = self.post("step_scene", user_input="I bring the key.")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json()["scene"]["auto_generate_sprites"])
+        image.assert_not_called()  # a turn never draws pictures by itself
 
     def test_unfinished_episode_can_be_parked_and_resumed_without_model_calls(self):
         original = self.start()
-        self.post("episode_preferences", auto_generate_sprites=True)
         with patch.object(vn_scenes, "_call_vn_json") as model:
             parked = self.post("park_scene")
             self.assertIsNone(parked.json()["scene"])
@@ -272,13 +275,12 @@ class EpisodeWorkflowTests(TestCase):
         self.assertEqual(resumed.status_code, 200)
         self.assertEqual(resumed.json()["scene"]["resumed_from"], original["id"])
         self.assertEqual(resumed.json()["scene"]["beats"], original["beats"])
-        self.assertTrue(resumed.json()["scene"]["auto_generate_sprites"])
         model.assert_not_called()
 
     def test_malformed_requests_do_not_start_a_generation(self):
         bodies = [[], None, {"action": "start_scene", "thread_id": "not-a-chat"},
                   {"action": "start_scene", "thread_id": 0}, {"action": "start_scene", "thread_id": 10**30},
-                  {"action": "start_scene", "thread_id": self.thread.pk, "auto_generate_sprites": "false"},
+                  {"action": "start_scene", "thread_id": self.thread.pk, "polish_enabled": "false"},
                   {"action": "start_scene", "thread_id": self.thread.pk, "character_slugs": "mira"}]
         with patch.object(vn_scenes, "_call_vn_json") as model:
             for body in bodies:

@@ -17,7 +17,6 @@ the Digital Screen transitions into a Visual Novel environment:
 
 import json
 import copy
-import hashlib
 import logging
 import re
 import time
@@ -28,8 +27,8 @@ from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 
-from mainapp import ai_client, media_library, messenger, sprites, thinking, vn_support, vn_story
-from mainapp.models import ChatSettings, MessengerThread
+from mainapp import ai_client, episode_looks, media_library, messenger, sprites, thinking, vn_support, vn_story
+from mainapp.models import ChatSettings, EpisodeLook, MessengerThread
 
 log = logging.getLogger(__name__)
 
@@ -153,93 +152,51 @@ def detect_meetup_cue(thread):
     return {"ready": False, "reason": ""}
 
 
-def all_character_sprites(character):
-    """Return `{emotion_lower: url}` of every sprite currently stored for `character`."""
-    prof = character.messenger_profile or {}
-    out = dict((character.messenger_profile or {}).get("vn_sprites") or {})
-    neutral = prof.get("neutral_url") or prof.get("avatar_url")
-    if neutral:
-        out.setdefault("neutral", neutral)
+def scene_setting(chars):
+    """Canon or modern for the user's own look: modern when anyone in the cast is in their modern version."""
+    return "modern" if any(episode_looks.setting_for(c) == "modern" for c in chars) else "canon"
+
+
+def pick_looks(user, chars, chosen=None, director=False):
+    """{slug or "user": look id} for an episode: the looks the user picked, else each one's latest look.
+
+    Only the user's own looks, in the setting the episode was entered in, are accepted.
+    """
+    chosen = chosen if isinstance(chosen, dict) else {}
+    out = {}
+    people = [(c.slug, c, episode_looks.setting_for(c)) for c in chars]
+    if director:
+        people.append(("user", None, scene_setting(chars)))
+    for key, character, setting in people:
+        look = None
+        if chosen.get(key):
+            look = EpisodeLook.objects.filter(author=user, character=character, setting=setting,
+                                              pk=str(chosen[key]).strip() if str(chosen[key]).strip().isdigit() else 0).first()
+        look = look or episode_looks.default_look(user, character, setting)
+        if look:
+            out[key] = look.pk
     return out
 
 
-def screen_references(character):
-    prof = character.messenger_profile or {}
-    urls = [prof.get("neutral_url"), *(prof.get("extra_refs") or []),
-            prof.get("avatar_url"), *all_character_sprites(character).values()]
-    refs, seen = [], set()
-    for url in urls:
-        if url and url not in seen:
-            seen.add(url)
-            image = messenger._read_storage_image(url)
-            if image:
-                refs.append(image)
-        if len(refs) == 5:
-            break
-    return refs
+def scene_looks(user, scene):
+    """{slug or "user": EpisodeLook} for the looks this episode uses."""
+    ids = {k: v for k, v in (scene.get("looks") or {}).items() if str(v).isdigit()}
+    found = {look.pk: look for look in EpisodeLook.objects.filter(author=user, pk__in=[int(v) for v in ids.values()])
+             .select_related("character")}
+    return {k: found[int(v)] for k, v in ids.items() if int(v) in found}
 
 
-def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, outfit="", scene_assets=None):
-    """
-    Look up the character's sprite URL for `emotion`.
-    - If `character` already has a sprite for `emotion`, return `{url, emotion, is_new: False, needs_gen: False}`.
-    - If missing and `auto_generate=True`, dynamically generate a waist-up Visual Novel character sprite for
-      `emotion` using `messenger.make_picture` (with 1 neutral + up to 4 extra references and art style lock)
-      and store it in the episode sprite cache.
-    - If missing and `auto_generate=False`, fall back to their neutral/avatar image and flag `needs_gen: True`
-      so the user can generate and save it with one click on the VN stage.
-    """
-    emo_clean = sprites.clean_name(emotion) or "neutral"
-    existing = all_character_sprites(character)
-    scene_assets = scene_assets if scene_assets is not None else {}
-    asset_key = hashlib.sha256(f"{character.slug}|{emo_clean}|{outfit}".encode()).hexdigest()[:24]
-    if asset_key in scene_assets:
-        return {**scene_assets[asset_key], "is_new": False, "needs_gen": False}
-    if emo_clean in existing and not outfit:
-        return {
-            "url": existing[emo_clean],
-            "emotion": emo_clean,
-            "is_new": False,
-            "needs_gen": False,
-        }
+def looks_payload(user, scene):
+    """What the stage needs to draw everyone: {slug or "user": packed look}."""
+    return {k: episode_looks.pack(look) for k, look in scene_looks(user, scene).items()}
 
-    prof = messenger.char_profile(character)
-    fallback_url = existing.get("neutral") or ""
 
-    if not auto_generate:
-        return {
-            "url": fallback_url,
-            "emotion": emo_clean,
-            "is_new": False,
-            "needs_gen": True,
-        }
-
-    # Dynamically generate the missing expression sprite and store it permanently!
-    refs = screen_references(character)
-    appearance = prof.get("appearance_notes") or (character.description or "")[:650]
-    art_style = prof.get("art_style_notes") or "exact same visual art style, linework, shading, and color palette as the attached reference portrait(s)"
-    setting_note = "modern-day outfit" if prof.get("mode") == "modern_au" else "signature outfit"
-
-    prompt = (
-        f"Create a Visual Novel character expression sprite of {character.name} ({setting_note}) showing a clear '{emo_clean}' expression and body language.\n"
-        f"IDENTITY & STYLE: Preserve face, hair, eyes, proportions and visual art style ({art_style}) from the references.\n"
-        f"Outfit for this scene: {outfit or 'keep the reference outfit design'}. Outfit directions override reference clothing, not identity.\n"
-        f"Composition: clean waist-up centered Visual Novel character sprite portrait facing the viewer, expressive '{emo_clean}' emotion, clean simple subtle backdrop.\n"
-        f"Character appearance: {appearance[:550]}"
-    )
-    img_bytes, cost = messenger.make_picture(user, prompt, references=refs)
-
-    path = default_storage.save(f"messenger/vn_sprites/{user.pk}/{asset_key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img_bytes))
-    new_url = default_storage.url(path)
-    scene_assets[asset_key] = {"url": new_url, "emotion": emo_clean, "cost": cost}
-
-    return {
-        "url": new_url,
-        "emotion": emo_clean,
-        "is_new": True,
-        "needs_gen": False,
-        "cost": cost,
-    }
+def _look_reference(look):
+    """The neutral picture of a look, for illustrations: identity and the outfit worn in the episode."""
+    try:
+        return episode_looks._base_image(look)
+    except ai_client.AIError:
+        return None
 
 
 VN_SCENE_PROMPT = """You are directing an interactive **Visual Novel Meet-Up Scene** launched from {user}'s TeleChat messenger.
@@ -267,9 +224,9 @@ VISUAL NOVEL ENGINE RULES:
      * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
      * A **Character Dialogue block** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
    - Return 6–10 complete beats per request, ending at a natural input point. Continue in the next request.
-2. DYNAMIC EXPRESSION SPRITES:
-   - On every block with character speech or a silent reaction, set `"emotion"` to the exact mood that matches their face right now.
-   - You can pick from their existing moods ({existing_moods}) OR invent a specific new mood (1-2 lowercase words like `"flustered"`, `"smug"`, `"tired"`, `"blushing"`, `"laughing"`, `"annoyed"`, `"lovestruck"`, `"drenched"`, `"scheming"`) — the engine can dynamically generate and store new expression sprites!
+2. EXPRESSIONS AND OUTFITS:
+   - On every block with character speech or a silent reaction, set `"emotion"` to the face they show right now, chosen ONLY from that character's own mood list in PARTICIPATING CHARACTER(S). Do not invent moods; pick the closest listed one.
+   - Each character wears exactly the outfit written under their name. Describe it only with those items. Clothes change only when the story makes them change.
 3. MUSIC & BACKDROP SELECTION:
    - Choose `"music"` from the available music tracks list below that best matches the current emotional tone of the scene.
    - Choose `"background"` from the available backgrounds list below (or keep the current one).
@@ -398,24 +355,32 @@ def _call_vn_json(user, prompt, scene=None, generation="normal"):
     raise ai_client.AIError("The model returned incomplete or invalid scene JSON twice. Your saved episode and draft are preserved. Retry the request.")
 
 
-def _build_char_roster(chars, user=None, context=None):
+def _look_lines(look):
+    if not look:
+        return ("  Moods: neutral (no episode look yet: the stage shows only their name)\n"
+                "  Outfit: as in their description\n")
+    return (f"  Moods: {', '.join(sorted(look.moods or {'neutral': {}}))}\n"
+            f"  Outfit ({look.name}): {look.outfit or 'as in their description'}\n")
+
+
+def _build_char_roster(chars, user=None, context=None, looks=None):
     lines = []
-    all_moods = set(sprites.BUILT_IN + sprites.SUGGESTED)
+    looks = looks or {}
     for c in chars:
         p = messenger.char_profile(c)
-        c_sprites = all_character_sprites(c)
-        all_moods.update(c_sprites.keys())
         context = context or {}
         persona = messenger._character_block(c, user or c.author, u_name=context.get("user_name"),
                                              share=context.get("share_memory") if c.author_id == (user or c.author).pk else False)
         app = p.get("appearance_notes") or (c.description or "")
         lines.append(
             f"- {p['display_name']} (slug: `{c.slug}`, mode: {p['mode']})\n"
-            f"  Existing sprite moods ready: {', '.join(sorted(c_sprites.keys())) or 'neutral'}\n"
-            f"  Appearance: {app}\n"
+            + _look_lines(looks.get(c.slug))
+            + f"  Appearance: {app}\n"
             f"  Persona & voice: {persona}"
         )
-    return "\n".join(lines), ", ".join(sorted(all_moods))
+    if "user" in looks:
+        lines.append("- The user's character (slug: `user`)\n" + _look_lines(looks["user"]).rstrip())
+    return "\n".join(lines)
 
 
 def _match_track(tracks, name):
@@ -438,8 +403,10 @@ def _match_bg(bgs, name):
     return {"id": "none", "name": "No backdrop", "url": ""}
 
 
-def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuity=None, scene_assets=None,
-                  initial_stage=None, authoring_mode="roleplay", user_participant=None):
+def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_stage=None, authoring_mode="roleplay",
+                  user_participant=None):
+    """Blocks from the storyteller as stage beats. Pictures come only from the episode's looks: a mood a look
+    doesn't have shows its closest one, and someone without a look is shown by name only."""
     if not isinstance(raw_beats, list):
         raise ai_client.AIError("The model returned invalid scene blocks. Try again.")
     char_by_slug = {c.slug: c for c in chars}
@@ -471,20 +438,13 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
         emotion = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
         if stage_slug == "user":
             stage_name = user_participant["name"]
-            sp_info = {"emotion": emotion, "url": user_participant["sprites"].get(emotion) or user_participant["avatar_url"], "needs_gen": False}
         else:
             stage_char = char_by_slug.get(stage_slug) or speaker_char or chars[0]
             stage_slug = stage_char.slug
             stage_name = messenger.char_profile(stage_char)["display_name"]
-            outfits = (current.get("continuity") or {}).get("outfits") or {}
-            outfit = str(outfits.get(stage_slug) or "") if isinstance(outfits, dict) else ""
-            try:
-                sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=auto_generate_sprites and not narrator,
-                                                     outfit=outfit, scene_assets=scene_assets)
-            except ai_client.AIError as exc:
-                sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=False,
-                                                     outfit=outfit, scene_assets=scene_assets)
-                sp_info["error"] = str(exc)
+        look = (looks or {}).get(stage_slug)
+        picture, shown = episode_looks.url(look, emotion)
+        sp_info = {"url": picture, "emotion": shown, "asked": emotion, "look_id": look.pk if look else None}
         block_id = "vnb_" + uuid.uuid4().hex[:8]
         speaker = "narrator" if narrator else "user" if user_speaks else speaker_char.slug
         speaker_name = "Narrator" if narrator else user_participant["name"] if user_speaks else messenger.char_profile(speaker_char)["display_name"]
@@ -493,16 +453,15 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuit
                           "kind": "narration" if narrator else "dialogue", "generated": True,
                           "speaker": speaker, "speaker_slug": speaker, "speaker_name": speaker_name,
                           "character_slug": stage_slug, "character_name": stage_name, "emotion": sp_info["emotion"],
-                          "sprite_url": "" if side_character else sp_info["url"], "hide_sprite": side_character, "is_new_sprite": sp_info.get("is_new", False),
-                          "sprite_error": sp_info.get("error", ""),
-                          "needs_sprite_gen": False if narrator else sp_info.get("needs_gen", False),
+                          "asked_emotion": sp_info["asked"], "look_id": sp_info["look_id"],
+                          "sprite_url": "" if side_character else sp_info["url"], "hide_sprite": side_character,
                           "text": part, "block_text": txt if i == 0 else "",
                           "original_text": (rb.get("original_text") or "") if i == 0 else "",
                           "stage": copy.deepcopy(current), "stage_before": before})
     return boxes
 
 
-def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False,
+def start_scene(user, thread=None, characters=None, location_hint="", looks=None,
                 direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
@@ -532,7 +491,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
 
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
-    roster_text, moods_list = _build_char_roster(chars, user, context)
+    picked_looks = pick_looks(user, chars, looks, director=authoring_mode == "director")
+    roster_text = _build_char_roster(chars, user, context, scene_looks(user, {"looks": picked_looks}))
 
     telechat_context = ("Earlier memory:\n" + context["memory"] + "\nThread scenario:\n" + context["scenario"]
                         + "\nConversation:\n" + context["conversation"])
@@ -540,7 +500,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
     seed = {"thread_id": thread.id if thread else None, "context": context, "direction": direction,
-            "character_slugs": [c.slug for c in chars], "beats": [],
+            "character_slugs": [c.slug for c in chars], "beats": [], "looks": picked_looks,
             "interaction_mode": interaction_mode if interaction_mode in vn_story.INTERACTIONS else "mixed",
             "authoring_mode": authoring_mode if authoring_mode in vn_story.AUTHORING else "roleplay",
             "user_participant": vn_story.user_participant(user, context),
@@ -551,7 +511,6 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         user=u_name,
         clock=clock_str,
         model_rules=model_rules,
-        existing_moods=moods_list,
         music_list="\n".join(f"- {t['name']} (id: {t['id']})" for t in tracks) or "- Default Theme",
         bg_list="\n".join(f"- {b['name']} (id: {b['id']})" for b in bgs) or "- Default Backdrop",
         user_persona=context["persona"],
@@ -568,9 +527,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
     raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
     raw_blocks, polish_error = vn_support.polish_blocks(user, raw_blocks, telechat_context, polish_enabled)
     continuity = {"time": context["clock"]}
-    scene_assets = {}
-    beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
-                        continuity=continuity, scene_assets=scene_assets,
+    beats = _enrich_beats(user, chars, raw_blocks, looks=scene_looks(user, seed), continuity=continuity,
                         initial_stage={"background": chosen_bg, "music": chosen_music, "location": parsed.get("location") or location_hint, "continuity": continuity},
                         authoring_mode=seed["authoring_mode"], user_participant=seed["user_participant"])
     if not beats:
@@ -585,7 +542,6 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         "polish_enabled": bool(polish_enabled),
         "polish_error": polish_error,
         "continuity": continuity,
-        "sprite_cache": scene_assets,
         "character_slugs": [c.slug for c in chars],
         "character_names": [messenger.char_profile(c)["display_name"] for c in chars],
         "title": str(parsed.get("title") or f"Meet-Up with {chars[0].name}").strip()[:120],
@@ -598,7 +554,6 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         "beats": list(beats),
         "current_beats": list(beats),
         "history": list(beats),
-        "auto_generate_sprites": bool(auto_generate_sprites),
         "started_at": now_local.strftime("%d %b %H:%M"),
         "ts": time.time(),
     }
@@ -633,7 +588,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
     return scene
 
 
-def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None, generation="normal", turn_direction="", save_updates=None):
+def step_scene(user, user_input="", base_scene=None, generation="normal", turn_direction="", save_updates=None):
     """
     Advance the active Visual Novel scene by one turn (either with `user_input` action/dialogue or
     continuing automatically when `user_input` is empty).
@@ -648,10 +603,6 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
     if not chars:
         raise ai_client.AIError("Scene characters not found.")
 
-    if auto_generate_sprites is None:
-        auto_generate_sprites = bool(scene.get("auto_generate_sprites", False))
-    else:
-        scene["auto_generate_sprites"] = bool(auto_generate_sprites)
 
     context = scene.get("context") or vn_support.scene_context(user, vn_support.linked_thread(user, scene))
     scene["context"] = context
@@ -673,8 +624,6 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
             "character_name": last_beat.get("character_name") or c0.name,
             "emotion": last_beat.get("emotion") or "neutral",
             "sprite_url": last_beat.get("sprite_url") or "",
-            "is_new_sprite": False,
-            "needs_sprite_gen": False,
             "text": user_input.strip(),
             "generated": False, "stage": vn_story.stage_of(scene), "stage_before": vn_story.stage_of(scene),
         }
@@ -687,7 +636,8 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
 
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
-    roster_text, moods_list = _build_char_roster(chars, user, context)
+    looks = scene_looks(user, scene)
+    roster_text = _build_char_roster(chars, user, context, looks)
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
     step_dir = (
@@ -702,7 +652,6 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
         user=u_name,
         clock=clock_str,
         model_rules=model_rules,
-        existing_moods=moods_list,
         music_list="\n".join(f"- {t['name']} (id: {t['id']})" for t in tracks) or "- Default Theme",
         bg_list="\n".join(f"- {b['name']} (id: {b['id']})" for b in bgs) or "- Default Backdrop",
         user_persona=context["persona"],
@@ -720,8 +669,7 @@ def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None,
     raw_blocks, scene["polish_error"] = vn_support.polish_blocks(
         user, raw_blocks, prompt, scene.get("polish_enabled", False))
     continuity = vn_support.continuity_update(scene.get("continuity"), parsed.get("continuity"))
-    new_beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
-                            continuity=continuity, scene_assets=scene.setdefault("sprite_cache", {}),
+    new_beats = _enrich_beats(user, chars, raw_blocks, looks=looks, continuity=continuity,
                             initial_stage=vn_story.stage_of(scene), authoring_mode=scene.get("authoring_mode", "roleplay"),
                             user_participant=scene.get("user_participant"))
     if not new_beats:
@@ -765,48 +713,38 @@ def suggest_choices(user):
     return scene
 
 
-def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
-    """
-    Dynamically generate and permanently store an expression sprite for `(char_slug, emotion)` on demand,
-    updating any matching beats in the active scene.
+def add_look_mood(user, beat_id="", emotion=""):
+    """Draw one more mood for the look a beat shows, as an edit of that look's neutral picture (you press the
+    button; it is never automatic). Beats of the same look that asked for this mood switch to it.
+
+    Returns (scene, packed look, cost).
     """
     state = get_vn_state(user)
     scene = state.get("active_scene")
-    candidates = vn_support.scene_characters(user, scene.get("character_slugs") or []) if scene else []
-    target_char = next((c for c in candidates if c.slug == char_slug), None)
-    if not target_char and scene:
-        for b in (scene.get("beats") or scene.get("current_beats") or []):
-            if b.get("id") == beat_id:
-                target_char = next((c for c in candidates if c.slug == b.get("character_slug")), None)
-                emotion = emotion or b.get("emotion")
-                break
-    if not target_char:
-        raise ai_client.AIError("Character not found for sprite generation.")
-
+    if not scene:
+        raise ai_client.AIError("No episode is open.")
     expected = (scene["id"], scene.get("revision", 0))
-    target_beat = next((b for b in scene.get("beats", []) if b.get("id") == beat_id), {})
-    target_state = target_beat.get("stage") or vn_story.stage_of(scene)
-    outfits = (target_state.get("continuity") or {}).get("outfits") or {}
-    outfit = str(outfits.get(target_char.slug) or "") if isinstance(outfits, dict) else ""
-    sp_info = resolve_or_generate_sprite(user, target_char, emotion or "neutral", auto_generate=True,
-                                       outfit=outfit, scene_assets=scene.setdefault("sprite_cache", {}))
-
-    if scene:
-        for collection in (scene.get("beats") or [], scene.get("current_beats") or [], scene.get("history") or []):
-            for b in collection:
-                selected = bool(target_beat) and (b.get("block_id") or b.get("id")) == (target_beat.get("block_id") or target_beat.get("id"))
-                if b.get("character_slug") == target_char.slug and (selected or b.get("emotion") == sp_info["emotion"]):
-                    other_outfits = ((b.get("stage") or {}).get("continuity") or {}).get("outfits") or {}
-                    other_outfit = str(other_outfits.get(target_char.slug) or "") if isinstance(other_outfits, dict) else ""
-                    if other_outfit != outfit:
-                        continue
-                    b["sprite_url"] = sp_info["url"]
-                    b["emotion"] = sp_info["emotion"]
-                    b["is_new_sprite"] = True
-                    b["needs_sprite_gen"] = False
-        save_vn_state(user, {"active_scene": scene}, expected=expected)
-
-    return scene, sp_info["url"], sp_info["emotion"], float(sp_info.get("cost") or 0.0)
+    beat = next((b for b in scene.get("beats", []) if b.get("id") == beat_id), None)
+    if not beat or not beat.get("look_id"):
+        raise ai_client.AIError("This passage has no episode look to add a mood to.")
+    look = EpisodeLook.objects.filter(author=user, pk=beat["look_id"]).first()
+    if not look:
+        raise ai_client.AIError("That look no longer exists.")
+    mood = episode_looks.clean_mood(emotion or beat.get("asked_emotion") or beat.get("emotion"))
+    cost, errors = episode_looks.add_moods(user, look, [mood])
+    if mood not in (look.moods or {}):
+        raise ai_client.AIError(errors[0] if errors else "The mood could not be drawn.")
+    picture, _ = episode_looks.url(look, mood)
+    group = beat.get("block_id") or beat.get("id")
+    for collection in (scene.get("beats") or [], scene.get("current_beats") or [], scene.get("history") or []):
+        for b in collection:
+            if b.get("look_id") != look.pk:
+                continue
+            if (b.get("block_id") or b.get("id")) == group or episode_looks.clean_mood(b.get("asked_emotion") or "") == mood:
+                b["sprite_url"] = picture
+                b["emotion"] = mood
+    save_vn_state(user, {"active_scene": scene}, expected=expected)
+    return scene, episode_looks.pack(look), cost
 
 
 def finish_scene_with_cg(user, cg_hint="", capture_image=True):
@@ -879,8 +817,10 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     refs = []
     extra_refs = []
     ref_labels = []
+    looks = scene_looks(user, scene)
     for c in chars:
-        images = screen_references(c)
+        worn = _look_reference(looks[c.slug]) if c.slug in looks else None
+        images = ([worn] if worn else []) + episode_looks.references(user, c, episode_looks.setting_for(c))[:2]
         if images and len(refs) < 5:
             refs.append(images[0])
             ref_labels.append(f"Reference {len(refs)}: {messenger.char_profile(c)['display_name']}")
@@ -888,8 +828,9 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     player = scene.get("user_participant") or {}
     if player:
         char_visuals.append(f"- {player.get('name')}: {player.get('persona') or 'match their reference portrait'}")
-        if player.get("avatar_url") and len(refs) < 5:
-            reference = messenger._read_storage_image(player["avatar_url"])
+        if (looks.get("user") or player.get("avatar_url")) and len(refs) < 5:
+            reference = (_look_reference(looks["user"]) if looks.get("user") else None) or \
+                messenger._read_storage_image(player.get("avatar_url") or "")
             if reference:
                 refs.append(reference)
                 ref_labels.append(f"Reference {len(refs)}: {player['name']} (the user's character)")

@@ -6,7 +6,6 @@
   const VN_SCENES = {
     tab: "stage", // 'stage' | 'gallery'
     beatIndex: 0,
-    autoGenSprites: false,
     musicPlaying: false,
     lastFinaleEntry: null,
     busy: false,
@@ -45,7 +44,6 @@
         TG.state.vn_scenes = data.vn_scenes;
         const scene = this.activeScene();
         this.beatIndex = Math.max(0, scene?.beats?.findIndex(b => b.id === id) ?? 0);
-        this.autoGenSprites = !!scene?.auto_generate_sprites;
         this.lastFinaleEntry = null; this.render();
         this.notify('Episode reloaded. Unsent replies are available under Versions.');
       } catch (error) {this.notify(error.message, true);} finally {this.setBusy(false);}
@@ -62,7 +60,6 @@
         try {saved = localStorage.getItem("vn-cursor-" + sc.id);} catch (_) {saved = this.savedCursor?.[sc.id];}
         const index = sc.beats.findIndex((b) => b.id === saved);
         this.beatIndex = index >= 0 ? index : Math.max(0, sc.beats.length - ((sc.current_beats || []).length || 1));
-        this.autoGenSprites = !!sc.auto_generate_sprites;
       }
 
       if (!this.initialized) {
@@ -208,17 +205,16 @@
       const polishEnabled = !!(document.getElementById("vnPolishEnabled") || {}).checked;
       const interactionMode = (document.getElementById("vnInteractionMode") || {}).value || "mixed";
       const authoringMode = (document.getElementById("vnAuthoringMode") || {}).value || "roleplay";
-      const autoImages = !!document.getElementById('vnLaunchAutoSprites')?.checked;
       this.tab = "stage";
       if (!document.getElementById('app-scenes').classList.contains('active')) TG.switchApp("scenes");
-      this.showLaunchTransition(true, autoImages);
+      this.showLaunchTransition(true, false);
       try {
         const data = await this.apiPost({
           action: "start_scene",
           thread_id: t.id,
           ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
-          auto_generate_sprites: autoImages,
+          looks: window.EPISODE_LOOKS?.chosen() || {},
           generate_background: !!document.getElementById("vnGenerateBackground")?.checked,
           direction,
           polish_enabled: polishEnabled,
@@ -226,16 +222,12 @@
         });
         TG.state.vn_scenes = data.vn_scenes;
         this.pendingPulse = null;
-        this.autoGenSprites = !!data.scene.auto_generate_sprites;
         window.ScreenDrafts?.clear('launch:' + t.id);
-        if (data.char_sprites) {
-          this.mergeCharSprites(data.char_sprites);
-        }
         this.beatIndex = 0;
         this.lastFinaleEntry = null;
         this.render();
         this.syncAudioTrack(!!document.getElementById('app-scenes')?.classList.contains('active'));
-        this.notify(data.scene.background_error || data.scene.polish_error || data.scene.beats?.find(b => b.sprite_error)?.sprite_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error || data.scene.beats?.some(b => b.sprite_error)));
+        this.notify(data.scene.background_error || data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error));
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -245,15 +237,6 @@
           notice.scrollIntoView({block: 'nearest'});
         }
       }
-    },
-
-    mergeCharSprites(charSpritesMap) {
-      if (!charSpritesMap || !Array.isArray(TG.state.characters)) return;
-      TG.state.characters.forEach((c) => {
-        if (charSpritesMap[c.slug]) {
-          c.sprites = charSpritesMap[c.slug];
-        }
-      });
     },
 
     /* ----------------------------------------------------------------------
@@ -286,13 +269,14 @@
       if (!firstCharSlug) return null;
       const c = (TG.state.characters || []).find((x) => x.slug === firstCharSlug);
       if (!c) return null;
+      const look = (TG.state.vn_scenes?.looks || {})[c.slug];
       return {
         id: "default",
         speaker: c.slug,
         speaker_name: c.display_name || c.name,
         emotion: "neutral",
-        sprite_url: (c.sprites && c.sprites.neutral) || c.neutral_url || c.avatar_url || "",
-        needs_sprite_gen: false,
+        look_id: look?.id || null,
+        sprite_url: look?.moods?.neutral?.url || "",
       };
     },
 
@@ -325,14 +309,9 @@
         const data = await this.apiPost({
           action: "step_scene",
           user_input: userInput || "",
-          auto_generate_sprites: this.autoGenSprites,
         });
         TG.state.vn_scenes = data.vn_scenes;
-        this.autoGenSprites = !!data.scene.auto_generate_sprites;
         window.ScreenDrafts?.clear('vn:' + sc.id, ['reply']);
-        if (data.char_sprites) {
-          this.mergeCharSprites(data.char_sprites);
-        }
         const newBeats = (data.scene && data.scene.beats) || [];
         this.beatIndex = data.new_beats && data.new_beats.length
           ? newBeats.findIndex((b) => b.id === data.new_beats[0].id)
@@ -369,39 +348,28 @@
       } catch (error) {this.notify(error.message, true);}
     },
 
-    async setAutoSprites(enabled) {
-      try {
-        const data = await this.apiPost({action: 'episode_preferences', auto_generate_sprites: enabled});
-        TG.state.vn_scenes = data.vn_scenes;
-        this.autoGenSprites = !!data.scene.auto_generate_sprites;
-        this.renderStageOnly();
-      } catch (error) {this.renderStageOnly(); this.notify(error.message, true);}
-    },
-
-    async generateSpriteForCurrentBeat(customEmotion, btnEl) {
+    async drawLookMood(customEmotion, btnEl) {
       const spBeat = this.activeSpriteBeat();
-      if (!spBeat || !spBeat.speaker) return;
-      const emotion = customEmotion || spBeat.emotion || "neutral";
+      if (!spBeat || !spBeat.look_id) return;
+      const emotion = customEmotion || spBeat.asked_emotion || spBeat.emotion || "neutral";
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
-        btnEl.textContent = `🎨 Painting '${emotion}' sprite…`;
+        btnEl.textContent = `Drawing “${emotion}”…`;
       }
       try {
-        const data = await this.apiPost({
-          action: "generate_sprite",
-          beat_id: spBeat.id || "",
-          char_slug: spBeat.speaker,
-          emotion: emotion,
-        });
+        const data = await this.apiPost({action: "add_look_mood", beat_id: spBeat.id || "", emotion});
         if (TG.state.vn_scenes) {
           TG.state.vn_scenes.active_scene = data.scene;
-        }
-        if (data.char_slug && data.sprites) {
-          this.mergeCharSprites({ [data.char_slug]: data.sprites });
+          TG.state.vn_scenes.looks = data.looks || TG.state.vn_scenes.looks;
         }
         this.renderStageOnly();
-        this.notify(`🎨 Saved '${data.emotion}' sprite permanently for ${spBeat.speaker_name}!`);
+        this.notify(`“${emotion}” added to ${spBeat.speaker_name}'s look. Cutting it out…`);
+        await window.EPISODE_LOOKS?.cutLook(data.look);
+        const fresh = await fetch(TG_CFG.vn_scenes_api).then(r => r.json()).catch(() => null);
+        if (fresh?.vn_scenes) TG.state.vn_scenes = fresh.vn_scenes;
+        this.renderStageOnly();
+        this.notify(`“${emotion}” is ready for ${spBeat.speaker_name}.`);
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -412,15 +380,13 @@
       }
     },
 
-    promptCustomMoodSprite(btnEl) {
+    promptLookMood(btnEl) {
       const spBeat = this.activeSpriteBeat();
-      if (!spBeat) return;
-      const mood = window.prompt(
-        `Enter an expression mood to generate & store permanently for ${spBeat.speaker_name} (e.g. flustered, smug, blushing, laughing, surprised, scheming):`,
-        spBeat.emotion || "flustered"
-      );
+      if (!spBeat || !spBeat.look_id) return;
+      const mood = window.prompt(`Which mood should ${spBeat.speaker_name}'s current look get? (one picture, edited from their neutral one)`,
+        spBeat.asked_emotion || "thoughtful");
       if (!mood || !mood.trim()) return;
-      this.generateSpriteForCurrentBeat(mood.trim().toLowerCase(), btnEl);
+      this.drawLookMood(mood.trim().toLowerCase(), btnEl);
     },
 
     async changeStageSetting(kind, val) {
@@ -696,10 +662,7 @@
               </div>
               <label><input type="checkbox" id="vnGenerateBackground" data-screen-field="generate_background" checked> Generate a background for this location (uses image tokens)</label>
               <label><input type="checkbox" id="vnPolishEnabled" data-screen-field="polish"> Let Bulba polish the habits I approved before displaying each turn</label>
-              <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#cbd5e1; cursor:pointer;">
-                <input type="checkbox" id="vnLaunchAutoSprites" data-screen-field="auto_images">
-                <span>🎨 Generate missing expressions automatically (uses your image provider; scene outfits are saved with this episode)</span>
-              </label>
+              <div id="vnLooksPanel" class="ep-looks"></div>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="tg-fmt-btn" onclick="TG.switchApp('messenger')">← Back to TeleChat</button>
                 <button type="button" class="tg-send-btn" style="background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread()">🎬 Launch Meet-Up Scene · uses model tokens ➤</button>
@@ -708,6 +671,7 @@
           </div>
         `;
         this.bindDrafts(root, "launch:" + (t?.id || "none"));
+        window.EPISODE_LOOKS?.mount(document.getElementById("vnLooksPanel"), t);
         return;
       }
 
@@ -754,7 +718,6 @@
               <div class="vn-editor-content">
                 <label>Music<select class="tg-select" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">${musicOpts}</select></label>
                 <label>Backdrop<select class="tg-select" onchange="VN_SCENES.changeStageSetting('bg', this.value)" title="Switch stage backdrop">${bgOpts}</select></label>
-                <label><input type="checkbox" ${this.autoGenSprites ? "checked" : ""} onchange="VN_SCENES.setAutoSprites(this.checked)"> Automatically draw missing expressions (uses image requests)</label>
               </div>
             </details>
           </div>
@@ -773,13 +736,14 @@
                 `}
                 <div class="vn-sprite-mood-bar">
                   <span class="vn-mood-badge">🎭 ${this.attr(spBeat.speaker_name)} · ${this.attr(spBeat.emotion || "neutral")}</span>
-                  ${spBeat.speaker === "user" ? "" : spBeat.needs_sprite_gen ? `
-                    <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.generateSpriteForCurrentBeat(null, this)" title="Generate this expression for the current character">
-                      Draw this expression
+                  ${!spBeat.look_id ? `<span class="vn-mood-note">No episode look yet</span>` :
+                    spBeat.asked_emotion && spBeat.asked_emotion !== spBeat.emotion ? `
+                    <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.drawLookMood(null, this)" title="Showing the closest mood this look has. Draw the asked one as an edit of the neutral picture (one image request).">
+                      Draw “${this.attr(spBeat.asked_emotion)}” · 1 picture
                     </button>
                   ` : `
-                    <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptCustomMoodSprite(this)" title="Dynamically generate & store a new expression sprite for ${this.attr(spBeat.speaker_name)}">
-                      Draw another expression
+                    <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptLookMood(this)" title="Add a mood to this look (one image request)">
+                      Add a mood
                     </button>
                   `}
                 </div>

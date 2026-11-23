@@ -480,3 +480,28 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .vn-central-sprite-img { max-height: min(28dvh, 280px); }
 .vn-dialogue-dock { flex-shrink: 0; }
 .vn-beat-text { overflow-wrap: anywhere; }
+
+/* Episode looks on the launch screen */
+.ep-looks { display: flex; flex-direction: column; gap: 10px; }
+.ep-looks-title { display: flex; flex-direction: column; gap: 2px; }
+.ep-looks-note { margin: 0; font-size: 12px; color: var(--tg-muted, #94a3b8); }
+.ep-looks-note.ep-error { color: #fca5a5; }
+.ep-look-row { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(30, 41, 59, 0.55); border: 1px solid rgba(255, 255, 255, 0.08); }
+.ep-look-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ep-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(124, 58, 237, 0.25); color: #ddd6fe; }
+.ep-inline { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.ep-inline select { width: auto; flex: 1; min-width: 0; }
+.ep-outfit { margin: 0; font-size: 12px; color: #cbd5e1; white-space: pre-line; }
+.ep-thumbs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.ep-thumb { margin: 0; flex: 0 0 64px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ep-thumb img { width: 64px; height: 88px; object-fit: contain; border-radius: 8px;
+  background: repeating-conic-gradient(#334155 0 25%, #1e293b 0 50%) 0 0 / 12px 12px; }
+.ep-thumb.ep-uncut img { outline: 2px dashed rgba(251, 191, 36, 0.7); outline-offset: -2px; }
+.ep-thumb figcaption { font-size: 10.5px; color: #cbd5e1; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ep-small { width: auto; font-size: 12px; padding: 5px 8px; }
+.ep-new summary { cursor: pointer; font-size: 12.5px; color: #f9a8d4; }
+.ep-new label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; margin-top: 6px; }
+.ep-new .tg-send-btn { margin-top: 8px; }
+.vn-mood-note { font-size: 11px; color: #cbd5e1; opacity: .8; }

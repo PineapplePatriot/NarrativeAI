@@ -349,3 +349,25 @@ class PulseReminder(models.Model):
     delivered_at = models.DateTimeField(null=True, blank=True)
     checked_at = models.DateTimeField(null=True, blank=True)
     fingerprint = models.CharField(max_length=64)
+
+
+class EpisodeLook(models.Model):
+    """One outfit for visual-novel episodes: a set of cut-out mood pictures all edited from one base picture.
+
+    Separate from the chat page's stage sprites and from the phone's pictures. `character` empty = the user's
+    own persona. `setting` is "canon" or "modern", after how the episode was entered. `moods` holds
+    {mood: {"raw": path on a flat background, "cut": transparent path or ""}}; "neutral" is the base.
+    """
+    author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="episode_looks")
+    character = models.ForeignKey(Character, on_delete=models.CASCADE, null=True, blank=True, related_name="episode_looks")
+    setting = models.CharField(max_length=10, default="canon")
+    name = models.CharField(max_length=60)
+    outfit = models.TextField(blank=True)
+    key_colour = models.CharField(max_length=10, default="green")
+    moods = models.JSONField(default=dict, blank=True)
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="variants")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated",)

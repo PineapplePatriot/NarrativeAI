@@ -77,10 +77,12 @@ def prepare(user, scene, prompt, generation="normal"):
         + "\nCopy the exact slug into speaker_slug. Use narrator for narration. "
           "Mention anyone outside the selected cast in narration only."
     )
-    if scene.get("user_participant"):
+    if scene.get("user_participant") and scene.get("authoring_mode") == "director":
+        from mainapp.models import EpisodeLook
         player = scene["user_participant"]
-        engine += "\nUSER CHARACTER SPRITE CHOICES:\n" + json.dumps({"slug": "user", "name": player["name"],
-                   "available_emotions": list(player["sprites"])}, ensure_ascii=False)
+        look = EpisodeLook.objects.filter(author=user, pk=(scene.get("looks") or {}).get("user") or 0).first()
+        engine += "\nUSER CHARACTER MOODS:\n" + json.dumps({"slug": "user", "name": player["name"],
+                   "available_emotions": sorted((look.moods if look else None) or {"neutral": {}})}, ensure_ascii=False)
     cfg["blocks"].append(presets.normalize_block({"name": "VN presentation contract", "role": "system",
                          "content": engine, "enabled": True, "kind": "prompt"}))
     _, model = ai_client.resolve(user, "chat")

@@ -19,7 +19,6 @@
       const scene = result.scene;
       if (scene?.resumed_from && action === 'resume_draft' && window.ScreenDrafts) ScreenDrafts.put('vn:' + scene.id, {...ScreenDrafts.get('vn:' + scene.resumed_from)});
       if (action === 'episode_preferences' && ('direction' in extra || 'polish_enabled' in extra)) window.ScreenDrafts?.clear('vn:' + scene.id, ['direction', 'polish']);
-      vn().autoGenSprites = !!scene?.auto_generate_sprites;
       const first = action === 'episode_preferences' ? previousBeat : scene?.current_beats?.[0]?.id;
       vn().beatIndex = scene ? first ? Math.max(0, scene.beats.findIndex(b => b.id === first)) : Math.max(0, scene.beats.length - 1) : 0;
       TG.renderSidebar?.(); if (samePhone) TG.renderMainChat?.(); vn().switchTab('stage');

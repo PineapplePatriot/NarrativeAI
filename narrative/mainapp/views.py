@@ -4877,7 +4877,6 @@ def screen_hub(request):
             "edit_url": reverse("character", kwargs={"slug": c.slug}),
             "chat_url": reverse("chat", kwargs={"slug": c.slug}),
             "burner_handle": subtext.burner_handle_for(c),
-            "sprites": vn_scenes.all_character_sprites(c),
             **prof,
         })
 
@@ -6086,6 +6085,7 @@ def vn_scenes_api(request):
         st = vn_scenes.get_vn_state(request.user)
         return {
             **st,
+            "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6099,6 +6099,19 @@ def vn_scenes_api(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
 
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        # The browser's transparent cut-out of one episode-look mood.
+        from . import episode_looks
+        upload = request.FILES.get("file")
+        if request.POST.get("kind") != "episode_cut" or not upload:
+            return JsonResponse({"error": "Attach the cut-out picture."}, status=400)
+        try:
+            look = episode_looks.owned(request.user, request.POST.get("look_id"))
+            episode_looks.save_cut(look, request.POST.get("mood") or "", upload.read())
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"look": episode_looks.pack(look)})
+
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
     except ValueError:
@@ -6106,7 +6119,7 @@ def vn_scenes_api(request):
 
     if not isinstance(body, dict):
         return JsonResponse({"error": "Expected a JSON object."}, status=400)
-    for field in ("auto_generate_sprites", "polish_enabled", "capture_image"):
+    for field in ("polish_enabled", "capture_image"):
         if field in body and not isinstance(body[field], bool):
             return JsonResponse({"error": f"{field} must be true or false."}, status=400)
     if body.get("thread_id") is not None and (isinstance(body["thread_id"], bool) or not str(body["thread_id"]).isdigit() or len(str(body["thread_id"])) > 19 or not 0 < int(body["thread_id"]) <= 2**63 - 1):
@@ -6153,8 +6166,6 @@ def vn_scenes_api(request):
                     scene["direction"] = str(body["direction"])[:4000]
                 if "polish_enabled" in body:
                     scene["polish_enabled"] = bool(body["polish_enabled"])
-                if "auto_generate_sprites" in body:
-                    scene["auto_generate_sprites"] = body["auto_generate_sprites"]
                 if scene.get("interaction_mode") == "write":
                     if previous_mode != "write":
                         scene["choice_cache"] = list(scene.get("choices") or [])
@@ -6173,6 +6184,66 @@ def vn_scenes_api(request):
         tid = body.get("thread_id")
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if tid else None
         return JsonResponse({"meetup_cue": vn_scenes.detect_meetup_cue(t_obj)})
+
+    if action.startswith("episode_look"):
+        from . import episode_looks
+        from .models import EpisodeLook
+
+        def member(key):
+            if key == "user":
+                return None
+            if key not in char_by_slug:
+                raise ValueError("Choose someone from your characters.")
+            return char_by_slug[key]
+        try:
+            if action == "episode_looks":  # who is in the cast, their setting, their looks and the default pick
+                slugs = body.get("character_slugs")
+                if not isinstance(slugs, list):
+                    t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
+                    slugs = [c.slug for c in t_obj.characters.all()] if t_obj else []
+                cast = [char_by_slug[s] for s in slugs if isinstance(s, str) and s in char_by_slug]
+                people = [(c.slug, c, messenger.char_profile(c)["display_name"], episode_looks.setting_for(c)) for c in cast]
+                people.append(("user", None, messenger.user_profile(request.user).get("display_name") or "You",
+                               vn_scenes.scene_setting(cast)))
+                out = []
+                for key, character, name, setting in people:
+                    looks = episode_looks.looks_for(request.user, character, setting)
+                    out.append({"key": key, "name": name, "setting": setting, "looks": [episode_looks.pack(l) for l in looks],
+                                "chosen": looks[0].pk if looks else None,
+                                "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
+                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS})
+            if action == "episode_look_create":
+                key = str(body.get("key") or "")
+                character = member(key)
+                setting = (episode_looks.setting_for(character) if character else
+                           ("modern" if body.get("setting") == "modern" else "canon"))
+                moods = body.get("moods") if isinstance(body.get("moods"), list) else None
+                look, cost, errors = episode_looks.create(request.user, character, setting, body.get("name"),
+                                                          body.get("outfit"), moods=moods)
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            look = episode_looks.owned(request.user, body.get("look_id"))
+            if action == "episode_look_moods":
+                moods = [m for m in (body.get("moods") or []) if isinstance(m, str)][:episode_looks.MAX_MOODS]
+                cost, errors = episode_looks.add_moods(request.user, look, moods)
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            if action == "episode_look_remove_mood":
+                episode_looks.remove_mood(look, str(body.get("mood") or ""))
+                return JsonResponse({"look": episode_looks.pack(look)})
+            if action == "episode_look_rename":
+                look.name = " ".join(str(body.get("name") or "").split())[:60] or look.name
+                look.save(update_fields=["name", "updated"])
+                return JsonResponse({"look": episode_looks.pack(look)})
+            if action == "episode_look_restyle":
+                new, cost, errors = episode_looks.restyle(request.user, look, body.get("name"), body.get("outfit"))
+                return JsonResponse({"look": episode_looks.pack(new), "cost": cost, "errors": errors})
+            if action == "episode_look_delete":
+                episode_looks.delete(look)
+                return JsonResponse({"ok": True})
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"error": "Unknown look action."}, status=400)
 
     if action == "start_scene":
         tid = body.get("thread_id")
@@ -6204,14 +6275,13 @@ def vn_scenes_api(request):
         if not picked:
             return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
         hint = str(body.get("location_hint") or "").strip()
-        auto_sprites = bool(body.get("auto_generate_sprites", False))
         try:
             scene = vn_scenes.start_scene(
                 request.user,
                 thread=t_obj,
                 characters=picked,
                 location_hint=hint,
-                auto_generate_sprites=auto_sprites,
+                looks=body.get("looks") if isinstance(body.get("looks"), dict) else None,
                 direction=str(body.get("direction") or "").strip()[:4000],
                 polish_enabled=bool(body.get("polish_enabled", False)),
                 interaction_mode=body.get("interaction_mode", "mixed"),
@@ -6221,58 +6291,33 @@ def vn_scenes_api(request):
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
-        char_sprites = {c.slug: vn_scenes.all_character_sprites(c) for c in picked}
         return JsonResponse({
             "scene": scene,
-            "char_sprites": char_sprites,
+            "looks": vn_scenes.looks_payload(request.user, scene),
             "vn_scenes": _full_vn_payload(t_obj),
         })
 
     if action == "step_scene":
         user_input = str(body.get("user_input") or "").strip()
-        auto_sprites = body.get("auto_generate_sprites")
         try:
-            scene, new_beats = vn_scenes.step_scene(
-                request.user,
-                user_input=user_input,
-                auto_generate_sprites=auto_sprites,
-            )
+            scene, new_beats = vn_scenes.step_scene(request.user, user_input=user_input)
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
-        char_sprites = {
-            s: vn_scenes.all_character_sprites(char_by_slug[s])
-            for s in (scene.get("character_slugs") or [])
-            if s in char_by_slug
-        }
         return JsonResponse({
             "scene": scene,
             "new_beats": new_beats,
-            "char_sprites": char_sprites,
+            "looks": vn_scenes.looks_payload(request.user, scene),
             "vn_scenes": _full_vn_payload(),
         })
 
-    if action == "generate_sprite":
-        beat_id = str(body.get("beat_id") or "").strip()
-        slug = str(body.get("char_slug") or "").strip()
-        emotion = str(body.get("emotion") or "neutral").strip()
+    if action == "add_look_mood":  # one more mood for the look on stage, drawn as an edit of its neutral picture
         try:
-            scene, sprite_url, norm_emo, cost = vn_scenes.generate_beat_sprite(
-                request.user,
-                beat_id=beat_id,
-                char_slug=slug,
-                emotion=emotion,
-            )
+            scene, look, cost = vn_scenes.add_look_mood(request.user, beat_id=str(body.get("beat_id") or ""),
+                                                        emotion=str(body.get("emotion") or ""))
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
-        c_obj = char_by_slug.get(slug)
-        return JsonResponse({
-            "scene": scene,
-            "sprite_url": sprite_url,
-            "emotion": norm_emo,
-            "char_slug": slug,
-            "sprites": vn_scenes.all_character_sprites(c_obj) if c_obj else {},
-            "cost": cost,
-        })
+        return JsonResponse({"scene": scene, "look": look, "cost": cost,
+                             "looks": vn_scenes.looks_payload(request.user, scene)})
 
     if action == "set_stage":
         from . import vn_story

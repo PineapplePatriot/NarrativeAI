@@ -494,7 +494,6 @@ class MessengerHubTests(TestCase):
                     "action": "start_scene",
                     "thread_id": thread.id,
                     "location_hint": "Neon Corner Cafe",
-                    "auto_generate_sprites": False,
                 }),
                 content_type="application/json",
             )
@@ -504,28 +503,9 @@ class MessengerHubTests(TestCase):
         self.assertEqual(len(scene["beats"]), 2)
         char_beat = scene["beats"][1]
         self.assertEqual(char_beat["emotion"], "flustered")
-        self.assertTrue(char_beat["needs_sprite_gen"])
-
-        # Dynamically generate & permanently store the 'flustered' expression sprite
-        fake_png = b"\x89PNG\r\n\x1a\nflusteredsprite"
-        with patch("mainapp.messenger.make_picture", return_value=(fake_png, 0.02)):
-            sp_res = self.client.post(
-                url,
-                data=json.dumps({
-                    "action": "generate_sprite",
-                    "beat_id": char_beat["id"],
-                    "char_slug": self.char1.slug,
-                    "emotion": "flustered",
-                }),
-                content_type="application/json",
-            )
-        self.assertEqual(sp_res.status_code, 200)
-        sp_data = sp_res.json()
-        self.assertEqual(sp_data["emotion"], "flustered")
-        self.assertTrue(sp_data["sprite_url"].endswith(".png"))
+        self.assertEqual(char_beat["sprite_url"], "")  # no episode look yet: the stage shows the name only
         self.char1.refresh_from_db()
         self.assertNotIn("flustered", sprites.extras(self.char1))
-        self.assertTrue(sp_data["scene"]["sprite_cache"])
 
         # Step the scene forward with user action/dialogue
         fake_step = json.dumps({
@@ -559,7 +539,6 @@ class MessengerHubTests(TestCase):
         stepped_scene = step_res.json()["scene"]
         self.assertEqual(stepped_scene["handoff"], "climax_ready")
         # Because 'flustered' was saved permanently on self.char1, the new beat reuses it without needing gen!
-        self.assertFalse(stepped_scene["beats"][-1]["needs_sprite_gen"])
 
         # End the scene on a full generated Finale Event CG -> saved in gallery & logged to TeleChat
         fake_cg_distill = json.dumps({
