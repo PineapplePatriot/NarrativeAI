@@ -57,7 +57,7 @@ ORDER = (
 AFTER_NEW_CARD = (
     "NEXT, after this new character: ask with offer_choices what to do with the card itself (use it as it is, or "
     "change it: propose the edits), then go on with the rest of the order, one step at a time: "
-    + "; ".join(f"{i}) {key}" for i, (key, _) in enumerate(STEPS[1:], 2))
+    + " ".join(f"{i}) {text}." for i, (_, text) in enumerate(STEPS[1:], 2))
     + ". A persona or lorebook they already have isn't assumed: ask whether to keep it or make one for this story. "
       "Then offer to start the chat.")
 

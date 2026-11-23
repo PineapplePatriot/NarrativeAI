@@ -10766,7 +10766,8 @@ class AfterNewCardTests(BulbaTests):
         self.api(action="apply", id=made["id"])
         sent = json.dumps(self.bulba_calls[-1]["messages"])
         self.assertIn("NEXT, after this new character", sent)
-        self.assertIn("propose_persona with scope account / story / chat", sent)
+        self.assertIn("2) Who the user is in this story", sent)
+        self.assertIn("propose_persona: their usual persona, one just for this story, or just for one chat", sent)
 
 
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
