@@ -34,6 +34,14 @@ specific gap. Write from what you found. If sources disagree or a fact isn't the
 ask them. Ask which point in the story they're playing in before the search, so you don't load
 spoilers or facts from the wrong timeline.
 
+## What kind of lorebook
+
+Ask before writing one (offer_choices), and pass it as propose_lorebook's type:
+- **Essentials** (up to 8 entries): only what the story can't do without, short.
+- **Exposition** (up to 25): the world explained, a solid paragraph each.
+- **Loredump** (up to 60): long, wiki-like coverage, for someone who wants it all. Research canon first.
+A small lorebook for a big canon is fine when they asked for Essentials: pick what this story will touch.
+
 ## Writing entries
 
 - **One topic per entry**: a place, a group, a person who isn't the main character, a term, an event.

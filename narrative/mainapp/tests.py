@@ -10674,6 +10674,44 @@ for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
         setattr(BulbaChatPersonaTests, _name, None)
 
 
+class BulbaOrderTests(BulbaTests):
+    """🥔 Every Bulba knows the setup order, and calls out a proposal still waiting for Apply."""
+    def test_order_and_waiting_proposals(self):
+        from mainapp import chats
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import agent, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-order", author=self.user, initial_message="Hm.")
+        setup = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        chat = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        for session, prompt in ((setup, agent.system_prompt), (chat, doctor.system_prompt)):
+            text = prompt(session)
+            self.assertIn("always in this order", text)
+            self.assertLess(text.index("2. Who the user is in this story"), text.index("3. Where the story starts"))
+            self.assertIn("NOTHING IS PERMANENT", text)
+            self.assertNotIn("WAITING FOR APPLY", text)
+        agent._proposal(chat, "card_edit", "Card: Dottore, shorter", ["x"], {})
+        self.assertIn("WAITING FOR APPLY right now: “Card: Dottore, shorter”", doctor.system_prompt(chat))
+
+
+    def test_a_lorebook_has_a_kind_and_its_size(self):
+        from unittest import mock
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import lore
+        dottore = Character.objects.create(name="Dottore", slug="dott-lore-kind", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        entry = lambda i: {"keys": [f"place{i}"], "content": f"Place {i} is a lab.", "comment": f"Place {i}"}
+        with mock.patch("mainapp.bulba.lore.target_character", return_value=dottore), \
+             mock.patch("mainapp.bulba.polish.clean_written", side_effect=lambda u, d, k: d):
+            out, _ = lore.tool_propose_lorebook(session, {"type": "essentials", "entries": [entry(i) for i in range(9)], "why": "x"})
+            self.assertIn("at most 8 entries", out["error"])
+            out, _ = lore.tool_propose_lorebook(session, {"type": "essentials", "entries": [entry(i) for i in range(3)], "why": "x"})
+        self.assertIn("Essentials, 3 entries", session.proposals[-1]["summary"][0])
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaOrderTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaOrderTests, _name, None)
+
+
 class BulbaBasicsTests(BulbaTests):
     """Point of view, reply length and the other form settings, from Bulba in a chat: the same lines the form writes."""
     def test_basics_replace_their_own_line(self):

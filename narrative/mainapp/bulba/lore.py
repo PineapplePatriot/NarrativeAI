@@ -2,8 +2,9 @@
 import copy
 
 from mainapp import lorebook
+from mainapp.bulba import flow
 
-MAX_ENTRIES = 25
+MAX_ENTRIES = 60  # (a loredump; the lorebook's type sets the real limit: bulba/flow.py LORE_TYPES)
 
 
 def target_character(session):
@@ -67,14 +68,7 @@ def card_report(character):
 
 # 🧭 After any new character (made, uploaded or brought in from a card site), whatever they chose to do with the
 # card itself (use it as it is, change it, modernize it), Bulba goes on to what makes it a story, one step at a time
-AFTER_NEW_CARD = (
-    "NEXT, after this new character (whatever they chose for the card itself), go on with the rest of the setup, "
-    "one step at a time, each with offer_choices, skipping what's already done: "
-    "1) who they are in this story: their usual persona, a persona just for this story, or just for one chat "
-    "(propose_persona with scope account / story / chat; in seven parts if they want it detailed); "
-    "2) the world: a lorebook for it (write one, or check the one it came with); "
-    "3) story extras and trackers for this story (letters, phone screens, milestones, a slow meter…). "
-    "Then offer to start the chat.")
+from mainapp.bulba.flow import AFTER_NEW_CARD  # noqa: E402  (the order lives in bulba/flow.py)
 
 
 def import_card(session, upload):
@@ -119,6 +113,11 @@ def tool_propose_lorebook(session, args):
     entries = _entries(args.get("entries"))
     if not entries:
         return {"error": "No usable entries: each needs content and either keys or always=true."}, []
+    kind = args.get("type") if args.get("type") in flow.LORE_TYPES else "exposition"
+    label, most, _ = flow.LORE_TYPES[kind]
+    if len(entries) > most:
+        return {"error": f"A {label} lorebook has at most {most} entries; you wrote {len(entries)}. Keep the most "
+                         f"important ones, or ask whether they want a bigger kind."}, []
     from mainapp.bulba import polish  # the known AI habits out of Bulba's own lore, in one pass
     cleaned = polish.clean_written(session.user, {f"e{i}": e["content"] for i, e in enumerate(entries)}, "lorebook")
     for i, e in enumerate(entries):
@@ -126,7 +125,7 @@ def tool_propose_lorebook(session, args):
     title = str(args.get("title") or f"{character.name}'s world").strip()[:120]
     adding = bool(character.worldbook_id)
     summary = [f"{'Added to' if adding else 'New lorebook for'} {character.name}"
-               + (f" (“{character.worldbook.title}”)" if adding else f": {title}")]
+               + (f" (“{character.worldbook.title}”)" if adding else f": {title}") + f" · {label}, {len(entries)} entries"]
     for e in entries:
         trigger = "always in the story" if e["constant"] else "when someone mentions " + ", ".join(e["keys"])
         summary += [f"{e['comment']}:", f"  ({trigger}) {e['content']}"]
@@ -492,6 +491,8 @@ def tool_defs(fn, STR, setup=True):
         fn("propose_lorebook", "Propose lore entries for the character's world (added to its lorebook, or a new one). "
            "Research canon with look_up first.",
            {"title": STR, "description": STR, "entries": {"type": "array", "maxItems": MAX_ENTRIES, "items": entry},
+            "type": {"type": "string", "enum": list(flow.LORE_TYPES), "description": "The kind they picked: "
+                     + "; ".join(f"{k} = {v[0]}, up to {v[1]} entries" for k, v in flow.LORE_TYPES.items())},
             "why": STR}, ["entries", "why"]),
     ]
     if setup:

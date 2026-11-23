@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore, memory, polish, rules, tune
+from mainapp.bulba import control, flow, library, lore, memory, polish, rules, tune
 from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -152,13 +152,13 @@ def system_prompt(session):
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
     guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing", "slop", "tuning", "app")]
-    pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
         agent.model_knowledge(profile) if profile else "",
         context(session),
         f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
-        "Proposals so far:\n" + "\n".join(pending) if pending else "",
+        flow.ORDER,
+        flow.proposals_section(session),
     ]))
 
 

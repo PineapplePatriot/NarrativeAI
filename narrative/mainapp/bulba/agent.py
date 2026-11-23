@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
-from mainapp.bulba import cardsearch, control, doctor, library, lore, rules, tune
+from mainapp.bulba import cardsearch, control, doctor, flow, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -117,7 +117,6 @@ def system_prompt(session):
     progress += "\n" + _control_line(session)
     prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
-    pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in [*STAGE_GUIDES.get(session.stage, []), "app"]
               if (GUIDES_DIR / f"{g}.md").exists()]
     return "\n\n".join(filter(None, [
@@ -127,7 +126,8 @@ def system_prompt(session):
         "## Session\n" + progress,
         BESIDE_QUICK if getattr(session, "beside_quick", False) else "",
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
-        "Proposals so far:\n" + "\n".join(pending) if pending else "",
+        flow.ORDER,
+        flow.proposals_section(session),
     ]))
 
 
