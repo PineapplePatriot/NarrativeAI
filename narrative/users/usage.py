@@ -97,9 +97,14 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
             actions[user_id] += 1
     spend = dict(UsageRecord.objects.filter(user_id__in=ids, **({"time_create__gte": since} if since else {}))
                  .values_list("user_id").annotate(total=Sum("cost")).values_list("user_id", "total"))
-    bulba = defaultdict(lambda: {"setup": 0, "finished": 0, "chat": 0})
-    for user_id, mode, stage, events in BulbaSession.objects.filter(user_id__in=ids).values_list(
-            "user_id", "mode", "stage", "events"):
+    bulba = defaultdict(lambda: {"setup": 0, "finished": 0, "chat": 0, "proposed": 0, "accepted": 0, "asked": 0})
+    for user_id, mode, stage, events, proposals, messages in BulbaSession.objects.filter(user_id__in=ids).values_list(
+            "user_id", "mode", "stage", "events", "proposals", "messages"):
+        # 🥔 what Bulba offered, what they kept (applied and not undone), and how much they talked to it
+        props = [p for p in proposals or [] if isinstance(p, dict)]
+        bulba[user_id]["proposed"] += len(props)
+        bulba[user_id]["accepted"] += sum(1 for p in props if p.get("status") == "applied")
+        bulba[user_id]["asked"] += sum(1 for e in events or [] if isinstance(e, dict) and e.get("type") == "user")
         if len(events or []) > 1:  # opened and actually used
             bulba[user_id]["chat" if mode == "chat" else "setup"] += 1
             bulba[user_id]["finished"] += mode == "setup" and stage == "done"
@@ -120,6 +125,8 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
             "pages": pages[u.id], "actions": actions[u.id], "messages": sent, "notes": notes, "chats": chats_used,
             "characters": characters.get(u.id, 0), "bulba_setup": bulba[u.id]["setup"],
             "bulba_finished": bulba[u.id]["finished"], "bulba_chat": bulba[u.id]["chat"],
+            "bulba_proposed": bulba[u.id]["proposed"], "bulba_accepted": bulba[u.id]["accepted"],
+            "bulba_asked": bulba[u.id]["asked"],
             "spend": round(spend.get(u.id) or 0, 4), "feedback": "yes" if u.feedback_done else "",
         })
 
@@ -150,6 +157,9 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
             "notes_sent": sum(r["notes"] for r in rows),
             "finished_bulba_setup": sum(1 for r in rows if r["bulba_finished"]),
             "used_bulba_in_a_chat": sum(1 for r in rows if r["bulba_chat"]),
+            "bulba_changes_accepted": sum(r["bulba_accepted"] for r in rows),
+            "bulba_changes_proposed": sum(r["bulba_proposed"] for r in rows),
+            "messages_to_bulba": sum(r["bulba_asked"] for r in rows),
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
             "filled_feedback_form": sum(1 for r in rows if r["feedback"]),
         },
@@ -239,17 +249,21 @@ LABELS = {
     "avg_session_minutes": "Average session (minutes)", "median_session_minutes": "Median session (minutes)",
     "page_views": "Page views", "messages_sent": "Messages sent", "notes_sent": "Director's notes sent", "finished_bulba_setup": "Finished Bulba's setup",
     "used_bulba_in_a_chat": "Used Bulba in a chat", "spend_usd": "Spent on AI (USD)",
+    "bulba_changes_accepted": "Bulba's changes accepted", "bulba_changes_proposed": "Bulba's changes proposed",
+    "messages_to_bulba": "Messages to Bulba",
     "filled_feedback_form": "Filled in the feedback form",
 }
 COLUMN_LABELS = {
     "username": "User", "joined": "Joined", "last_seen": "Last seen", "active_days": "Days active",
     "sessions": "Sessions", "minutes": "Minutes", "pages": "Pages", "actions": "Actions", "messages": "Messages", "notes": "Director's notes",
     "chats": "Chats", "characters": "Characters", "bulba_setup": "Bulba setups", "bulba_finished": "Setups finished",
-    "bulba_chat": "Bulba in chats", "spend": "Spend (USD)", "feedback": "Feedback form",
+    "bulba_chat": "Bulba in chats", "bulba_proposed": "Bulba proposed", "bulba_accepted": "Bulba accepted",
+    "bulba_asked": "Messages to Bulba", "spend": "Spend (USD)", "feedback": "Feedback form",
 }
 
 COLUMNS = ["username", "joined", "last_seen", "active_days", "sessions", "minutes", "pages", "actions", "messages",
-           "notes", "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend", "feedback"]
+           "notes", "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "bulba_proposed",
+           "bulba_accepted", "bulba_asked", "spend", "feedback"]
 
 
 def csv_text(data):

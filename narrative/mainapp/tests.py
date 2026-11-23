@@ -8402,6 +8402,16 @@ class UsageTests(TestCase):
         self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
         self.assertIn("reader", usage.csv_text(data))
 
+    def test_report_counts_bulbas_changes_and_messages(self):
+        from mainapp.models import BulbaSession
+        from users import usage
+        BulbaSession.objects.create(user=self.user, target_model="x", mode="chat",
+            events=[{"type": "user", "text": "too long"}, {"type": "assistant", "text": "ok"}, {"type": "user", "text": "yes"},
+                    {"type": "action", "text": "card uploaded"}],
+            proposals=[{"id": "a", "status": "applied"}, {"id": "b", "status": "undone"}, {"id": "c", "status": "pending"}])
+        s = usage.report()["summary"]
+        self.assertEqual((s["bulba_changes_accepted"], s["bulba_changes_proposed"], s["messages_to_bulba"]), (1, 3, 2))
+
     def test_director_notes_count_new_and_old_kind(self):
         from mainapp import chats
         from mainapp.models import Character, Chat
