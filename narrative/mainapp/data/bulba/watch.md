@@ -90,8 +90,8 @@ concrete things about their taste that you're fairly sure of ("cuts long descrip
 
 Taste is about how the replies are written (length, pace, tone, what to describe or skip). Something about
 who a person is goes in with a prefix instead, so it lands in the right place: "persona: knows chemistry well,
-corrects formulas" for their own character (it goes into their persona), "character: never raises his voice
-when angry" for the AI's character (it goes into the card). Never write facts about a person as taste.
+corrects formulas" for their own character (it goes into their persona), "character: switches to his mother
+tongue when he's rattled" for the AI's character (it goes into the card). Never write facts about a person as taste.
 
 ## Getting the past wrong
 

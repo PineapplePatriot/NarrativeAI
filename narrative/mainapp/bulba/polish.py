@@ -57,6 +57,8 @@ MEANING = {
     "decorative_stacking": "piling up descriptions that add no new meaning: keep the one that does the work",
     "therapy_voice": "psychological analysis in a voice the character wouldn't use: say it the way they would",
     "stalled_scene": "reactions repeating while nothing in the interaction moves: let the character decide or act",
+    # 🔎 the "witty writing" family (mainapp/bulba/analyst.py)
+    **{k: f"{what}: {instead}" for k, (what, instead) in __import__("mainapp.bulba.analyst", fromlist=["HABITS"]).HABITS.items()},
 }
 
 

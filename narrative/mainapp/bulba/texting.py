@@ -13,7 +13,7 @@ import copy
 import uuid
 
 from mainapp.bulba import agent as agent_mod
-from mainapp.bulba import flow
+from mainapp.bulba import analyst, flow
 
 PROFILE_FIELDS = {
     "scenario": "Why the two of them text and how they met: the situation the chat starts from",
@@ -122,6 +122,7 @@ def system_prompt(session):
         INSTRUCTIONS.replace("{fields}", fields), app,
         context(session),
         f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
+        analyst.RULES,
         flow.proposals_section(session),
     ]))
 

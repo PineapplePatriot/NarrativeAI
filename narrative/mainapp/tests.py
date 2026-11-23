@@ -3923,6 +3923,18 @@ class CleanDraftTests(TestCase):
         self.assertEqual(out["greeting"], "Fog. He looks at you a second too long.")
         self.assertEqual(out["description"], fields["description"])
         self.assertIn("hands clenching and unclenching", call.call_args[0][2][1]["content"])
+        asked = call.call_args[0][2][1]["content"]  # 🔎 the "witty writing" family is cleaned out of drafts too
+        for habit in ("ledgers, debts, prices", "never raises his voice", "never forgets", "aphorisms", "pet names"):
+            self.assertIn(habit, asked)
+
+    def test_every_bulba_is_an_analyst(self):
+        from mainapp.bulba import agent, analyst
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        text = agent.system_prompt(session)
+        self.assertIn("You are an analyst, not an author", text)
+        self.assertNotIn("goes very calm and very polite", text)  # the guide's own bad example is gone
+        self.assertNotIn("remembers forever", text)
 
     def test_trouble_keeps_the_draft(self):
         from unittest import mock

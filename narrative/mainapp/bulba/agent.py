@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
-from mainapp.bulba import cardsearch, control, doctor, flow, library, lore, rules, tune
+from mainapp.bulba import analyst, cardsearch, control, doctor, flow, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -126,6 +126,7 @@ def system_prompt(session):
         "## Session\n" + progress,
         BESIDE_QUICK if getattr(session, "beside_quick", False) else "",
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
+        analyst.RULES,
         flow.ORDER,
         flow.proposals_section(session),
     ]))

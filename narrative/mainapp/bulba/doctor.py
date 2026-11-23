@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
-from mainapp.bulba import control, flow, library, lore, memory, polish, rules, tune
+from mainapp.bulba import analyst, control, flow, library, lore, memory, polish, rules, tune
 from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -157,6 +157,7 @@ def system_prompt(session):
         agent.model_knowledge(profile) if profile else "",
         context(session),
         f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
+        analyst.RULES,
         flow.ORDER,
         flow.proposals_section(session),
     ]))

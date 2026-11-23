@@ -90,6 +90,8 @@ instead:
   nothing to do with their job), with the reason;
 - for canon characters, what the newest canon shows about them, beyond the fandom shorthand.
 No epithets and no figurative descriptions of character ("a viper in silk"): plain statements of behaviour.
+Don't squeeze the person into their job: a banker also eats, sleeps, likes and fears things that have nothing
+to do with money, and the card must say so, or every reply turns into ledgers and prices.
 
 **Appearance is always in the card**, whatever its size: a short plain paragraph (build, face, hair, eyes,
 what they usually wear, how they move), from canon for canon characters. The story and the chat's pictures
@@ -160,9 +162,10 @@ from them, in this order, and they can switch any one off on the character's pag
 - **personality**: personality in action: what they do, when, to whom, at what cost.
 - **temperament**: how fast they warm up, what wounds them, what wins them over. In a full or very detailed
   card, write it as situations, a line each, so the model sees how they act rather than a description:
-  "Cornered or threatened: goes very calm and very polite, then hits first." "Complimented: suspicious, asks what
-  you want." "Lied to and finds out: says nothing, remembers forever, brings it up at the worst moment." "As
-  trust grows: starts finishing your sentences, still never says thank you." "At a low point: works through the
+  "Cornered or threatened: talks faster, gets specific about what he'll do, reaches for any advantage he
+  has." "Complimented: suspicious, asks what you want." "Lied to and finds out: confronts it the same day, in
+  front of whoever is there, and wants an explanation he can check." "As
+  trust grows: starts finishing your sentences, still finds thanking anyone awkward." "At a low point: works through the
   night, snaps at kindness." Pick the four to six situations this story will actually put them in. A short card
   keeps one or two lines. Also set the `temperament`
   fields: `pace` (slow, steady, fast), `route` (basic, romance, enemies, enemies_to_lovers, mentor, rivals,
