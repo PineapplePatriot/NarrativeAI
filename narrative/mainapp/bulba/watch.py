@@ -50,6 +50,12 @@ LABELS = {
     "decorative_stacking": "Stacking descriptions that add no new meaning",
     "therapy_voice": "Psychological analysis outside the character's voice",
     "stalled_scene": "Repeated reactions instead of developing the interaction",
+    "theme_saturation": "Everything turned into their job or world (prices, ledgers, leverage…)",
+    "quiet_menace": "Feelings shown only as going quiet or calm",
+    "absolutes": "Traits as laws (never forgets, always wins)",
+    "epigram": "Clever summary lines instead of behaviour",
+    "quip_loop": "One-liners and one-upping instead of an exchange",
+    "catchphrase_seed": "The same pet names and catchphrases every reply",
     "same_openings": "Sentences keep starting the same way",
     "overworked_metaphor": "Metaphors stretched too far",
     "forced_callback": "Leaning on earlier scenes instead of describing this one",
@@ -73,7 +79,8 @@ LABELS = {
 }
 CAUSES = ("model", "setup", "their_messages")
 # Known AI slop, whoever the reader is: rewritten out of new replies by default (fix_known, polish.approved)
-KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "staccato")
+KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "staccato",
+             "theme_saturation", "quiet_menace", "absolutes", "epigram", "catchphrase_seed")
 # What each one looks like, in plain words (Bulba's notebook page)
 ABOUT = {
     "stock_reactions": "Clenching and unclenching hands, opening and closing the mouth, jaw or breath cues repeated as emotional filler. A meaningful physical reaction is fine.",
@@ -105,6 +112,15 @@ ABOUT = {
     "staccato": "\"The key. His hand. Still. Waiting.\": fragments used for drama all the time.",
     "corrective_contrast": "\"It wasn't anger. It was something older.\": a contrast as emotional punctuation.",
     "ending_formula": "Every reply ends on a question, a cliffhanger or a profound one-liner.",
+    "theme_saturation": "Every motive turned into the character's job or world: prices, ledgers, debts, leverage, "
+                        "gambles for a banker; experiments and data for a scientist. A caricature.",
+    "quiet_menace": "Strong feelings shown only as going quiet, calm or cold: \"never raises his voice\", \"a "
+                    "dangerous calm\". What they actually do never gets written.",
+    "absolutes": "Traits as unbreakable laws: \"never forgets\", \"always gets what he wants\".",
+    "epigram": "Clever summary lines and aphorisms instead of a person doing something.",
+    "quip_loop": "Characters trading witty one-liners and topping each other, round after round, while nothing is "
+                 "said or decided.",
+    "catchphrase_seed": "The same pet names and catchphrases in every reply (\"my dear\", \"asset\").",
 }
 
 

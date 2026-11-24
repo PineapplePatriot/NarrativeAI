@@ -35,7 +35,7 @@ from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
-from . import echo, speaker_colors
+from . import echo, fresh_details, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation, voice
 from .bulba import control, polish, watch
@@ -455,6 +455,11 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
     yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
     if yours:  # story colours: their lines in their own colour
         ask += "\n\n" + yours
+    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
+    ask += "\n\n" + control.pov_note(control.pov_of(theirs, names["user"]), names["user"])  # their own point of view
+    avoid = polish.avoid_line(request.user)  # 🛡 the same habits kept out of their message
+    if avoid:
+        ask += "\n" + avoid
     reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
     english = translation.english_note(request.user)
     try:
@@ -1150,7 +1155,7 @@ def chat(request, slug):
             earlier = rec_now if (now and not again) or (rec_now and rec_now.get("echo")) else None
             try:
                 new_text, fixes = polish.polish(request.user, character, chat_obj, messages, _story_text(request.user, chat_state, len(messages)),
-                                                index)
+                                                index, full=now or again)  # (pressed by them: the whole check)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             messages = load_messages()  # read again: they may have moved on while it worked
@@ -1980,6 +1985,15 @@ def chat(request, slug):
                                                 tables=story.of_type(systems, "table"))
                     if stand_in:
                         built = {**built, "params": {**built["params"], "model": stand_in}}
+                    # 🔁 a detail the last replies keep coming back to (a street lamp, the rain): leave it out this time
+                    plain = [m for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and not chats.is_note(m)]
+                    stale = fresh_details.repeated(
+                        [m[2] for m in plain if m[0] == "assistant"],
+                        theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
+                        names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
+                    from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(request.user))}
                     english = translation.english_note(request.user)  # read in another language: written in English
                     if english:
                         built = {**built, "messages": built["messages"] + [english]}
@@ -2788,7 +2802,7 @@ def prompt_slots(user, character, prompt, chat_persona=None):
 
 
 def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True, generation="normal",
-                       tail=()):
+                       tail=(), model=None):
     """
     The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
     message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
@@ -2816,7 +2830,8 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if control.mode_of(preset) == "director" and not tail:
         history = control.frame_directions(history, names)
     history += list(tail)
-    _, model = ai_client.resolve(user, "chat")
+    if not model:  # (another model only when comparing models: the request is shaped for that one)
+        _, model = ai_client.resolve(user, "chat")
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
                                 generation=generation)
@@ -5035,6 +5050,16 @@ def messenger_api(request):
             messenger.save_user_profile(request.user, {"custom_stickers": stickers})
             return JsonResponse({"sticker": st_item, "url": url})
 
+        if kind == "group_avatar":  # 🖼️ a group chat's own picture, uploaded by the user
+            thread = MessengerThread.objects.filter(user=request.user, id=request.POST.get("thread_id") or 0, is_group=True).first()
+            if not thread:
+                return JsonResponse({"error": "Group chat not found."}, status=404)
+            raw = dict(thread.data or {})
+            raw["group_avatar"], raw["group_avatar_changed"] = url, time.time()
+            thread.data = raw
+            thread.save(update_fields=["data"])
+            return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
         if kind == "char_avatar":  # 🖼️ their profile picture, uploaded by the user
             c_obj = next((c for c in _user_characters(request.user) if c.slug == (request.POST.get("char_slug") or "")), None)
             if not c_obj:
@@ -5256,7 +5281,7 @@ def messenger_api(request):
                 msg["reply_to_sender"] = target_m.get("sender_name") or "Message"
                 msg["reply_to_text"] = (target_m.get("text") or "Media")[:120]
         if sticker:
-            msg["sticker"] = sticker
+            msg["sticker"] = messenger.see_sticker(request.user, sticker)
         if file_obj:
             msg["file"] = file_obj
         if photo_obj:
@@ -5400,6 +5425,22 @@ def messenger_api(request):
         messenger.save_thread_data(thread, td)
         return JsonResponse({"message_id": mid, "reactions": reacts})
 
+    if action == "group_avatar":  # 🖼️ a group's picture: made from the members' pictures, or back to their two
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0, is_group=True).first()
+        if not thread:
+            return JsonResponse({"error": "Group chat not found."}, status=404)
+        if body.get("clear"):
+            raw = dict(thread.data or {})
+            raw["group_avatar"] = ""
+            thread.data = raw
+            thread.save(update_fields=["data"])
+        else:
+            try:
+                messenger.new_group_avatar(request.user, thread, str(body.get("what") or "all of them together, at ease").strip()[:400])
+            except ai_client.AIError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
     if action == "edit_message":
         tid = body.get("thread_id")
         mid = body.get("message_id")
@@ -5411,8 +5452,12 @@ def messenger_api(request):
         target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
         if not target_m:
             return JsonResponse({"error": "Message not found."}, status=404)
-        if target_m.get("role") == "user" and "edited_from" not in target_m:  # what they first said (the character may notice)
-            target_m["edited_from"] = target_m.get("text") or ""
+        if target_m.get("role") == "user" and "edited_from" not in target_m:
+            # what they first said: the characters know it only if they'd already answered it (they read it then);
+            # an edit before anyone answered is just the message
+            i = td["messages"].index(target_m)
+            if any(m.get("role") == "assistant" for m in td["messages"][i + 1:]):
+                target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
         messenger.touch_memory(td, mid)
@@ -5463,6 +5508,8 @@ def messenger_api(request):
             td["share_memory"] = bool(body["share_memory"])
         if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
             td["leave_on_read"] = bool(body["leave_on_read"])
+        if body.get("group_mode") in messenger.GROUP_MODES:  # 👥 conversation or lively
+            td["group_mode"] = body["group_mode"]
         if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
             td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
         if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)

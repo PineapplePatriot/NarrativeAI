@@ -310,3 +310,10 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .make-pictures .made-pic { position: relative; display: inline-block; }
 .make-pictures .made-redo { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0;
     background: rgba(10, 12, 22, .75); color: #fff; cursor: pointer; font-size: 14px; line-height: 26px; padding: 0; }
+
+/* ⏳ a proposal waiting for Apply */
+.pending-line { display: block; width: calc(100% - 24px); margin: 0 12px 6px; padding: 7px 12px; border-radius: 10px; text-align: left;
+    border: 1px solid rgba(250, 204, 21, .5); background: rgba(250, 204, 21, .1); color: inherit; font: inherit; font-size: .84rem; cursor: pointer; }
+.pending-line.flash { animation: pending-flash .9s ease-out 2; }
+@keyframes pending-flash { 50% { background: rgba(250, 204, 21, .35); } }
+.proposal.flash { box-shadow: 0 0 0 2px #facc15; transition: box-shadow .3s; }
