@@ -35,7 +35,7 @@ from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
-from . import echo, fresh_details, speaker_colors
+from . import echo, fresh_details, speaker_colors, texture
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation, voice
 from .bulba import control, polish, watch
@@ -1997,6 +1997,8 @@ def chat(request, slug):
                         theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
                         names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
+                    texture_note = texture.for_reply(request.user, [m[2] for m in plain[-4:]])  # 🧵 real specifics
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], texture_note)}
                     from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(request.user))}
                     english = translation.english_note(request.user)  # read in another language: written in English

@@ -1647,8 +1647,10 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         + "]"
     )
     from mainapp.bulba import polish  # 🛡 the habits to keep out, before they write
+    from mainapp import texture  # 🧵 real specifics for what the texts are about
     avoid = polish.avoid_line(user)
-    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "")})
+    tex = texture.for_reply(user, [str(m.get("text") or "") for m in data["messages"][-4:]])
+    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "") + ("\n" + tex if tex else "")})
     try:
         _, model = ai_client.resolve(user, "chat")
     except Exception:
