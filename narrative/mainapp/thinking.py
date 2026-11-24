@@ -91,6 +91,19 @@ def needs_leash(model, level):
     return bool(model) and ("mimo" in model.lower() or "xiaomi" in model.lower()) and level != "off"
 
 
+def without_thinking(model, params):
+    """Params for one more try with thinking off, after a reply that was all thinking and no text (MiMo now and
+    then thinks through its whole budget). None when the model can't switch thinking off: then more room instead."""
+    from mainapp import model_profiles
+    choices = ((model_profiles.for_model(model) or {}).get("reasoning") or {}).get("choices") or {}
+    params = dict(params or {})
+    if "off" in choices:
+        params["reasoning"] = {"enabled": False}
+        return params
+    params["max_tokens"] = int(params.get("max_tokens") or 1200) + LEASH_ROOM
+    return params
+
+
 def leash(messages, params):
     """The request with LEASH at the end of its last turn (before a director's note, which stays last) and the
     reply budget raised so the thinking can't eat the story."""

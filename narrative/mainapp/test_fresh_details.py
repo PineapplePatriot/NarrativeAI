@@ -45,3 +45,33 @@ class FreshDetailsTests(SimpleTestCase):
         self.assertLess(out.index("[Fresh details"), out.index("[Director's note"))
         self.assertEqual(F.add_before_note(msgs, ""), msgs)
 
+
+
+class TextureTests(SimpleTestCase):
+    """🧵 The world texture library (mainapp/texture.py)."""
+    def test_what_wakes_an_entry(self):
+        from mainapp import texture as T
+        ids = lambda text, mature=False: [e["id"] for e in T.woken(text, mature=mature)]
+        self.assertEqual(ids("The heat of the day."), [])          # a short common word alone: nothing
+        self.assertEqual(ids("a fight, blood everywhere"), [])
+        self.assertEqual(ids("The vampire smelled blood."), ["vampires"])
+        self.assertEqual(ids("Вона замовила борщ і вареники."), ["ukrainian_food"])
+        self.assertEqual(ids("an omegaverse AU"), [])             # mature only
+        self.assertEqual(ids("an omegaverse AU", mature=True), ["omegaverse"])
+        self.assertLessEqual(len(T.woken("vampire coffee borscht royal court king laboratory", mature=True)), T.MOST)
+
+    def test_the_note_varies_its_specifics(self):
+        import random
+        from mainapp import texture as T
+        found = T.woken("They drank coffee at the café.")
+        a, b = T.note(found, random.Random(1)), T.note(found, random.Random(2))
+        self.assertIn("card and lorebook come first", a)
+        self.assertIn("The tired version", a)
+        self.assertNotEqual(a, b)
+        self.assertEqual(T.note([]), "")
+
+    def test_every_entry_is_complete(self):
+        from mainapp import texture as T
+        self.assertGreaterEqual(len(T.entries()), 30)  # (an empty library, e.g. a data file not committed, fails here)
+        for e in T.entries():
+            self.assertTrue(e["keys"] and e["gist"] and e["avoid"] and len(e["pool"]) >= 6, e["id"])

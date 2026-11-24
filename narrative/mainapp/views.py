@@ -35,7 +35,7 @@ from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
-from . import echo, fresh_details, speaker_colors
+from . import echo, favourites, fresh_details, speaker_colors, texture
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation, voice
 from .bulba import control, polish, watch
@@ -470,6 +470,11 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
                                    tail=[{"role": "user", "content": ask + (
                                        "\n\n" + english["content"] if english else "")}])
         message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
+        thought, written = thinking.split(message.get("content") or "")
+        if not written.strip() and (thought or message.get("reasoning")):  # all thinking: once more without it
+            _, model = ai_client.resolve(request.user, "chat")
+            message, _ = ai_client.complete_message(request.user, "chat", built["messages"],
+                                                    **thinking.without_thinking(model, built["params"]))
     except ai_client.AIError as e:
         return {"success": False, "error": str(e)}
     thought, written = thinking.split(message.get("content") or "")
@@ -1360,6 +1365,8 @@ def chat(request, slug):
             text = speaker_colors.strip_tags(msg[2])
             chat_state["favourites"] = _fav_places(chat_state["favourites"], messages)
             had = [x for x in chat_state["favourites"] if x.get("i") == index]
+            if msg[0] == "assistant":  # ⭐ its spoken lines become (or stop being) voice examples for the character
+                favourites.remember(character, msg[2], starred=not (had or data.get("remove")))
             if had or data.get("remove"):
                 chat_state["favourites"] = [x for x in chat_state["favourites"] if x.get("i") != index]
             else:
@@ -1992,6 +1999,9 @@ def chat(request, slug):
                         theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
                         names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
+                    built = {**built, "messages": favourites.insert_before_chat(built["messages"], favourites.note(character))}
+                    texture_note = texture.for_reply(request.user, [m[2] for m in plain[-4:]])  # 🧵 real specifics
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], texture_note)}
                     from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(request.user))}
                     english = translation.english_note(request.user)  # read in another language: written in English

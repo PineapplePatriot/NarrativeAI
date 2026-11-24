@@ -71,6 +71,26 @@ def _messages_sent(user):
     return sent, notes, with_messages
 
 
+def label(key):
+    """The stats page's name for a summary line."""
+    if key.startswith("slips_per_100:"):
+        return f"Watch: slips per 100 replies, {key.split(':', 1)[1]}"
+    return LABELS.get(key, key)
+
+
+def slips_by_model(user_ids):
+    """📊 Bulba Watch's slips (the model's own, not the setup's) per 100 replies it read, by the chat model that wrote
+    them: {model: (slips per 100, replies read)}, the most-read first. Watch must be on for there to be any."""
+    from mainapp.models import Chat
+    totals = {}
+    for watch in Chat.objects.filter(character__author_id__in=user_ids).exclude(watch=None).values_list("watch", flat=True):
+        for q in (watch or {}).get("quality") or []:
+            if isinstance(q, dict) and q.get("model") and q.get("replies"):
+                r, s = totals.get(q["model"], (0, 0))
+                totals[q["model"]] = (r + int(q["replies"]), s + int(q.get("slips") or 0))
+    return {m: (round(s * 100 / r, 1), r) for m, (r, s) in sorted(totals.items(), key=lambda kv: -kv[1][0])}
+
+
 def checker_costs(user_ids, since=None):
     """🧹 What Bulba Watch and polish cost per 100 chat replies (and how often polish is called), from the recorded
     AI requests: to compare a cheaper checker model with a stronger one."""
@@ -81,8 +101,11 @@ def checker_costs(user_ids, since=None):
     by = {t: (n, c or 0) for t, n, c in rows.values_list("task").annotate(n=Count("id"), c=Sum("cost")).values_list("task", "n", "c")}
     replies = by.get("chat", (0, 0))[0]
     per = lambda task, i: round(by.get(task, (0, 0))[i] * 100 / replies, 4 if i else 1) if replies else 0
-    return {"watch_cost_per_100_replies": per("watch", 1), "polish_cost_per_100_replies": per("polish", 1),
-            "polish_calls_per_100_replies": per("polish", 0)}
+    out = {"watch_cost_per_100_replies": per("watch", 1), "polish_cost_per_100_replies": per("polish", 1),
+           "polish_calls_per_100_replies": per("polish", 0)}
+    for model, (rate, read) in list(slips_by_model(user_ids).items())[:4]:
+        out[f"slips_per_100:{model}"] = f"{rate} ({read} replies read)"
+    return out
 
 
 def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunday"):

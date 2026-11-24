@@ -576,6 +576,7 @@ def tools():
         CARD_EDIT_TOOL,
         CLEAN_CARD_TOOL,
         *compare.tool_defs(_fn, STR),
+        *analyst.tool_defs(_fn, STR),
         *polish.tool_defs(_fn, STR),
         *watch_mod.tool_defs(_fn, STR),
         *memory.tool_defs(_fn, STR),
@@ -592,7 +593,7 @@ HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_p
             **tune.HANDLERS,
             **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply,
-            "clean_card_writing": tool_clean_card_writing, **compare.HANDLERS}
+            "clean_card_writing": tool_clean_card_writing, **compare.HANDLERS, **analyst.HANDLERS}
 
 
 # ---------------------------------------------------------------------------

@@ -1766,6 +1766,29 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertIn("Ivan: a guard", out["linked"][0]["text"])
         self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
 
+    def test_starred_lines_become_voice_examples(self):
+        from mainapp import chats, favourites
+        self.build_story()
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        m = list(data["messages"][2])
+        m[2] = 'The rain stops. "You came alone. Good. Sit, and tell me who else knows." She waits.'
+        data["messages"][2] = m
+        chats.write(chat, data)
+        self.post({"action": "favourite", "index": 2})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["voice_lines"], ["You came alone. Good. Sit, and tell me who else knows."])
+        self.post({"action": "chat", "message": "And now?"})
+        sent = next(c["messages"] for c in reversed(self.all_calls) if "And now?" in json.dumps(c["messages"]))
+        note = next(x for x in sent if "sounds at their best" in x["content"])
+        self.assertEqual(note["role"], "system")
+        self.assertNotIn("rain stops", note["content"])  # speech only, never the scene
+        self.assertLess(sent.index(note), next(i for i, x in enumerate(sent) if x["role"] != "system"))
+        self.post({"action": "favourite", "index": 2})  # unstarred: the lines go
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["voice_lines"], [])
+        self.assertEqual(favourites.note(self.character), "")
+
     def test_a_detail_every_reply_repeats_is_steered_away_from(self):
         for i in range(4):  # the stand-in model answers "A reply." every time
             self.post({"action": "chat", "message": f"Turn {i}"})
@@ -3961,6 +3984,24 @@ class CleanDraftTests(TestCase):
         self.assertIn("You are an analyst, not an author", text)
         self.assertNotIn("goes very calm and very polite", text)  # the guide's own bad example is gone
         self.assertNotIn("remembers forever", text)
+
+    def test_a_card_writing_model_rewrites_drafts_when_chosen(self):
+        from unittest import mock
+        from mainapp import ai_client
+        from mainapp.bulba import analyst, polish
+        fields = {"personality": "Never raises his voice."}
+        self.assertIsNone(analyst.rewrite(self.user, fields))  # none chosen: the usual cleanup
+        ts = ai_client.get_task_setting(self.user, "card_writing")
+        ts.model = "google/gemini-pro"
+        ts.save()
+        answer = json.dumps({"personality": "Speaks faster and more precisely when angry."})
+        with mock.patch.object(ai_client, "complete", return_value=answer) as call:
+            out = polish.clean_written(self.user, fields)
+        self.assertEqual(out["personality"], "Speaks faster and more precisely when angry.")
+        self.assertEqual(call.call_args[0][1], "card_writing")
+        self.assertIn("You are an analyst, not an author", call.call_args[0][2][0]["content"])
+        with mock.patch.object(ai_client, "complete", return_value=json.dumps({"other": "x"})):
+            self.assertIsNone(analyst.rewrite(self.user, fields))  # a broken answer: the usual cleanup instead
 
     def test_trouble_keeps_the_draft(self):
         from unittest import mock
@@ -8540,6 +8581,20 @@ class UsageTests(TestCase):
         s = usage.report()["summary"]
         self.assertEqual((s["watch_cost_per_100_replies"], s["polish_cost_per_100_replies"],
                           s["polish_calls_per_100_replies"]), (0.5, 0.5, 50.0))
+
+    def test_slips_per_100_replies_by_model(self):
+        from mainapp.models import Character
+        from mainapp import chats
+        from users import usage
+        rose = Character.objects.create(name="Rose", slug="rose-q", author=self.user, initial_message="Hi.")
+        chat = chats.current(rose)
+        chat.watch = {"quality": [{"model": "x/mimo", "replies": 6, "slips": 3}, {"model": "x/mimo", "replies": 4, "slips": 1},
+                                  {"model": "g/flash", "replies": 5, "slips": 0}]}
+        chat.save()
+        self.assertEqual(usage.slips_by_model([self.user.id]), {"x/mimo": (40.0, 10), "g/flash": (0.0, 5)})
+        s = usage.report()["summary"]
+        self.assertEqual(s["slips_per_100:x/mimo"], "40.0 (10 replies read)")
+        self.assertEqual(usage.label("slips_per_100:x/mimo"), "Watch: slips per 100 replies, x/mimo")
 
     def test_report_counts_bulbas_changes_and_messages(self):
         from mainapp.models import BulbaSession
