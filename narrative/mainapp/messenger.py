@@ -19,6 +19,7 @@ Key capabilities:
   using the character's neutral sprite as reference, and profile/bio/status updates by both characters and user.
 """
 import base64
+import hashlib
 import json
 import logging
 import re
@@ -871,7 +872,12 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
-        "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
+        "leave_on_read": bool(raw.get("leave_on_read", False)),
+        # 👥 a group's way of talking: "conversation" (they answer you, and each other now and then) or "lively"
+        "group_mode": raw.get("group_mode") if raw.get("group_mode") in GROUP_MODES else "conversation",
+        # 🖼️ a group's own picture (they set it, or a member did); none: the members' pictures side by side
+        "group_avatar": str(raw.get("group_avatar") or "")[:500],
+        "group_avatar_changed": float(raw.get("group_avatar_changed") or 0),  # 🙈 per chat: they may answer up to 5 minutes later
         # 🧭 the "Before you start" card was answered; 🎭 who the user is in this chat only (else their usual persona)
         "started": bool(raw.get("started", False)),
         "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 8000}[k]]
@@ -1528,13 +1534,6 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
                        "back to the phone, and put `[LATER: N, why]` at its very start, N = minutes before they answer (1 "
                        "to 5), why = a word or two (busy at work, asleep, petty). Most replies come at once; don't use it "
                        "twice in a row.")
-        import random
-        last_was_late = any(m.get("late_reason") is not None and m.get("role") == "assistant"
-                            for m in data["messages"][-3:])
-        if not last_was_late and random.random() < 0.25:  # models rarely hold back unasked: this turn, invited to
-            time_block += ("\n- THIS REPLY: if anything in the situation allows it (they're busy, asleep, in class or "
-                           "at work, or they're teasing, annoyed, sulking, being petty), they don't answer right away: "
-                           "start with `[LATER: N, why]`. If nothing allows it, answer normally.")
 
     # ⌨️ models almost never make typos unasked: now and then a fast texter is invited to (never a careful one)
     import random as _r
@@ -1549,13 +1548,24 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
         group_rule = (
-            f"GROUP CHAT MODE — Members: {names_list}, and {u_name}.\n"
+            f"GROUP CHAT — Members: {names_list}, and {u_name}.\n"
             f"- Prefix EVERY bubble with the speaking character's name followed by a colon, e.g.:\n"
             f"  {chars[0].name}: Wait, who gave you this number?\n"
             f"  |||BUBBLE|||\n"
             f"  {chars[-1].name}: I did. Relax.\n"
-            f"- 1 to 3 characters can reply in a turn depending on who was addressed or who has something to say. "
-            f"Characters can also reply to or banter with each other."
+            f"- ONE PERSON PER BUBBLE. Never put another member's words inside someone's bubble: if {chars[-1].name} "
+            f"answers {chars[0].name}, that's a new bubble starting \"{chars[-1].name}:\".\n"
+            f"- Each member texts from their own phone, in their own voice and texting habits, and knows only what "
+            f"they've seen in this chat or know themselves.\n"
+            f"- Very rarely, a member who'd do it changes the group's picture: `[GROUP_AVATAR: what it shows]`.\n"
+            + (f"- LIVELY: they talk among themselves as they like. 2 to 6 bubbles a turn: they answer each other, tease, "
+               f"disagree, go off on a tangent; {u_name} doesn't have to be addressed every turn. Someone who wouldn't "
+               f"care stays quiet. Still a texting rhythm: short bubbles, not speeches."
+               if data.get("group_mode") == "lively" else
+               f"- CONVERSATION: whoever {u_name} addressed answers (or whoever would, if nobody was named): 1 or 2 "
+               f"members a turn. Now and then (about one turn in three) a second member reacts to what the first one "
+               f"said, not only to {u_name}: a jab, an agreement, a correction. Members who have nothing to add stay "
+               f"quiet.")
         )
     else:
         group_rule = (
@@ -1594,7 +1604,11 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         if m.get("reply_to_text"):
             parts.append(f"[Replying to {m.get('reply_to_sender', 'message')}: \"{m['reply_to_text'][:120]}\"]")
         if m.get("sticker"):
-            parts.append(f"[Sent sticker: {m['sticker'].get('name') or m['sticker'].get('mood') or 'sticker'}]")
+            st = m["sticker"]
+            parts.append(f"[Sent sticker: {st.get('name') or st.get('mood') or 'sticker'}"
+                         + (f" {st['emoji']}" if st.get("emoji") else "")
+                         + (f" (\"{st['label']}\")" if st.get("label") else "")
+                         + (f". It shows: {st['seen']}" if st.get("seen") else "") + "]")
         if m.get("voice"):
             parts.append(f"[Voice message: \"{m['voice'].get('transcript') or m.get('text') or ''}\"]")
         if m.get("photo"):
@@ -1611,8 +1625,8 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         mine = [e for e, who in (m.get("reactions") or {}).items() if "You" in (who or [])]
         if role != "user" and mine:  # 👍 the user's reaction to their message: an answer in itself
             parts.append(f"({u_name} reacted {' '.join(mine)} to this)")
-        if role == "user" and m.get("edited_from"):
-            parts.append(f"(edited; it first said: \"{str(m['edited_from'])[:300]}\")")
+        if role == "user" and m.get("edited_from"):  # (set only when they'd already read the first version)
+            parts.append(f"(edited after you'd read it; it first said: \"{str(m['edited_from'])[:300]}\")")
         if m.get("text") and not m.get("voice"):
             parts.append(m["text"])
         body = " ".join(parts).strip() or "..."
@@ -1632,7 +1646,17 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         + (f" Special direction for this turn: {extra_instruction}" if extra_instruction else "")
         + "]"
     )
-    messages.append({"role": "user", "content": reminder})
+    from mainapp.bulba import polish  # 🛡 the habits to keep out, before they write
+    avoid = polish.avoid_line(user)
+    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "")})
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except Exception:
+        model = ""
+    from mainapp import presets
+    if model and presets.LATE_SYSTEM_AS_USER.search(model):  # MiMo: notices inside the chat as user-turn notes
+        messages = [m if i == 0 or m["role"] != "system" else {"role": "user", "content": m["content"]}
+                    for i, m in enumerate(messages)]
     return messages
 
 
@@ -1661,6 +1685,7 @@ RE_PHOTO = re.compile(r"\[\s*(PHOTO|TEASE|SELFIE|IMAGE)\s*:\s*(.+?)\s*\]", re.I 
 RE_FILE = re.compile(r"\[\s*FILE\s*:\s*([^|\]]+?)\s*\|\s*(.+?)\s*\]", re.I | re.S)
 RE_BIO = re.compile(r"\[\s*BIO\s*:\s*(.+?)\s*\]", re.I)
 RE_AVATAR = re.compile(r"\[\s*AVATAR\s*:\s*(.+?)\s*\]", re.I)
+RE_GROUP_AVATAR = re.compile(r"\[\s*GROUP[_ ]AVATAR\s*:\s*(.+?)\s*\]", re.I)
 AVATAR_EVERY = 5 * 86400  # 🖼️ a character changes their own profile picture at most once in 5 days
 RE_STATUS = re.compile(r"\[\s*STATUS\s*:\s*(?:([^|\]]+?)\s*\|\s*)?(.+?)\s*\]", re.I)
 RE_EVENT = re.compile(r"\[\s*EVENT\s*:\s*([^|\]]+?)(?:\s*\|\s*(.+?))?\s*\]", re.I)
@@ -1892,6 +1917,20 @@ def _match_speaker(chars, prefix_name):
     return chars[0]
 
 
+def _split_speakers(chunk, chars):
+    """One bubble the model wrote for two people ("...\n\nIl Dottore: I do itemise.") → one bubble each."""
+    names = set()
+    for c in chars:
+        p = char_profile(c)
+        names |= {c.name, p.get("display_name") or "", (p.get("handle") or "").lstrip("@")}
+    names = sorted((n for n in names if n and len(n) >= 2), key=len, reverse=True)
+    if not names:
+        return [chunk]
+    who = "|".join(re.escape(n) for n in names)
+    parts = re.split(rf"\n+(?=\s*\*{{0,2}}@?(?:{who})\*{{0,2}}\s*:)", chunk, flags=re.I)
+    return [p.strip() for p in parts if p.strip()]
+
+
 def parse_ai_reply(raw_text, chars, is_group=False):
     """
     Parse an AI reply into:
@@ -1912,11 +1951,14 @@ def parse_ai_reply(raw_text, chars, is_group=False):
         if len(sub) <= 5:
             chunks = sub
 
+    if len(chars) > 1:  # a line inside one bubble that starts "Il Dottore: ..." is Dottore's own bubble
+        chunks = [piece for c in chunks for piece in _split_speakers(c, chars)]
+
     bubbles = []
     current_char = chars[0]
     now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
 
-    for chunk in chunks[:6]:
+    for chunk in chunks[:8]:
         # Detect Speaker: prefix if present
         sp_match = re.match(r"^\s*\*{0,2}([A-Za-zА-Яа-яІіЇїЄєҐґ0-9_ .'-]{2,40})\*{0,2}\s*:\s*(.+)$", chunk, re.S)
         if sp_match:
@@ -1935,6 +1977,10 @@ def parse_ai_reply(raw_text, chars, is_group=False):
                 reactions.append((current_char, emo))
         chunk = RE_REACT.sub("", chunk)
 
+        for m in RE_GROUP_AVATAR.finditer(chunk):  # 🖼️ a member changes the group's picture (rarely)
+            if m.group(1).strip() and is_group:
+                profile_updates.append({"char": current_char, "kind": "group_avatar", "text": m.group(1).strip()[:400]})
+        chunk = RE_GROUP_AVATAR.sub("", chunk)
         # Extract bio updates
         for m in RE_AVATAR.finditer(chunk):  # 🖼️ a new profile picture of their own (rarely)
             if m.group(1).strip():
@@ -2665,6 +2711,24 @@ def see_photo(user, url, their_words=""):
     return text.strip()[:1200]
 
 
+def see_sticker(user, sticker):
+    """🖼️ A sticker the user sends, with what its picture shows ("seen"), so the characters see the picture and not
+    only its emoji. Looked at once per sticker picture (then remembered)."""
+    from django.core.cache import cache
+    sticker = {k: v for k, v in dict(sticker).items() if k in ("id", "name", "mood", "emoji", "label", "url", "pack", "seen")}
+    url = str(sticker.get("url") or "")
+    if not url or sticker.get("seen"):
+        return sticker
+    key = "sticker-seen:" + hashlib.sha1(url.encode()).hexdigest()
+    seen = cache.get(key)
+    if seen is None:
+        seen = see_photo(user, url, "This is a chat sticker: say what it shows and the feeling it gives, in one line.")
+        cache.set(key, seen, 60 * 60 * 24 * 90)
+    if seen:
+        sticker["seen"] = seen[:300]
+    return sticker
+
+
 STATUS_EVERY = 6 * 3600  # (the "sometimes" gap; see STATUS_HABITS)
 # ✨ hours between their own statuses (then a jitter of up to the same again): who they are decides
 STATUS_HABITS = {"rarely": 40, "sometimes": 12, "often": 5}
@@ -2755,6 +2819,24 @@ def new_avatar(user, character, what):
     url = default_storage.url(default_storage.save(f"messenger/avatars/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
     save_char_profile(character, {"avatar_url": url, "avatar_changed": time.time(),
                                   "avatar_history": ([prof["avatar_url"]] if prof.get("avatar_url") else []) + prof["avatar_history"][:7]})
+    return url
+
+
+def new_group_avatar(user, thread, what, data=None):
+    """🖼️ A picture for a group chat (drawn from the members' pictures). Sets it on `data` (the thread's data dict,
+    saved by the caller) or saves the thread itself. Returns its url."""
+    chars = list(thread.characters.all())[:4]
+    refs = [r for c in chars for r in load_character_references(c)[:1]]
+    style = char_profile(chars[0]).get("art_style_notes") if chars else ""
+    img, _ = make_picture(user, f"A group chat picture for {', '.join(c.name for c in chars)}: {what}. Square, "
+                                f"well-framed; anyone shown looks exactly like their reference picture.\n"
+                                f"Art style: {style or DEFAULT_ART_STYLE}.", references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/avatars/group-{thread.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    target = data if data is not None else dict(thread.data or {})
+    target["group_avatar"], target["group_avatar_changed"] = url, time.time()
+    if data is None:
+        thread.data = target
+        thread.save(update_fields=["data"])
     return url
 
 
@@ -2908,9 +2990,14 @@ def suggest(user, thread, what, hint=""):
     hint = str(hint or "").strip()[:300]
     if what == "reply":
         task = (f"{me} is stuck on what to text back. Write 3 different texts {me} could send next, in {me}'s own "
-                "voice (short, like real texting; match how they've been writing, their language included): one that "
-                "answers warmly or directly, one playful or teasing, one that moves things somewhere new (a question, "
-                "a plan, something about their day). Never write for the other characters.")
+                "voice (short, like real texting; match how they've been writing, their language included), each "
+                "doing a different thing: one answers what was just said, plainly and honestly; one shares something "
+                f"concrete from {me}'s side (what they're doing, a feeling said simply, a small detail of their day); "
+                "one moves things somewhere (a real question, a plan, an invitation). Write them the way people "
+                "actually text, not like dialogue in a book: no clever comebacks or lines that top the other "
+                "person's, no aphorisms, no \"it's not X, it's Y\", no rules or principles announced. Keep "
+                f"{me}'s mood and boldness from their recent texts (if they've been flirting, keep flirting, "
+                "openly). Never write for the other characters.")
     elif what == "reminders":
         task = ("Find plans and promises in the chat that deserve a reminder (a meeting, a call, a deadline, "
                 "something one of them said they'd do at a time). For each, one line: the day and time first, then "
@@ -3172,6 +3259,13 @@ def waiting_reply(data, now=None):
     return int(max(due) - now) + 1 if due else 0
 
 
+GROUP_MODES = {
+    "conversation": "💬 Conversation: they answer you, and talk to each other now and then",
+    "lively": "🎉 Lively: they talk among themselves as they like, you join in when you want",
+}
+LEAVE_ON_READ_CHANCE = 0.25  # 🙈 when the user allowed it: how often a reply waits
+
+
 def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     """
     Call the user's chat model to produce the next Messenger turn (1..N bubbles, reactions, profile updates, etc.),
@@ -3196,6 +3290,16 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
             f"what was happening last. Do not be clingy if your character is aloof."
         )
 
+    # 🙈 Left on read: models almost never hold back by themselves, so the app decides (about one reply in four,
+    # never twice in a row) and the reply waits 1-5 real minutes; the model only says why
+    import random as _rnd
+    hold = (data.get("leave_on_read") and not auto_check_in and _rnd.random() < LEAVE_ON_READ_CHANCE
+            and not any(m.get("late_reason") is not None and m.get("role") == "assistant" for m in data["messages"][-3:]))
+    if hold:
+        extra_instruction = (extra_instruction + "\n" if extra_instruction else "") + (
+            "THIS REPLY COMES LATER: they don't answer right away (busy, asleep, at work, or teasing, annoyed, petty, "
+            "needing a minute: whatever fits them and the moment). Write the reply they send when they get back to the "
+            "phone, and start it with `[LATER: N, why]` (N = 1 to 5 minutes, why = a word or two).")
     prompt_messages = build_messenger_prompt(user, thread, extra_instruction=extra_instruction)
     from mainapp import samplers, thinking
     params = {"max_tokens": 1200, "temperature": 0.85}
@@ -3208,11 +3312,12 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
     later, late_reason = 0, ""
     if data.get("leave_on_read"):  # 🙈 [LATER: N] at the start: the reply waits N real minutes (1-5)
-        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)\s*,?\s*([^\]]*)\]", raw_reply, re.I)
-        if m_later:
-            later = max(1, min(5, int(m_later.group(1)))) * 60
-            late_reason = m_later.group(2).strip()[:80]  # "busy at the lab", "petty": red or yellow dot meanwhile
-    raw_reply = re.sub(r"\[\s*LATER\s*:[^\]]*\]", "", raw_reply, flags=re.I)
+        m_later = re.search(r"\[\s*LATER\b\s*:?\s*(\d+)?\s*(?:min\w*)?\s*,?\s*([^\]]*)\]", raw_reply, re.I)
+        if m_later or hold:  # (the app's decision stands even if the model forgot the tag)
+            n = int(m_later.group(1)) if m_later and m_later.group(1) else _rnd.randint(1, 5)
+            later = max(1, min(5, n)) * 60
+            late_reason = ((m_later.group(2) if m_later else "") or "busy").strip()[:80]  # red or yellow dot meanwhile
+    raw_reply = re.sub(r"\[\s*LATER\b[^\]]*\]", "", raw_reply, flags=re.I)
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
     # Apply reactions to the latest user message
@@ -3234,6 +3339,19 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     for upd in parsed["profile_updates"]:
         c_obj = upd["char"]
         c_prof = char_profile(c_obj)
+        if upd["kind"] == "group_avatar":
+            if time.time() - float(data.get("group_avatar_changed") or 0) < AVATAR_EVERY:
+                continue  # the group's picture changed lately
+            try:
+                url = new_group_avatar(user, thread, upd["text"], data=data)
+            except Exception as e:
+                log.info("messenger: no new group picture: %s", e)
+                continue
+            notice = {"id": uuid.uuid4().hex[:10], "role": "system", "time": now_hm, "ts": time.time(),
+                      "text": f"{c_prof['display_name']} changed the group picture", "image_url": url}
+            data["messages"].append(notice)
+            system_notices.append(notice)
+            continue
         if upd["kind"] == "avatar":
             if time.time() - char_profile(c_obj)["avatar_changed"] < AVATAR_EVERY:
                 continue  # too soon: they did it lately
@@ -3377,9 +3495,11 @@ def serialize_thread_summary(thread):
         if thread.is_group and last.get("sender_name") and last.get("role") != "system":
             preview = f"{last['sender_name']}: {preview}"
 
+    group_pics = []
     if thread.is_group:
         title = thread.title or ", ".join(c.name for c in chars[:3])
-        avatar = char_avatar(chars[0]) if chars else ""
+        avatar = data["group_avatar"]  # their own group picture, else the page shows the members' side by side
+        group_pics = [char_avatar(c) for c in chars[:4]]
         subtitle = f"{len(chars)} members"
         handle = ""
         status_emoji = "👥"
@@ -3405,6 +3525,7 @@ def serialize_thread_summary(thread):
         "id": thread.id,
         "title": title,
         "is_group": thread.is_group,
+        "avatar_urls": group_pics,
         "pinned": thread.pinned,
         "avatar_url": avatar,
         "subtitle": subtitle,
@@ -3462,6 +3583,7 @@ def serialize_thread_full(thread, user):
         "clock_offset": data["clock_offset"],
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
+        "group_mode": data["group_mode"],
         "bg": data["bg"],
         "custom_bg_url": data["custom_bg_url"],
         "pinned_id": data["pinned_id"],

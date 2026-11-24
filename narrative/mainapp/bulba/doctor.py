@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore, memory, polish, rules, tune
+from mainapp.bulba import analyst, compare, control, flow, library, lore, memory, polish, rules, tune
 from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -152,13 +152,14 @@ def system_prompt(session):
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
     guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing", "slop", "tuning", "app")]
-    pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
         agent.model_knowledge(profile) if profile else "",
         context(session),
         f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
-        "Proposals so far:\n" + "\n".join(pending) if pending else "",
+        analyst.RULES,
+        flow.ORDER,
+        flow.proposals_section(session),
     ]))
 
 
@@ -169,7 +170,7 @@ def opening(session):
         "and I'll look at the chat, the preset and the card to find what causes it."),
         "choices": [{"label": "Replies are too long"}, {"label": "Replies are too short"},
                     {"label": f"{character} sounds off"}, {"label": "It writes my actions for me"},
-                    {"label": "Nothing happens in the story"}]}]
+                    {"label": "Nothing happens in the story"}, {"label": "🧹 Clean up the card's writing"}]}]
     session.messages = [{"role": "assistant", "content": session.events[0]["text"]}]
     session.stage = "chat"
 
@@ -370,12 +371,61 @@ def tool_propose_basics(session, args):
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
+def tool_clean_card_writing(session, args):
+    """🧹 Once, on request: the card's own writing without the known AI habits and the 'witty writing' patterns
+    (theme-squeezed motives, 'goes quiet', absolutes, epigrams, catchphrase lists). Proposed as a card change."""
+    from mainapp.bulba import polish
+    character = lore.target_character(session)
+    if character is None:
+        return {"error": "There's no character to clean up yet."}, []
+    texts, where = {}, {}
+    if character.sections:
+        from mainapp import card_sections
+        data = card_sections.clean(character.sections)
+        for key, s in data["shared"].items():
+            if s.get("on") and s.get("text", "").strip():
+                texts[f"shared_{key}"], where[f"shared_{key}"] = s["text"], {"section": key}
+        for i, p in enumerate(data["people"]):
+            for key, s in p["sections"].items():
+                if s.get("on") and s.get("text", "").strip():
+                    texts[f"p{i}_{key}"], where[f"p{i}_{key}"] = s["text"], {"section": key, "person": p["name"]}
+        for j, e in enumerate(data["extra"]):
+            if e.get("on") and e.get("text", "").strip():
+                texts[f"x{j}"], where[f"x{j}"] = e["text"], {"section": e["title"]}
+    for f in CARD_FIELDS:
+        if f == "description" and character.sections:
+            continue
+        value = getattr(character, f, "") or ""
+        if isinstance(value, str) and value.strip():
+            texts[f], where[f] = value, None
+    if not texts:
+        return {"error": "The card is empty."}, []
+    cleaned = polish.clean_written(session.user, texts, "character card", force=True)
+    changed = {k: v for k, v in cleaned.items() if v.strip() != texts[k].strip()}
+    if not changed:
+        return {"result": "Nothing in the card matches those patterns: it's fine as it is."}, []
+    edit = {"why": str(args.get("why") or "The card's writing without the AI habits and the witty-writing patterns"),
+            "_cleaned": True,
+            "section_edits": [{**where[k], "text": v} for k, v in changed.items() if where[k] is not None]}
+    edit.update({k: v for k, v in changed.items() if where[k] is None})
+    if not edit["section_edits"]:
+        edit.pop("section_edits")
+    return tool_propose_card_edit(session, edit)
+
+
 def tool_propose_card_edit(session, args):
     from mainapp.bulba.agent import _proposal
     fields = {f: str(args.get(f)).strip()[:40000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
-    if fields:
+    if fields and not args.get("_cleaned"):
         from mainapp.bulba import polish
         fields = polish.clean_written(session.user, fields)  # the known AI habits out of Bulba's own draft
+    if args.get("section_edits") and not args.get("_cleaned"):  # (sections are Bulba's draft too)
+        from mainapp.bulba import polish
+        texts = {f"s{i}": str(e.get("text") or "") for i, e in enumerate(args["section_edits"])
+                 if isinstance(e, dict) and str(e.get("text") or "").strip()}
+        done = polish.clean_written(session.user, texts) if texts else {}
+        args = {**args, "section_edits": [{**e, "text": done.get(f"s{i}", e.get("text"))} if isinstance(e, dict) else e
+                                          for i, e in enumerate(args["section_edits"])]}
     character = lore.target_character(session)
     if character is None:
         return {"error": "There's no character to change yet."}, []
@@ -468,6 +518,11 @@ def _fn(name, description, properties, required=()):
             "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
 
 
+CLEAN_CARD_TOOL = _fn("clean_card_writing", "Once, when they ask (or agree when you offer it for a card that reads "
+    "witty, epigrammatic or job-obsessed): go over the whole card and propose it without the AI writing habits "
+    "and the witty-writing patterns (theme-squeezed motives, 'goes quiet', absolutes, epigrams, catchphrase lists). "
+    "Facts and names stay. It comes back as a card change to Apply.", {"why": STR})
+
 CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to the card of the character you're working on (only the "
             "fields you change). Never for a new or different character: that is propose_character.",
             {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR,
@@ -519,6 +574,8 @@ def tools():
         *PRESET_EDIT_TOOLS,
         basics_tool(),
         CARD_EDIT_TOOL,
+        CLEAN_CARD_TOOL,
+        *compare.tool_defs(_fn, STR),
         *polish.tool_defs(_fn, STR),
         *watch_mod.tool_defs(_fn, STR),
         *memory.tool_defs(_fn, STR),
@@ -534,7 +591,8 @@ HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_p
             "propose_basics": tool_propose_basics, **lore.HANDLERS,
             **tune.HANDLERS,
             **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
-            "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
+            "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply,
+            "clean_card_writing": tool_clean_card_writing, **compare.HANDLERS}
 
 
 # ---------------------------------------------------------------------------

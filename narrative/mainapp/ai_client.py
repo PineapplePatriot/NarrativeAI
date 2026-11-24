@@ -81,15 +81,18 @@ TASKS = {
     },
     "watch": {
         "label": "Bulba Watch",
-        "help": "Every few replies, Bulba reads the latest ones for habits that keep repeating. Bulba's model.",
+        "help": "Every few replies, Bulba reads the latest ones for habits that keep repeating. Leave it empty for "
+                "Bulba's model; a stronger model notices more (it reads several replies, so it costs more than polish).",
         "timeout": 90,
-        "hidden": True,  # switched on the Extras page; the model is Bulba's
+        "model_only": True,  # switched on and off on the Extras page; here only its model
     },
     "polish": {
         "label": "Bulba's polish",
-        "help": "Rewrites the sentences with habits you asked to have fixed. Bulba's model, or your chat model.",
+        "help": "Rewrites the sentences with habits you asked to have fixed. Leave it empty for Bulba's model (or "
+                "your chat model, if picked on the Extras page). It only gets the flagged sentences, so even a "
+                "stronger model costs little here.",
         "timeout": 90,
-        "hidden": True,  # chosen on the Extras page
+        "model_only": True,
     },
     "voice_split": {
         "label": "Voice splitting",
@@ -207,6 +210,13 @@ def _blocked(text):
 
 def resolve(user, task):
     """Returns (profile, model) for a task."""
+    if task in ("watch", "polish"):  # a model of its own, chosen on the Connections page, wins
+        own = get_task_setting(user, task)
+        if own.profile_id is not None or own.model:
+            profile = own.profile or main_profile(user)
+            if profile is None:
+                raise NoConnection("No AI connection is set up yet.")
+            return profile, (own.model or profile.model)
     if task == "polish":  # Bulba's model unless they chose their chat model on the Extras page
         from mainapp.models import ChatSettings
         obj = ChatSettings.objects.filter(author=user).first()

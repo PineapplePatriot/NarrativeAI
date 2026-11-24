@@ -539,7 +539,8 @@ class ChatPromptTests(TestCase):
         self.assertNotIn("[CHAT HISTORY]", joined)
         self.assertNotIn("[LAST USER MESSAGE]", joined)
         self.assertEqual(joined.count("Where is the tower?"), 1)
-        self.assertEqual(messages[-1], {"role": "user", "content": "Let's go there."})
+        self.assertEqual(messages[-1]["role"], "user")  # their words, then the app's short notes (🛡 keep out…)
+        self.assertEqual(messages[-1]["content"].split("\n\n[")[0], "Let's go there.")
 
     def test_regenerate_does_not_add_empty_user_message(self):
         self.post({"action": "chat", "message": "Hi!"})
@@ -549,7 +550,7 @@ class ChatPromptTests(TestCase):
         self.assertEqual(len(after), len(before))
         self.assertEqual([m[0] for m in after], ["assistant", "user", "assistant"])
         self.assertFalse(any(m[0] == "user" and not m[2] for m in after))
-        self.assertEqual(self.sent[-1]["messages"][-1], {"role": "user", "content": "Hi!"})
+        self.assertEqual(self.sent[-1]["messages"][-1]["content"].split("\n\n[")[0], "Hi!")
 
     def test_ai_error_is_shown_and_user_message_kept(self):
         self.reply_status = 401
@@ -683,6 +684,24 @@ class ConnectionsPageTests(TestCase):
                                  "api_key": "", "model": "a/c"}], "tasks": []})
         profile.refresh_from_db()
         self.assertEqual((profile.api_key, profile.model), ("sk-or-secret-1234", "a/c"))
+
+    def test_watch_and_polish_can_have_their_own_model(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile, TaskSetting
+        self.save({"profiles": [{"id": "new-1", "name": "Main", "provider": "openrouter", "api_key": "k", "model": "x/mimo"}],
+                   "tasks": []})
+        self.assertEqual(ai_client.resolve(self.user, "polish")[1], ai_client.BULBA_MODEL)  # nothing chosen: as before
+        watch_off = ai_client.get_task_setting(self.user, "watch")
+        watch_off.enabled = False
+        watch_off.save()
+        profile = ConnectionProfile.objects.get(user=self.user)
+        self.save({"profiles": [{"id": profile.id, "name": "Main", "provider": "openrouter", "api_key": "", "model": "x/mimo"}],
+                   "tasks": [{"task": "polish", "profile_id": profile.id, "model": "google/gemini-flash"},
+                             {"task": "watch", "profile_id": None, "model": "google/gemini-pro", "enabled": True}]})
+        self.assertEqual(ai_client.resolve(self.user, "polish")[1], "google/gemini-flash")
+        self.assertEqual(ai_client.resolve(self.user, "watch")[1], "google/gemini-pro")
+        self.assertFalse(TaskSetting.objects.get(user=self.user, task="watch").enabled)  # its switch untouched
+        self.assertFalse(ai_client.TASKS["polish"].get("hidden"))  # listed on the Connections page
 
     def test_task_can_point_at_new_profile(self):
         from users.models import TaskSetting
@@ -1746,6 +1765,13 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertIn("They argued.", out["linked"][0]["text"])
         self.assertIn("Ivan: a guard", out["linked"][0]["text"])
         self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
+
+    def test_a_detail_every_reply_repeats_is_steered_away_from(self):
+        for i in range(4):  # the stand-in model answers "A reply." every time
+            self.post({"action": "chat", "message": f"Turn {i}"})
+        sent = json.dumps(next(c["messages"] for c in reversed(self.all_calls) if "Turn 3" in json.dumps(c["messages"])))
+        self.assertIn("Fresh details", sent)
+        self.assertIn("reply", sent.split("Fresh details", 1)[1][:200])
 
     def test_starred_messages_are_kept_and_bulba_sees_them(self):
         from mainapp.models import BulbaSession
@@ -3923,6 +3949,18 @@ class CleanDraftTests(TestCase):
         self.assertEqual(out["greeting"], "Fog. He looks at you a second too long.")
         self.assertEqual(out["description"], fields["description"])
         self.assertIn("hands clenching and unclenching", call.call_args[0][2][1]["content"])
+        asked = call.call_args[0][2][1]["content"]  # 🔎 the "witty writing" family is cleaned out of drafts too
+        for habit in ("ledgers, debts, prices", "never raises his voice", "never forgets", "aphorisms", "pet names"):
+            self.assertIn(habit, asked)
+
+    def test_every_bulba_is_an_analyst(self):
+        from mainapp.bulba import agent, analyst
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        text = agent.system_prompt(session)
+        self.assertIn("You are an analyst, not an author", text)
+        self.assertNotIn("goes very calm and very polite", text)  # the guide's own bad example is gone
+        self.assertNotIn("remembers forever", text)
 
     def test_trouble_keeps_the_draft(self):
         from unittest import mock
@@ -4786,7 +4824,63 @@ class PenMenuTests(ChatPromptTests):
         self.assertFalse(empty["success"])
 
 
+class LateInstructionTests(TestCase):
+    """MiMo follows late instructions only inside the user's turn: system messages after the chat move there."""
+    def test_late_system_blocks_go_into_the_users_turn_for_mimo(self):
+        from mainapp import presets as P
+        preset = P.normalize({"blocks": [
+            {"name": "Main", "role": "system", "content": "You are the narrator."},
+            {"kind": "marker", "marker": "chat_history"},
+            {"name": "Reminder", "role": "system", "content": "Keep it short.", "position": "in_chat", "depth": 0},
+            {"name": "Tail", "role": "system", "content": "[Stay in character.]"}]})
+        history = [{"role": "assistant", "content": "Hello."}, {"role": "user", "content": "Hi."}]
+        names = {"char": "R", "user": "U"}
+        mimo = P.assemble(preset, {}, history, names, model="xiaomi/mimo-v2.6-pro")
+        roles = [(m["role"], m["content"]) for m in mimo["messages"]]
+        self.assertEqual(roles[0], ("system", "You are the narrator."))  # before the chat: stays a system message
+        first_chat = next(i for i, (r, c) in enumerate(roles) if c == "Hello.")
+        self.assertNotIn("system", [r for r, c in roles[first_chat:]])  # nothing as a system message after the chat
+        joined = json.dumps(roles)
+        self.assertIn("[Keep it short.]", joined)
+        self.assertIn("[Stay in character.]", joined)
+        self.assertTrue(any("inside the user's turn" in n for n in mimo["notes"]))
+        other = P.assemble(preset, {}, history, names, model="google/gemini-flash")
+        self.assertIn(("system", "Keep it short."), [(m["role"], m["content"]) for m in other["messages"]])
+
+    def test_mimo_gets_the_writing_examples_once_before_the_chat(self):
+        from mainapp import presets as P
+        preset = P.normalize({"blocks": [{"name": "Main", "role": "system", "content": "Narrate."},
+                                         {"kind": "marker", "marker": "chat_history"}]})
+        history = [{"role": "user", "content": "Hi."}]
+        msgs = P.assemble(preset, {}, history, {"char": "R", "user": "U"}, model="xiaomi/mimo-v2.6-pro")["messages"]
+        at = next(i for i, m in enumerate(msgs) if "How to write it: examples" in m["content"])
+        self.assertEqual(msgs[at]["role"], "system")
+        self.assertEqual(msgs[at + 1]["content"], "Hi.")  # right before the chat
+        self.assertEqual(json.dumps(msgs).count("How to write it: examples"), 1)
+        self.assertNotIn("Pantalone", json.dumps(msgs))  # no names to copy into other stories
+        other = P.assemble(preset, {}, history, {"char": "R", "user": "U"}, model="google/gemini-flash")["messages"]
+        self.assertNotIn("How to write it", json.dumps(other))
+        off = P.normalize({**preset, "options": {**preset["options"], "example_pairs": False}})
+        self.assertNotIn("How to write it", json.dumps(P.assemble(off, {}, history, {"char": "R", "user": "U"},
+                                                                  model="xiaomi/mimo-v2.6-pro")["messages"]))
+
+
 class ImpersonateAndTriggerTests(ChatPromptTests):
+    def test_their_message_keeps_their_own_point_of_view_and_intent(self):
+        from mainapp.bulba import control
+        from mainapp.bulba.agent import BASICS
+        second = BASICS["pov"][1]["second"]
+        p = control.for_impersonation({"blocks": [{"name": "Basics", "kind": "prompt", "content": second + "\nWrite in past tense."}]})
+        self.assertNotIn(second, json.dumps(p))  # the narration's point of view is for the character's replies
+        self.assertIn("Write in past tense.", json.dumps(p))
+        self.assertIn("keeps the intent, boldness and mood", p["blocks"][0]["content"])
+        for i in range(2):
+            self.post({"action": "chat", "message": f"I lean on the counter and smile. ({i})"})
+        self.post({"action": "expand"})
+        sent = json.dumps(self.all_calls[-1]["messages"] if hasattr(self, "all_calls") else self.sent[-1]["messages"])
+        self.assertIn("Point of view: first person", sent)
+        self.assertIn("Keep out of this reply", sent)
+
     def test_blocks_fire_only_on_their_kind_of_generation(self):
         from mainapp import presets as presets_mod
         p = presets_mod.normalize({"blocks": [
@@ -5079,7 +5173,7 @@ class CardNoteTests(ChatPromptTests):
         self.post({"action": "chat", "message": "Walk with me"})
         msgs = self.sent[-1]["messages"]
         i = next(i for i, m in enumerate(msgs) if m["content"] == "Rose hides her limp.")
-        self.assertEqual(msgs[i + 1]["content"], "Walk with me")  # one message from the end
+        self.assertEqual(msgs[i + 1]["content"].split("\n\n[")[0], "Walk with me")  # one message from the end
         page = self.client.get(reverse("character", args=[self.character.slug]))
         self.assertContains(page, "Character's note (from the card)")
 
@@ -6612,6 +6706,39 @@ class PolishChatTests(WatchChatTests):
         self.polish_answer = {"fixes": []}
         from mainapp.bulba import watch
         watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": False})  # only what they approve
+        from unittest import mock
+        from mainapp.bulba import polish
+        every = mock.patch.object(polish, "FULL_EVERY", 1)  # (these tests: every reply gets the full check)
+        every.start()
+        self.addCleanup(every.stop)
+
+    def test_free_checks_decide_and_only_flagged_sentences_are_sent(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        self.approve("quiet_menace")  # a habit code can spot
+        with mock.patch.object(polish, "FULL_EVERY", 3):
+            self.post({"action": "chat", "message": "Go on."})  # "A reply.": nothing to fix
+            self.assertFalse(self.post({"action": "polish"}).json()["changed"])
+            self.assertEqual(self.polish_calls, [])  # no call at all
+            msgs = self.saved_messages()
+            text = "The rain stops. He did not raise his voice. The street is empty."
+            msgs[-1] = [msgs[-1][0], msgs[-1][1], text, *msgs[-1][3:]]
+            self.assertTrue(polish.due(self.user, self.character.chats.first(), msgs))
+            self.polish_answer = {"fixes": [{"find": "He did not raise his voice.", "replace": "He answered at once."}]}
+            with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+                new, fixes = polish.polish(self.user, self.character, self.character.chats.first(), msgs, "A long summary.")
+        self.assertEqual(new, "The rain stops. He answered at once. The street is empty.")
+        sent = self.polish_calls[-1]["messages"][1]["content"]
+        self.assertIn("He did not raise his voice.", sent)
+        self.assertNotIn("The street is empty", sent)  # only the flagged sentence
+        self.assertNotIn("A long summary", sent)
+
+    def test_habits_code_cant_spot_get_a_full_check_every_third_reply(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        msgs = [("assistant", "", "A.", "neutral", 1)]
+        with mock.patch.object(polish, "FULL_EVERY", 3):
+            self.assertEqual([polish.full_turn(msgs * n) for n in (1, 2, 3, 4, 5, 6)], [False, False, True, False, False, True])
 
     def test_known_slop_is_fixed_by_default(self):
         from mainapp.bulba import polish, watch
@@ -8401,6 +8528,18 @@ class UsageTests(TestCase):
         self.assertEqual((s["accounts"], s["active_users"], s["returning_users"], s["sessions"]), (1, 1, 1, 3))
         self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
         self.assertIn("reader", usage.csv_text(data))
+
+    def test_report_shows_what_the_checkers_cost_per_100_replies(self):
+        from users import usage
+        from users.models import UsageRecord
+        for _ in range(4):
+            UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=0.01)
+        UsageRecord.objects.create(user=self.user, task="watch", model="m", cost=0.02)
+        for _ in range(2):
+            UsageRecord.objects.create(user=self.user, task="polish", model="m", cost=0.01)
+        s = usage.report()["summary"]
+        self.assertEqual((s["watch_cost_per_100_replies"], s["polish_cost_per_100_replies"],
+                          s["polish_calls_per_100_replies"]), (0.5, 0.5, 50.0))
 
     def test_report_counts_bulbas_changes_and_messages(self):
         from mainapp.models import BulbaSession
@@ -10674,6 +10813,74 @@ for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
         setattr(BulbaChatPersonaTests, _name, None)
 
 
+class BulbaOrderTests(BulbaTests):
+    """🥔 Every Bulba knows the setup order, and calls out a proposal still waiting for Apply."""
+    def test_order_and_waiting_proposals(self):
+        from mainapp import chats
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import agent, doctor
+        dottore = Character.objects.create(name="Dottore", slug="dott-order", author=self.user, initial_message="Hm.")
+        setup = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        chat = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(dottore))
+        for session, prompt in ((setup, agent.system_prompt), (chat, doctor.system_prompt)):
+            text = prompt(session)
+            self.assertIn("always in this order", text)
+            self.assertLess(text.index("2. Who the user is in this story"), text.index("3. Where the story starts"))
+            self.assertIn("NOTHING IS PERMANENT", text)
+            self.assertNotIn("WAITING FOR APPLY", text)
+        agent._proposal(chat, "card_edit", "Card: Dottore, shorter", ["x"], {})
+        self.assertIn("WAITING FOR APPLY right now: “Card: Dottore, shorter”", doctor.system_prompt(chat))
+
+
+    def test_a_lorebook_has_a_kind_and_its_size(self):
+        from unittest import mock
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import lore
+        dottore = Character.objects.create(name="Dottore", slug="dott-lore-kind", author=self.user, initial_message="Hm.")
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="setup")
+        entry = lambda i: {"keys": [f"place{i}"], "content": f"Place {i} is a lab.", "comment": f"Place {i}"}
+        with mock.patch("mainapp.bulba.lore.target_character", return_value=dottore), \
+             mock.patch("mainapp.bulba.polish.clean_written", side_effect=lambda u, d, k: d):
+            out, _ = lore.tool_propose_lorebook(session, {"type": "essentials", "entries": [entry(i) for i in range(9)], "why": "x"})
+            self.assertIn("at most 8 entries", out["error"])
+            out, _ = lore.tool_propose_lorebook(session, {"type": "essentials", "entries": [entry(i) for i in range(3)], "why": "x"})
+        self.assertIn("Essentials, 3 entries", session.proposals[-1]["summary"][0])
+
+    def test_a_card_cleaned_once_on_request(self):
+        from unittest import mock
+        from mainapp import card_sections, chats
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor, watch
+        pan = Character.objects.create(name="Pantalone", slug="pan-clean", author=self.user, initial_message="Hm.",
+                                       scenario="A meeting on the top floor.")
+        card_sections.apply(pan, {"kind": "character", "people": [{"name": "Pantalone", "sections": {
+            "personality": {"text": "Never raises his voice. Never forgets an account.", "on": True},
+            "appearance": {"text": "Tall, grey suit.", "on": True}}}]})
+        pan.save()
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(pan))
+        watch.change_memory(self.user, "fix_known", new=False)  # asked for: it runs even with the switch off
+        def fake(user, texts, what="character card", force=False):
+            self.assertTrue(force)
+            return {k: ("Speaks precisely when angry and goes after the person's weak point." if "Never" in v else v)
+                    for k, v in texts.items()}
+        with mock.patch("mainapp.bulba.polish.clean_written", side_effect=fake):
+            out, _ = doctor.tool_clean_card_writing(session, {})
+        self.assertEqual(out["status"], "waiting for Apply")
+        session.save()
+        actions.apply(session, out["proposal"])
+        pan.refresh_from_db()
+        person = card_sections.clean(pan.sections)["people"][0]["sections"]
+        self.assertIn("goes after the person's weak point", person["personality"]["text"])
+        self.assertEqual(person["appearance"]["text"], "Tall, grey suit.")
+        with mock.patch("mainapp.bulba.polish.clean_written", side_effect=lambda u, t, w="", force=False: t):
+            out, _ = doctor.tool_clean_card_writing(session, {})
+        self.assertIn("fine as it is", out["result"])
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaOrderTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaOrderTests, _name, None)
+
+
 class BulbaBasicsTests(BulbaTests):
     """Point of view, reply length and the other form settings, from Bulba in a chat: the same lines the form writes."""
     def test_basics_replace_their_own_line(self):
@@ -10728,7 +10935,8 @@ class AfterNewCardTests(BulbaTests):
         self.api(action="apply", id=made["id"])
         sent = json.dumps(self.bulba_calls[-1]["messages"])
         self.assertIn("NEXT, after this new character", sent)
-        self.assertIn("propose_persona with scope account / story / chat", sent)
+        self.assertIn("2) Who the user is in this story", sent)
+        self.assertIn("propose_persona: their usual persona, one just for this story, or just for one chat", sent)
 
 
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:

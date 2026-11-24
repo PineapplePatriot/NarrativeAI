@@ -114,6 +114,17 @@
     return s;
   }
 
+  // 👥 What goes inside a chat's round avatar: its picture, else (a group) its members' pictures side by side
+  function threadAvatarInner(t) {
+    if (t.avatar_url) return '<img src="' + esc(t.avatar_url) + '" alt="">';
+    var pics = (t.avatar_urls || []).filter(Boolean).slice(0, 2);
+    if (t.is_group && pics.length > 1) {
+      return '<span class="tg-av-split">' + pics.map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join("") + "</span>";
+    }
+    if (pics.length) return '<img src="' + esc(pics[0]) + '" alt="">';
+    return esc(((t.title || "?")[0] || "?").toUpperCase());
+  }
+
   function avatarHtml(url, name, extraClass) {
     var initial = ((name || "?").trim()[0] || "?").toUpperCase();
     if (url) {
@@ -211,7 +222,7 @@
         return (
           '<div class="tg-thread-item ' + (isAct ? "active" : "") + '" onclick="TG.selectThread(' + t.id + ')">' +
             '<div class="tg-avatar">' +
-              (t.avatar_url ? '<img src="' + esc(t.avatar_url) + '" alt="">' : esc(((t.title || "?")[0] || "?").toUpperCase())) +
+              threadAvatarInner(t) +
               (t.is_group ? "" : '<span class="tg-online-dot ' + esc((t.presence || {}).state || "online") + '"></span>') +
             "</div>" +
             '<div class="tg-thread-meta">' +
@@ -309,9 +320,7 @@
     var mMap = memberMap(t);
 
     if (hdrAvatar) {
-      hdrAvatar.innerHTML = t.avatar_url
-        ? '<img src="' + esc(t.avatar_url) + '" alt="">'
-        : esc(((t.title || "?")[0] || "?").toUpperCase());
+      hdrAvatar.innerHTML = threadAvatarInner(t);
     }
     if (hdrTitle) {
       var badge = t.is_group
@@ -931,6 +940,11 @@
           "<label>This Chat's Scenario Override (optional)</label>" +
           '<textarea class="tg-textarea" id="drwThreadScenario">' + esc(t.scenario_override || "") + "</textarea>" +
         "</div>" +
+        (t.is_group ? '<div class="tg-field-group"><label>👥 How the group talks</label>' +
+          '<select class="tg-input" id="drwThreadGroupMode">' +
+            '<option value="conversation"' + (t.group_mode !== "lively" ? " selected" : "") + '>💬 Conversation: they answer you, and each other now and then</option>' +
+            '<option value="lively"' + (t.group_mode === "lively" ? " selected" : "") + '>🎉 Lively: they talk among themselves as they like</option>' +
+          "</select></div>" : "") +
         '<div class="tg-field-group">' +
           '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">' +
             '<input type="checkbox" id="drwThreadLeaveOnRead" ' + (t.leave_on_read ? "checked" : "") + ' style="margin-top:3px">' +
@@ -1255,7 +1269,7 @@
   // --- 🧭 Before you start: memory, leave-on-read, who you are in this chat (once per chat) ---
   var startSkipped = {}, startState = {};
   function startCard(t) {
-    var st = startState[t.id] || (startState[t.id] = { share: t.share_memory !== false, lor: !!t.leave_on_read,
+    var st = startState[t.id] || (startState[t.id] = { share: t.share_memory !== false, lor: !!t.leave_on_read, mode: t.group_mode || "conversation",
       own: !!(t.persona && (t.persona.name || t.persona.description)), name: (t.persona || {}).name || "", desc: (t.persona || {}).description || "" });
     var who = t.is_group ? "them" : esc((t.members && t.members[0] && t.members[0].name) || "them");
     var radio = function (name, val, on, label) {
@@ -1265,6 +1279,9 @@
     return '<div class="tg-setup tg-start" id="tgStart"><div class="tg-setup-head">🧭 <b>Before you start</b></div>' +
       "<p><b>🧠 Memory.</b> Should " + who + " remember what happened in your roleplay chats?</p>" +
       '<div class="tg-start-row">' + radio("share", "true", st.share, "Yes, share story memory") + radio("share", "false", !st.share, "No, texting stands apart") + "</div>" +
+      (t.is_group ? "<p><b>👥 How should the group talk?</b></p>" +
+        '<div class="tg-start-row">' + radio("mode", "'conversation'", st.mode !== "lively", "💬 Conversation: they answer me, and each other now and then") +
+        radio("mode", "'lively'", st.mode === "lively", "🎉 Lively: they talk among themselves as they like") + "</div>" : "") +
       "<p><b>🙈 Realism.</b></p>" +
       '<label class="tg-start-opt' + (st.lor ? " on" : "") + '"><input type="checkbox" ' + (st.lor ? "checked" : "") +
         ' onchange="TG.startSet(' + t.id + ', \'lor\', this.checked)">They can leave me on read now and then (up to 5 minutes, when it fits: busy, teasing, annoyed, petty)</label>' +
@@ -1611,8 +1628,63 @@
       box.classList.add("open");
     },
     // 📇 Their card: the texting profile on top, the roleplay card at a glance below (character_quick)
+    // 👥 A group's card: its picture (or the members' side by side), the shared scenario if there is one, else each
+    // member's own short description; tap a member for their card. The picture: upload one, have one made, or reset
+    openGroupCard: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var box = document.getElementById("tgCard");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgCard"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var about = function (m) {
+        var txt = m.bio || m.modern_persona || m.description || "";
+        return String(txt).split(/(?<=[.!?])\s/).slice(0, 2).join(" ").slice(0, 220);
+      };
+      box.innerHTML = '<div class="tg-card tg-group-card" role="dialog" aria-label="' + esc(t.title) + '">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        '<div class="tg-card-top"><div class="tg-avatar tg-group-pic">' + threadAvatarInner(t) + "</div>" +
+          "<div><h3>" + esc(t.title) + '</h3><div class="tg-card-handle">👥 ' + (t.members || []).length + " members</div></div></div>" +
+        (t.scenario_override ? '<p class="tg-card-small"><b>Their story:</b> ' + esc(t.scenario_override) + "</p>" : "") +
+        '<div class="tg-group-members">' + (t.members || []).map(function (m) {
+          return '<button type="button" class="tg-group-member" onclick="TG.openCard(\'' + esc(m.slug) + '\')">' +
+            avatarHtml(m.avatar_url, m.name, "tg-msg-avatar") + "<span><b>" + esc(m.display_name || m.name) + "</b>" +
+            (about(m) ? "<small>" + esc(about(m)) + "</small>" : "") + "</span></button>";
+        }).join("") + "</div>" +
+        '<div class="tg-group-pic-actions"><label class="tg-setup-ghost">📤 Upload a group picture<input type="file" accept="image/*" hidden onchange="TG.groupPicUpload(this.files[0])"></label>' +
+          '<button type="button" class="tg-setup-ghost" onclick="TG.groupPicMake()">✨ Make one of them together</button>' +
+          (t.avatar_url ? '<button type="button" class="tg-setup-ghost" onclick="TG.groupPicClear()">↺ Their own pictures, side by side</button>' : "") +
+        "</div><p class=\"tg-card-small\" id=\"tgGroupPicNote\">Members may change it themselves now and then, like their own profile pictures.</p></div>";
+      box.classList.add("open");
+    },
+    groupPicDone: function (res) {
+      if (res && res.thread) { STATE.active_thread = res.thread; renderActiveThread(); TG.openGroupCard(); }
+    },
+    groupPicUpload: function (file) {
+      var t = STATE.active_thread; if (!t || !file) return;
+      var fd = new FormData(); fd.append("kind", "group_avatar"); fd.append("thread_id", t.id); fd.append("file", file);
+      fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { if (res.error) throw new Error(res.error); TG.groupPicDone(res); })
+        .catch(function (e) { alert(e.message); });
+    },
+    groupPicMake: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var what = prompt("What should the group picture show? (leave empty: all of them together)", "");
+      if (what === null) return;
+      var note = document.getElementById("tgGroupPicNote"); if (note) note.textContent = "✨ Making it… (a few cents, on your key)";
+      apiPost({ action: "group_avatar", thread_id: t.id, what: what }).then(TG.groupPicDone).catch(function (e) { if (note) note.textContent = e.message; });
+    },
+    groupPicClear: function () {
+      var t = STATE.active_thread; if (!t) return;
+      apiPost({ action: "group_avatar", thread_id: t.id, clear: true }).then(TG.groupPicDone).catch(function (e) { alert(e.message); });
+    },
+
     openCard: function (slug) {
       var t = STATE.active_thread; if (!t) return;
+      if (!slug && t.is_group) return TG.openGroupCard();  // the header of a group: the group, not its first member
       var m = (t.members || []).find(function (x) { return x.slug === slug; }) || (t.members || [])[0];
       if (!m) return;
       var box = document.getElementById("tgCard");
@@ -1719,6 +1791,7 @@
     startSave: function (id) {
       var st = startState[id]; if (!st) return;
       apiPost({ action: "thread_settings", thread_id: id, started: true, share_memory: st.share, leave_on_read: st.lor,
+                group_mode: st.mode || "conversation",
                 persona: st.own ? { name: st.name, description: st.desc } : {} })
         .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
         .catch(function (e) { alert(e.message); });
@@ -2200,7 +2273,7 @@
       if (!t) return;
       var inp = document.getElementById("tgRegenNote"), note = inp ? inp.value.trim() : "";
       var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
-      if (typRow) { typTxt.textContent = t.title + " is typing again…"; typRow.classList.add("visible"); }
+      if (typRow) { typTxt.textContent = TG.whoTyping(t) + " again…"; typRow.classList.add("visible"); }
       var box = document.getElementById("tgRegen");
       if (box) box.classList.add("busy");
       var keep = (t.messages || []).map(function (m) { return m.id; });
@@ -2269,7 +2342,7 @@
           if (m.voice) typing = Math.min(8000, typing * 1.3);  // recording a voice note
           if (m.photo) typing = 1800;
           if (i === 0) typing = Math.max(250, typing - (Date.now() - (TG._turnStart || Date.now())));
-          if (typRow && typing > 300) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          if (typRow && typing > 300) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name ? m.sender_name + " is typing…" : TG.whoTyping(full) + "…")); typRow.classList.add("visible"); }
           TG.setTyping(m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : "✍️ typing…");
           setTimeout(function () {
             if (typRow) typRow.classList.remove("visible");
@@ -2298,6 +2371,16 @@
         if (row) row.classList.remove("tg-translating");
         alert("Couldn't translate: " + err.message);
       });
+    },
+
+    // ⌨️ Who's typing before we know who answers: the person (not the chat's title, which may be "X · chat 2"),
+    // or in a group its members ("Pantalone and Il Dottore are typing")
+    whoTyping: function (t) {
+      var names = ((t && t.members) || []).map(function (m) { return m.name; }).filter(Boolean);
+      if (!names.length) return (t && t.title ? t.title : "Someone") + " is typing";
+      if (names.length === 1) return names[0] + " is typing";
+      if (names.length === 2) return names[0] + " and " + names[1] + " are typing";
+      return "Several people are typing";
     },
 
     setTyping: function (label) {  // 🟢 the header says "typing…" (or "recording…") while they write, like Telegram
@@ -2372,7 +2455,7 @@
       var typRow = document.getElementById("tgTypingRow");
       var typTxt = document.getElementById("tgTypingText");
       if (typRow) {
-        typTxt.textContent = t.title + " is typing…";
+        typTxt.textContent = TG.whoTyping(t) + "…";
         typRow.classList.add("visible");
       }
       TG.setTyping("✍️ typing…");
@@ -2950,6 +3033,7 @@
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
         leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
+        group_mode: (document.getElementById("drwThreadGroupMode") || {}).value || undefined,
         share_memory: !!(document.getElementById("drwThreadShare") || {}).checked,
         memory: (document.getElementById("drwThreadMemory") || {}).value || "",
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),

@@ -86,7 +86,49 @@ IMPERSONATE_TOP = (
     "not as {{char}}. The instructions below were written for {{char}}'s replies: follow their language, style "
     "and the story so far, but this one message belongs to {{user}}: their words, actions and thoughts, in the "
     "voice of {{user}}'s earlier messages. Don't write {{char}}'s or anyone else's reactions, and don't decide "
-    "what happens next.]")
+    "what happens next.\n"
+    "How to write it:\n"
+    "- The point of view of {{user}}'s own earlier messages (see the note at the end), not the one the "
+    "instructions below set for {{char}}'s replies.\n"
+    "- {{user}} keeps the intent, boldness and mood of their recent messages: if they've been flirting, they keep "
+    "flirting, openly and in their own way; if they've been direct, they stay direct. Answer what {{char}} just "
+    "said or did, then add something of {{user}}'s own.\n"
+    "- Show it: one concrete action with a physical detail of this moment, a line that commits to something (an "
+    "answer, an offer, a question that matters, a refusal), a choice {{char}} can react to. No summary of what "
+    "just happened, no clever one-liner to top {{char}}'s line, no explaining {{user}}'s feelings.]")
+
+FIRST_PERSON = re.compile(r"\b(I|I'm|I'd|I'll|me|my|mine|myself)\b|(?<!\w)(я|мені|мене|мій|моя|моє|мої|мною|собі)(?!\w)", re.I)
+
+
+def pov_of(texts, name=""):
+    """The point of view their own messages are written in: "first" (I…), "third" (about them by name, she/he…)
+    or "" when it can't be told (too few, or mixed)."""
+    first = third = 0
+    for t in texts[-6:]:
+        plain = re.sub(r"[\"“”«»][^\"“”«»]*[\"“”«»]", " ", t or "")  # (what they say aloud doesn't count)
+        if FIRST_PERSON.search(plain):
+            first += 1
+        elif name and re.search(rf"\b{re.escape(name.split()[0])}\b", plain, re.I):
+            third += 1
+    if first >= 2 and first > third:
+        return "first"
+    if third >= 2 and third > first:
+        return "third"
+    return ""
+
+
+def pov_note(pov, name):
+    if pov == "first":
+        return f"[Point of view: first person, as {name}'s own messages are written (\"I lean closer…\"). Never \"you\" for {name}, never third person.]"
+    if pov == "third":
+        return f"[Point of view: third person, about {name} by name, as their own messages are written (\"{name} leans closer…\"). Never \"I\" or \"you\" for {name}.]"
+    return f"[Point of view: the same as {name}'s own earlier messages. Never \"you\" for {name}.]"
+
+
+def _pov_lines():
+    """The Basics point-of-view lines (they live in agent.py, which imports this module: read when needed)."""
+    from mainapp.bulba.agent import BASICS
+    return [v for v in (BASICS["pov"][1] or {}).values() if v]
 
 
 def for_impersonation(preset):
@@ -101,6 +143,8 @@ def for_impersonation(preset):
             continue
         if b["kind"] == "prompt" and "impersonate" not in (b.get("triggers") or []):
             b["content"] = AGENCY_LINE.sub("", b["content"])
+            for line in _pov_lines():  # the narration's point of view is for {{char}}'s replies, not their message
+                b["content"] = b["content"].replace(line, "")
         keep.append(b)
     top = presets.normalize_block({"name": "Writing for you", "kind": "prompt", "content": IMPERSONATE_TOP,
                                    "order": -10000})

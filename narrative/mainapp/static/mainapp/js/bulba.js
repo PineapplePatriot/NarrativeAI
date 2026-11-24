@@ -116,7 +116,7 @@ function proposalCard(ev) {
         : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}" ${off}>Undo</button>` : '';
     const chatLink = p.status === 'applied' && p.result && p.result.slug
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}" ${window.parent !== window ? 'target="_top"' : ''}>Chat now →</a>` : '';
-    return `<div class="proposal ${p.status}">
+    return `<div class="proposal ${p.status}" data-proposal-card="${p.id}">
         <div class="proposal-head"><b>${esc(p.title)}</b> ${p.edited ? '<span class="status">edited by you</span>' : ''} ${status}</div>
         <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
@@ -301,6 +301,29 @@ document.addEventListener('click', e => {
                         f.dataset.failed === 'retry' ? 'Trying again…' : 'Removing…');
 });
 
+// ⏳ A proposal still waiting for Apply: a line above the message box says so (tap it to see the proposal), and
+// sending a message while one waits makes the line flash, so a change is never assumed done when it isn't
+function pendingLine(flash) {
+    const waiting = ((state && state.proposals) || []).filter(p => p.status === 'pending');
+    let line = document.getElementById('pendingLine');
+    if (!waiting.length) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('button');
+        line.type = 'button'; line.id = 'pendingLine'; line.className = 'pending-line';
+        line.addEventListener('click', () => {
+            const card = document.querySelector(`[data-proposal-card="${line.dataset.id}"]`);
+            if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 1500); }
+        });
+        $('composer').before(line);
+    }
+    const last = waiting[waiting.length - 1];
+    line.dataset.id = last.id;
+    line.textContent = waiting.length === 1
+        ? `⏳ “${last.title}” is waiting for Apply: nothing changes until you press it. Show it ↑`
+        : `⏳ ${waiting.length} proposals are waiting for Apply: nothing changes until you press them. Show the last ↑`;
+    if (flash) { line.classList.remove('flash'); void line.offsetWidth; line.classList.add('flash'); }
+}
+
 function render() {
     const types = events.map(e => e.type);
     const lastBulba = types.lastIndexOf('bulba');
@@ -389,6 +412,7 @@ function render() {
     fillCosts();
     $('log').scrollTop = $('log').scrollHeight;
     renderPanel();
+    pendingLine(false);
 }
 
 // The setup's stages: done (green), skipped, the current one with its small steps, and what's left
@@ -540,6 +564,7 @@ $('composer').addEventListener('submit', e => {
     const text = $('input').value;
     $('input').value = '';
     fitInput(false);
+    pendingLine(true);
     say(text);
 });
 $('input').addEventListener('keydown', e => {
