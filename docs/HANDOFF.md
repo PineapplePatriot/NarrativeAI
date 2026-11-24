@@ -1,4 +1,50 @@
-# Handoff for the next Claude session (written 21 November 2026)
+# Handoff for the next Claude session (written 24 November 2026)
+
+## Episodes (visual novels), rebuilt in session `claude/trusting-sagan-d1tl6k`
+
+The branch starts from Codex's `codex/screen-integration` (Screen home, Drive, Mail, Pulse, Wave, Subtext, VN v1) and
+reworks episodes. Not merged to `master` yet; the user merges by PR. Migrations `0044_episode_looks`,
+`0045_episode_places`, `0046_look_identity_review`. Venus University (AGPL) was the inspiration: ideas only, no code.
+
+Words that matter (the user cares): **consistency** = things look and sound the same every time (looks, places);
+**continuity** = what happened stays true as the story moves (facts, who knows what, who is present, clothes).
+
+- **Three kinds of character pictures, never mixed:** chat-page stage sprites (`photo_*`, `extra_sprites`), phone
+  pictures (`messenger_profile`), and **episode looks** (`EpisodeLook`, `episode_looks.py`): one outfit per look,
+  canon or modern by how the episode was entered. Bulba reads the reference picture (`identity`) instead of the
+  card's prose; the neutral picture is drawn once on a key colour; every mood is an edit of it (face only). The
+  browser cuts them out (`static/.../episode_looks.js`, flood fill + spill removal) and compares each mood's outline
+  with the neutral's (>3% = "body changed", one automatic redraw, then flagged and kept off the stage).
+- **Checked pictures:** `picture_checks.draw_checked` = draw, Bulba looks (vision model with references), redraw
+  once if wrong, keep the better. Used by look bases, outfit changes, places, the end illustration, phone photos.
+  Off in tests (`settings.PICTURE_CHECKS`).
+- **Casting** (`vn_casting.py`, `static/.../vn_casting.js`): Bulba proposes cast, place (time, light, weather,
+  layout, details), outfits item by item, facts, opening, optional detail; Apply / Edit / Not this. Applied parts
+  are fixed and sent with every turn. Drawn places are kept (`EpisodePlace`) and join the backdrop list.
+- **Stage** (`vn_scenes.js` renderStageOnly): one 16:9 frame (full height on phones), whole cast on the floor, name
+  tab, typewriter, tap to go on, keys, backlog, auto, hide, menu sheet (passage tools from `vn_editor.js`, looks,
+  music, preferences, versions, finish). Curtain over the opening and place changes.
+- **Story state per passage** (`beat.stage`): background, music, place, `looks` (who wears which look), `faces`,
+  `present` (enter/leave), continuity. Outfit changes are passage events (`outfit_change`) with draw / edit / keep.
+- **Watch** (`vn_watch.py`): after each turn when Bulba Watch is on (or from the menu), checks the turn against the
+  casting, memory, the record from before the turn, who is present and what they wear; slips with fix, regenerate,
+  ignore.
+- **Phone:** a finished episode leaves a card in the chat and updates "📍 Right now" (place, clothes).
+- **Language:** written in English, shown translated (`vn_support.translate_turn`, `beat.shown`). **Voices:**
+  `vn_scenes.voice_line`, kept on the page. **Cost:** from casting on, from `UsageRecord`.
+
+### First live run (nothing above has met a real model yet)
+
+1. A chat with one character who has a neutral sprite or phone portrait. Scenes → Ask Bulba to cast it: are the
+   place, outfits and facts concrete and true to the chat?
+2. Make one look: does Bulba's "what it saw" match the picture? Does its check agree with your eyes? Do the
+   moods keep the body (is 3% too strict or too loose)? How does the browser cut-out handle hair?
+3. Draw the place; play 3–4 turns with Bulba Watch on; try a slip on purpose (someone knowing a secret).
+4. An outfit change, someone leaving and coming back, finish with an illustration; check the chat card, Right now
+   and the cost line. Then the same with the reading language set to Ukrainian, and one line read aloud.
+
+
+## Before that (21 November 2026)
 
 Read this first. It replaces the 11 November handoff (`git show 61d8986:docs/HANDOFF.md` for that one, which has
 the longer history up to then). `docs/PLAN.md` is the working plan with every list the user sent and what was
