@@ -47,7 +47,9 @@ RULES = (
     "Never write these (in any language):\n"
     + "\n".join(f"- {name.replace('_', ' ')}: {what}. Instead: {instead}." for name, (what, instead) in HABITS.items())
     + "\n- A character's inner state that differs from what they show: say both plainly (\"furious, and shows it "
-      "only as more precise wording and a faster pace\"), not as \"goes quiet\".")
+      "only as more precise wording and a faster pace\"), not as \"goes quiet\".\n"
+      "- Details: real and specific, not stock. When a card, persona, greeting or lore touches luxury, clothes, "
+      "food, science, politics or a genre trope, check look_up_texture first for what it's really like.")
 
 
 # ✍️ Bad-and-good pairs for models that slide into these habits (MiMo): shown once, before the chat. A model copies
@@ -74,3 +76,55 @@ EXAMPLES_BLOCK = (
     "[How to write it: examples. Each pair shows a tired habit and the version that does the work. Write like the "
     "second of each pair; never copy their words, characters or details.]\n\n"
     + "\n\n".join(f"{what}:\n✗ {bad}\n✓ {good}" for what, bad, good in EXAMPLE_PAIRS))
+
+
+
+def tool_look_up_texture(session, args):
+    """🧵 The built-in world texture library (mainapp/texture.py), for concrete specifics in cards, personas, lore."""
+    from mainapp import mature, texture
+    found = texture.look_up(str(args.get("query") or "")[:200], mature=mature.wanted(session.user))
+    if not found:
+        return {"result": "Nothing in the library for that; use look_up for the web, or your own knowledge."}, []
+    return {"entries": found, "note": "Draw on these for concrete, varied detail (pick, don't list them all); the "
+                                      "card's and the story's own facts come first."}, []
+
+
+def tool_defs(fn, STR):
+    return [fn("look_up_texture", "The app's own library of concrete, varied specifics (luxury, clothing styles by "
+               "era, food by cuisine, lab and hospital life, courts, parliaments, bureaucracy, organised crime, "
+               "genre tropes such as vampires, fae, dragons, omegaverse...): what it's really like, the tired version "
+               "to avoid, and specifics. Use it when writing a card, persona, greeting or lore that touches these, "
+               "so details are real and not stock. Free.", {"query": STR}, ["query"])]
+
+
+HANDLERS = {"look_up_texture": tool_look_up_texture}
+
+
+
+REWRITE = (
+    "You rewrite drafts of a roleplay character card (or a persona, a greeting, lore) that another assistant wrote. "
+    "Keep every fact, name, relationship, {{char}} and {{user}} exactly; keep each field's purpose and roughly its "
+    "length. Change only the writing, following these rules:\n\n" + RULES + "\n\n"
+    "A greeting stays a scene in the story's voice (not notes), but plain and specific, without these habits. "
+    "Answer with JSON only: the same keys, each with its rewritten text.")
+
+
+def rewrite(user, fields, what="character card"):
+    """{field: text} rewritten by their card-writing model (ai_client task "card_writing"), or None (not set up,
+    or the answer didn't hold: then the usual cleanup runs)."""
+    import json
+    from mainapp import ai_client
+    texts = {k: v for k, v in fields.items() if isinstance(v, str) and v.strip()}
+    if not texts or not ai_client.card_writer_set(user):
+        return None
+    try:
+        answer = ai_client.complete(user, "card_writing", [
+            {"role": "system", "content": REWRITE},
+            {"role": "user", "content": f"## The {what} draft (JSON)\n" + json.dumps(texts, ensure_ascii=False)}],
+            max_tokens=6000, temperature=0.4, response_format={"type": "json_object"})
+        data = json.loads(answer[answer.find("{"):answer.rfind("}") + 1])
+    except (ai_client.AIError, ValueError):
+        return None
+    if not isinstance(data, dict) or set(data) != set(texts) or not all(isinstance(v, str) and v.strip() for v in data.values()):
+        return None
+    return {**fields, **{k: v.strip() for k, v in data.items()}}

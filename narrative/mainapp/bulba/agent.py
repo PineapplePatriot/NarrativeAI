@@ -1078,6 +1078,7 @@ HANDLERS = {
     **library.HANDLERS, **cardsearch.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
     "clean_card_writing": doctor.tool_clean_card_writing,
+    **analyst.HANDLERS,
     "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
                                                   [{"type": "preset_upload"}]),
     "read_block": doctor.tool_read_block, "propose_preset_edit": doctor.tool_propose_preset_edit,
@@ -1543,3 +1544,4 @@ def run_turn(session, user_text, action_note=None, model_note=None):
     return new_events
 
 TOOLS.append(doctor.basics_tool())  # (here: it reads BASICS, defined above)
+TOOLS.extend(analyst.tool_defs(_fn, STR))  # 🧵 the texture library

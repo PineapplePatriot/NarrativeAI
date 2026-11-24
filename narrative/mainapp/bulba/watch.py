@@ -697,6 +697,12 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
             slips.append({"label": label, "quote": quote, "at": at,
                           "cause": s.get("cause") if s.get("cause") in CAUSES else "model"})
     data["log"] += slips
+    try:  # 📊 for the stats page: slips per 100 replies, by the model that wrote them
+        chat_model = ai_client.resolve(user, "chat")[1]
+    except Exception:
+        chat_model = ""
+    data["quality"] = (list(data.get("quality") or []) + [{"model": chat_model, "replies": len(picked),
+                       "slips": sum(1 for s in slips if s["cause"] == "model")}])[-200:]
     data["checked"] = sorted(set(data["checked"]) | set(picked))
     data["upto"] = len(messages)
     data["signals"] = []

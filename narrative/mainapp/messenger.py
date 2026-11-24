@@ -1678,8 +1678,10 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         + "]"
     )
     from mainapp.bulba import polish  # 🛡 the habits to keep out, before they write
+    from mainapp import texture  # 🧵 real specifics for what the texts are about
     avoid = polish.avoid_line(user)
-    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "")})
+    tex = texture.for_reply(user, [str(m.get("text") or "") for m in data["messages"][-4:]])
+    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "") + ("\n" + tex if tex else "")})
     try:
         _, model = ai_client.resolve(user, "chat")
     except Exception:
@@ -3339,10 +3341,15 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     from mainapp import samplers, thinking
     params = {"max_tokens": 1200, "temperature": 0.85}
     _, chat_model = ai_client.resolve(user, "chat")
+    plain_messages, plain_params = prompt_messages, params
     if thinking.needs_leash(chat_model, samplers.thinking_now(user)):  # MiMo: think briefly, then text (as in the chat)
         prompt_messages, params = thinking.leash(prompt_messages, params)
     raw_reply = ai_client.complete(user, "chat", prompt_messages, **params)
     _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
+    if not raw_reply.strip():  # all thinking, no text: once more, with thinking off (or more room), before giving up
+        log.info("messenger: a reply was all thinking; trying once more without it")
+        raw_reply = ai_client.complete(user, "chat", plain_messages, **thinking.without_thinking(chat_model, plain_params))
+        _, raw_reply = thinking.split(raw_reply or "")
     if not raw_reply.strip():
         raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
     later, late_reason = 0, ""

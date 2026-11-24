@@ -113,6 +113,7 @@ myenv/
 !narrative/mainapp/data/starters/*.json
 !narrative/mainapp/data/bulba/*.json
 !narrative/mainapp/data/library/*.json
+!narrative/mainapp/data/texture/*.json
 !narrative/mainapp/data/demo/**/*.json
 !narrative/static/defaults/catalog.json
 !incoming/**/*.json
