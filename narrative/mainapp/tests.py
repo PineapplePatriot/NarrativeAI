@@ -1766,6 +1766,29 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertIn("Ivan: a guard", out["linked"][0]["text"])
         self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
 
+    def test_starred_lines_become_voice_examples(self):
+        from mainapp import chats, favourites
+        self.build_story()
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        m = list(data["messages"][2])
+        m[2] = 'The rain stops. "You came alone. Good. Sit, and tell me who else knows." She waits.'
+        data["messages"][2] = m
+        chats.write(chat, data)
+        self.post({"action": "favourite", "index": 2})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["voice_lines"], ["You came alone. Good. Sit, and tell me who else knows."])
+        self.post({"action": "chat", "message": "And now?"})
+        sent = next(c["messages"] for c in reversed(self.all_calls) if "And now?" in json.dumps(c["messages"]))
+        note = next(x for x in sent if "sounds at their best" in x["content"])
+        self.assertEqual(note["role"], "system")
+        self.assertNotIn("rain stops", note["content"])  # speech only, never the scene
+        self.assertLess(sent.index(note), next(i for i, x in enumerate(sent) if x["role"] != "system"))
+        self.post({"action": "favourite", "index": 2})  # unstarred: the lines go
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["voice_lines"], [])
+        self.assertEqual(favourites.note(self.character), "")
+
     def test_a_detail_every_reply_repeats_is_steered_away_from(self):
         for i in range(4):  # the stand-in model answers "A reply." every time
             self.post({"action": "chat", "message": f"Turn {i}"})
