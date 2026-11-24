@@ -322,3 +322,67 @@ class LookCheckTests(LooksSetup):
         self.assertEqual(episode_looks.url(look, "happy")[1], "neutral")
         episode_looks.save_cut(look, "happy", png(), body_changed=0.001)
         self.assertEqual(episode_looks.url(look, "happy")[1], "happy")
+
+
+class LookModelAndMoodTests(LooksSetup):
+    def test_a_look_is_drawn_with_its_own_model_and_never_quietly_another(self):
+        from users.models import ConnectionProfile
+        from mainapp import ai_client
+        ConnectionProfile.objects.create(user=self.user, name="or", provider="openrouter", api_key="k", model="x/y")
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(ai_client, "image_models", return_value=[{"id": "microsoft/mai-image-2.7", "name": "MAI"}]), \
+             patch.object(ai_client, "generate_image", return_value=(b"img", 0.01)) as draw:
+            look, _, _ = episode_looks.create(self.user, self.char, "canon", "Day", "coat", moods=["happy"],
+                                              model="microsoft/mai-image-2.7")
+        self.assertEqual(look.model, "microsoft/mai-image-2.7")
+        self.assertTrue(all(c.kwargs["model"] == "microsoft/mai-image-2.7" for c in draw.call_args_list))
+        self.assertEqual(episode_looks.pack(look)["model_name"], "MAI-Image-2.7 (Microsoft)")
+        with patch.object(ai_client, "image_models", return_value=[{"id": "google/gemini-3.1-flash-image", "name": "NB"}]), \
+             patch.object(ai_client, "generate_image") as draw, self.assertRaises(ai_client.AIError) as err:
+            episode_looks.redraw_mood(self.user, look, "happy")
+        draw.assert_not_called()
+        self.assertIn("isn't available", str(err.exception))
+
+    def test_bulba_writes_how_this_person_shows_each_mood_and_the_edit_uses_it(self):
+        self.char.personality = "Arrogant, cold, manipulative; rarely shows feelings."
+        self.char.save()
+        notes = {"notes": {"happy": "a thin one-sided smile, eyes half-lidded", "angry": "jaw set, a slow blink"}}
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(messenger, "ask_json", return_value=notes) as bulba, \
+             patch.object(messenger, "make_picture", return_value=(b"img", 0)) as image:
+            look, _, _ = episode_looks.create(self.user, self.char, "canon", "Day", "coat", moods=["happy", "angry"])
+        self.assertIn("Arrogant, cold, manipulative", bulba.call_args.args[1])
+        happy_prompt = image.call_args_list[1].args[1]
+        self.assertIn("a thin one-sided smile, eyes half-lidded", happy_prompt)
+        self.assertIn("no exaggerated, cartoonish", happy_prompt)
+        episode_looks.set_mood_note(look, "happy", "the corner of the mouth barely lifts")
+        with patch.object(messenger, "make_picture", return_value=(b"again", 0)) as image:
+            episode_looks.redraw_mood(self.user, look, "happy", note="less teeth, keep the eyes cold")
+        prompt = image.call_args.args[1]
+        self.assertIn("the corner of the mouth barely lifts", prompt)
+        self.assertIn("less teeth, keep the eyes cold", prompt)
+
+    def test_asking_for_moods_it_already_has_says_so(self):
+        look, _, _ = self.make(moods=("happy",))
+        with patch.object(messenger, "make_picture", return_value=(b"img", 0)) as image, \
+             patch.object(messenger, "ask_json", return_value={"notes": {}}):
+            cost, errors = episode_looks.add_moods(self.user, look, ["happy", "smug"])
+        self.assertEqual(image.call_count, 1)  # only smug is new
+        self.assertIn("Already in this look: happy", errors[0])
+        self.assertIn("smug", look.moods)
+
+    def test_notes_and_models_can_be_changed_from_the_page(self):
+        look, _, _ = self.make()
+        url = reverse("vn_scenes_api")
+        r = self.client.post(url, data=json.dumps({"action": "episode_look_note", "look_id": look.pk, "mood": "happy",
+                                                   "note": "a small, tired smile"}), content_type="application/json")
+        self.assertEqual(r.json()["look"]["mood_notes"]["happy"], "a small, tired smile")
+        r = self.client.post(url, data=json.dumps({"action": "episode_look_model", "look_id": look.pk,
+                                                   "model": "microsoft/mai-image-2.7-flash"}), content_type="application/json")
+        self.assertEqual(r.json()["look"]["model"], "microsoft/mai-image-2.7-flash")
+        r = self.client.post(url, data=json.dumps({"action": "episode_look_model", "look_id": look.pk, "model": "evil/model"}),
+                             content_type="application/json")
+        self.assertEqual(r.json()["look"]["model"], "")
+        listing = self.client.post(url, data=json.dumps({"action": "episode_looks", "thread_id": self.thread.pk}),
+                                   content_type="application/json").json()
+        self.assertIn("microsoft/mai-image-2.7", [m[0] for m in listing["picture_models"]])

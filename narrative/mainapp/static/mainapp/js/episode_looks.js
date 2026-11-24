@@ -42,7 +42,21 @@
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d", {willReadFrequently: true});
-    ctx.drawImage(img, 0, 0, w, h);
+    if (size && (img.naturalWidth !== w || img.naturalHeight !== h)) {
+      // A mood that came back in another shape is fitted into the neutral's frame, standing on its floor, never
+      // stretched (stretching is what made proportions look wrong).
+      // Matched by height (the person stands as tall as in the neutral), centred; the sides are trimmed or padded.
+      const scale = h / img.naturalHeight;
+      const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
+      const probe = document.createElement("canvas"); probe.width = 1; probe.height = 1;
+      const pctx = probe.getContext("2d"); pctx.drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = pctx.getImageData(0, 0, 1, 1).data;  // the key colour fills the margins, so they cut away
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, (w - dw) / 2, h - dh, dw, dh);
+    } else {
+      ctx.drawImage(img, 0, 0, w, h);
+    }
     const data = ctx.getImageData(0, 0, w, h);
     const p = data.data;
     // The real key colour, read off the picture's border rather than trusted from the prompt.
@@ -213,6 +227,8 @@
         const data = await post({action: "episode_looks", thread_id: thread.id});
         this.cast = data.cast || [];
         this.coreMoods = data.core_moods || [];
+        this.models = data.picture_models || [["", "Nano Banana (Google): the app's default"]];
+        this.defaultModel = data.default_model || "";
         this.cast.forEach((m) => {
           if (!(m.key in this.picks) || !m.looks.some((l) => l.id === this.picks[m.key])) this.picks[m.key] = m.chosen;
         });
@@ -233,7 +249,7 @@
         const you = m.key === "user";
         const options = m.looks.map((l) => `<option value="${l.id}" ${look && l.id === look.id ? "selected" : ""}>${esc(l.name)}</option>`).join("");
         const thumbs = look ? Object.entries(look.moods).map(([mood, e]) => `
-          <figure class="ep-thumb ${e.cut ? "" : "ep-uncut"} ${e.flag ? "ep-flagged" : ""}" title="${esc(mood)}${e.cut ? "" : " (not cut out yet)"}${e.flag ? ": " + esc(e.flag) : ""}">
+          <figure class="ep-thumb ${e.cut ? "" : "ep-uncut"} ${e.flag ? "ep-flagged" : ""}" onclick="EPISODE_LOOKS.manageMoods(${look.id}, '${esc(mood)}')" title="${esc(mood)}${e.cut ? "" : " (not cut out yet)"}${e.flag ? ": " + esc(e.flag) : ""}">
             <img src="${esc(e.url)}" alt="${esc(mood)}" loading="lazy"><figcaption>${e.flag ? "⚠ " : ""}${esc(mood)}</figcaption>
           </figure>`).join("") : "";
         const flagged = look ? Object.entries(look.moods).filter(([, e]) => e.flag) : [];
@@ -261,6 +277,9 @@
               </label>
               ${look ? `
                 <p class="ep-outfit">${esc(look.outfit || "Outfit as in their references")}</p>
+                <label class="ep-inline ep-model">Picture model
+                  <select class="tg-select ep-small" onchange="EPISODE_LOOKS.setModel(${look.id}, this.value, this)">${this.modelOptions(look.model)}</select>
+                </label>
                 <div class="ep-thumbs">${thumbs}</div>
                 ${checks}
                 <div class="ep-actions">
@@ -268,7 +287,7 @@
                   <select class="tg-select ep-small" onchange="EPISODE_LOOKS.recut(${look.id}, this.value, true, this); this.value=''" title="If edges look wrong, cut every mood again">
                     <option value="">Cut again…</option><option value="tight">Keep more edge</option><option value="normal">Normal</option><option value="loose">Remove more background</option>
                   </select>
-                  <button type="button" class="tg-fmt-btn" onclick="EPISODE_LOOKS.addMoods(${look.id}, this)">Add moods</button>
+                  <button type="button" class="tg-fmt-btn" onclick="EPISODE_LOOKS.manageMoods(${look.id})">Moods: redraw, add, notes</button>
                   <button type="button" class="tg-fmt-btn" onclick="EPISODE_LOOKS.remove(${look.id}, this)">Delete look</button>
                 </div>` : ""}
             ` : `<p class="ep-looks-note">${you ? "No look for you yet." : "No episode look yet: the stage will show only their name."}</p>`}
@@ -279,6 +298,7 @@
                 <label>Outfit, item by item
                   <textarea class="tg-textarea" maxlength="1200" data-new-outfit placeholder="black wool coat, knee length, silver buttons&#10;grey knitted scarf&#10;dark jeans"></textarea>
                 </label>
+                <label>Picture model <select class="tg-select" data-new-model>${this.modelOptions(this.defaultModel)}</select></label>
                 <button type="button" class="tg-send-btn" onclick="EPISODE_LOOKS.create('${esc(m.key)}', this)">Make look · ${this.coreMoods.length} pictures</button>
               </details>` : `<p class="ep-looks-note">Add a ${m.setting === "modern" ? "phone portrait" : "neutral sprite"} first; looks are drawn from it.</p>`}
           </div>`;
@@ -300,6 +320,7 @@
 
     async run(btn, label, work) {
       if (this.busy) return;
+      if (!btn) label = "";
       this.busy = true;
       const orig = btn ? btn.textContent : "";
       if (btn) {btn.disabled = true; btn.textContent = label;}
@@ -334,7 +355,8 @@
       if (!outfit) {window.VN_SCENES?.notify("Write the outfit item by item first: that's what keeps it the same in every picture.", true); return false;}
       let made = false;
       await this.run(btn, "Drawing the look…", async () => {
-        const data = await post({action: "episode_look_create", key, name, outfit});
+        const model = this.root?.querySelector(`.ep-look-row[data-key="${CSS.escape(key)}"] [data-new-model]`)?.value ?? this.defaultModel;
+        const data = await post({action: "episode_look_create", key, name, outfit, model});
         this.replace(data.look);
         this.picks[key] = data.look.id;
         this.render();
@@ -352,18 +374,113 @@
       return this.run(btn, "Cutting out…", async () => {this.replace(await this.cutLook(look, strength, all));});
     },
 
-    addMoods(id, btn) {
-      const look = this.cast.flatMap((m) => m.looks).find((l) => l.id === id);
-      const missing = this.coreMoods.filter((m) => !(m in look.moods));
-      const answer = window.prompt("Which moods should this look get? Separate them with commas. Each is one picture, edited from the neutral one.",
-        missing.join(", ") || "thoughtful, smug");
-      const moods = (answer || "").split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
-      if (!moods.length) return;
-      return this.run(btn, "Drawing moods…", async () => {
-        const data = await post({action: "episode_look_moods", look_id: id, moods});
-        this.replace(await this.cutLook(data.look));
-        if (data.errors?.length) window.VN_SCENES?.notify(data.errors.join("; "), true);
+    modelOptions(chosen) {
+      return (this.models || [["", "Nano Banana (Google): the app's default"]]).map(([id, label]) =>
+        `<option value="${esc(id)}" ${id === (chosen || "") ? "selected" : ""}>${esc(label.split(":")[0])}</option>`).join("");
+    },
+
+    lookById(id) {return this.cast.flatMap((m) => m.looks).find((l) => l.id === id);},
+
+    setModel(id, model, el) {
+      return this.run(null, "", async () => {
+        const data = await post({action: "episode_look_model", look_id: id, model});
+        this.replace(data.look);
+        window.VN_SCENES?.notify(`From now on this look is drawn with ${data.look.model_name}. Redraw moods to use it.`);
       });
+    },
+
+    /* The mood manager: every mood with its picture and Bulba's line on how this person shows it; redraw one (with
+       or without a note), redraw the whole look, remove one, add new ones. */
+    manageMoods(id, focus) {
+      const self = this;
+      const render = (body, close) => {
+        const look = self.lookById(id);
+        if (!look) {close(null); return;}
+        const notes = look.mood_notes || {};
+        const missing = ["happy", "sad", "angry", "surprised", "flustered", "smug", "thoughtful", "worried", "tired",
+          "annoyed", "embarrassed", "determined", "amused", "cold", "hurt"].filter((m) => !(m in look.moods));
+        body.innerHTML = `
+          <p class="ep-dialog-p">Every mood is an edit of the neutral picture. Bulba's line under each says how
+            <strong>this</strong> person shows it; change it to make a mood quieter or stronger, then redraw.
+            Drawn with ${esc(look.model_name || "the app's default")}.</p>
+          <div class="ep-moods">
+            ${Object.entries(look.moods).map(([mood, e]) => `
+              <div class="ep-mood ${mood === focus ? "is-focus" : ""}" data-mood="${esc(mood)}">
+                <img src="${esc(e.url)}" alt="${esc(mood)}">
+                <div class="ep-mood-body">
+                  <strong>${esc(mood)}${e.flag ? ` <span class="ep-mood-flag">⚠ ${esc(e.flag)}</span>` : ""}</strong>
+                  ${mood === "neutral" ? `<span class="cast-muted">The base of every mood. Redrawing it redraws the whole look.</span>`
+                    : `<textarea class="ep-input" data-note rows="2" placeholder="How this person shows it, e.g. a thin one-sided smile, eyes barely narrowed">${esc(notes[mood] || "")}</textarea>`}
+                  <input class="ep-input" data-redo-note placeholder="Note for a redraw (optional): what was wrong, what to change">
+                  <div class="ep-note-actions">
+                    ${mood === "neutral"
+                      ? `<button type="button" class="ep-btn" data-act="all">Redraw the whole look · ${Object.keys(look.moods).length} pictures</button>`
+                      : `<button type="button" class="ep-btn" data-act="redraw">Redraw · 1 picture</button>
+                         <button type="button" class="ep-btn ep-btn-quiet" data-act="remove">Remove</button>`}
+                  </div>
+                </div>
+              </div>`).join("")}
+          </div>
+          <div class="ep-add-moods">
+            <label class="ep-dialog-text">Add moods (comma-separated; one picture each)
+              <input class="ep-input" data-add placeholder="${esc(missing.slice(0, 3).join(", "))}"></label>
+            ${missing.length ? `<div class="cast-chips">${missing.slice(0, 10).map((m) => `<button type="button" class="cast-chip" data-suggest="${esc(m)}">${esc(m)}</button>`).join("")}</div>` : ""}
+            <button type="button" class="ep-btn ep-btn-primary" data-act="add">Draw the new moods</button>
+          </div>`;
+        const busy = (btn, label) => {
+          body.querySelectorAll("button").forEach((b) => {b.disabled = true;});
+          if (btn) btn.textContent = label;
+        };
+        const done = async (data, message) => {
+          let look2 = data.look;
+          try {look2 = await self.cutLook(data.look);} catch (e) {window.VN_SCENES?.notify(e.message, true);}
+          self.replace(look2);
+          self.render();
+          window.CASTING?.refreshCost();
+          if (data.errors?.length) window.VN_SCENES?.notify(data.errors.join(" "), true);
+          else if (message) window.VN_SCENES?.notify(message);
+          render(body, close);
+        };
+        const fail = (e) => {window.VN_SCENES?.notify(e.message, true); render(body, close);};
+        body.querySelectorAll("[data-suggest]").forEach((chip) => chip.addEventListener("click", () => {
+          const input = body.querySelector("[data-add]");
+          const have = input.value.split(",").map((x) => x.trim()).filter(Boolean);
+          if (!have.includes(chip.dataset.suggest)) have.push(chip.dataset.suggest);
+          input.value = have.join(", ");
+        }));
+        body.querySelectorAll(".ep-mood").forEach((row) => {
+          const mood = row.dataset.mood;
+          const noteBox = row.querySelector("[data-note]");
+          noteBox?.addEventListener("change", async () => {
+            try {self.replace((await post({action: "episode_look_note", look_id: id, mood, note: noteBox.value})).look);}
+            catch (e) {window.VN_SCENES?.notify(e.message, true);}
+          });
+          row.querySelectorAll("[data-act]").forEach((btn) => btn.addEventListener("click", async () => {
+            const note = row.querySelector("[data-redo-note]").value.trim();
+            const act = btn.dataset.act;
+            try {
+              if (act === "remove") {
+                if (!(await EpDialog.confirm(`Remove “${mood}” from this look?`, {ok: "Remove", danger: true}))) return;
+                busy(btn, "Removing…");
+                await done(await post({action: "episode_look_remove_mood", look_id: id, mood}));
+                return;
+              }
+              if (noteBox) await post({action: "episode_look_note", look_id: id, mood, note: noteBox.value});
+              busy(btn, act === "all" ? "Redrawing the look…" : "Redrawing…");
+              await done(await post({action: "episode_look_redraw", look_id: id, mood: act === "all" ? "all" : mood, note}), "Redrawn.");
+            } catch (e) {fail(e);}
+          }));
+        });
+        body.querySelector('[data-act="add"]').addEventListener("click", async (event) => {
+          const moods = body.querySelector("[data-add]").value.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+          if (!moods.length) {window.VN_SCENES?.notify("Write the moods to add, or tap the suggestions.", true); return;}
+          busy(event.target, "Drawing…");
+          try {await done(await post({action: "episode_look_moods", look_id: id, moods}), "New moods drawn.");}
+          catch (e) {fail(e);}
+        });
+        if (focus) body.querySelector(`.ep-mood[data-mood="${CSS.escape(focus)}"]`)?.scrollIntoView({block: "center"});
+      };
+      return EpDialog.open({title: "Moods", wide: true, onMount: render});
     },
 
     redraw(id, mood, btn) {
@@ -375,14 +492,14 @@
     },
 
     remove(id, btn) {
-      if (!window.confirm("Delete this look and all its pictures? Episodes already saved keep their text.")) return;
-      return this.run(btn, "Deleting…", async () => {
+      return EpDialog.confirm("Delete this look and all its pictures? Episodes already saved keep their text.",
+        {ok: "Delete the look", danger: true}).then((yes) => yes && this.run(btn, "Deleting…", async () => {
         await post({action: "episode_look_delete", look_id: id});
         this.cast.forEach((m) => {
           m.looks = m.looks.filter((l) => l.id !== id);
           if (this.picks[m.key] === id) this.picks[m.key] = m.looks[0]?.id || null;
         });
-      });
+      }));
     },
   };
 

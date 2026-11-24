@@ -127,6 +127,8 @@ def _base_prompt(user, character, look):
         + "Framing: from the knees up, centred, the whole head and hair inside the picture with a little space above. "
         "Tall portrait picture.\n"
         + POSE + "\n"
+        "Proportions exactly as in the reference pictures: the same head size, limb length, height and build; nothing "
+        "stretched, elongated or made chibi.\n"
         "Expression: calm and neutral, looking at the viewer.\n"
         f"Outfit, exactly and only this (it replaces the clothes in the pictures, never who they are): "
         f"{look.outfit or 'the outfit in the references'}.\n"
@@ -134,13 +136,77 @@ def _base_prompt(user, character, look):
     )
 
 
-def _mood_prompt(look, mood):
+def _mood_prompt(look, mood, note=""):
+    how = str((look.mood_notes or {}).get(mood) or "").strip()
     return (
         f"Edit this exact picture. Change only the face (eyebrows, eyes, mouth) so the character looks: {mood}.\n"
+        + (f"How this person shows it: {how}\n" if how else "")
+        + "Keep the expression as restrained as this person is: no exaggerated, cartoonish or theatrical faces, no "
+        "change to the proportions of the head or face.\n"
+        + (f"The user's note for this picture (follow it exactly): {note}\n" if note else "") +
         "Do not move, add, remove or redraw arms, hands, shoulders or the body: everything below the chin stays "
         "pixel for pixel as it is. Keep the framing, outfit, hair, colours, lighting, art style and picture size. "
         + _key_line(look)
     )
+
+
+# ---------- the picture model, and how this person shows each mood ----------
+
+def picture_model(user, chosen=None):
+    """The model a look is drawn with: the one chosen for it, else the phone profile's picture model; "" = default."""
+    if chosen is not None:
+        return chosen if chosen in messenger.PICTURE_MODELS else ""
+    return messenger.user_profile(user).get("image_model") or ""
+
+
+def model_name(model):
+    return messenger.PICTURE_MODELS.get(model, "Nano Banana (Google): the app's default").split(":")[0]
+
+
+def _draw(user, look, prompt, refs):
+    """One picture on the look's own model (an error if it isn't available, never another model)."""
+    data, cost = messenger.make_picture(user, prompt, references=refs, model=look.model or "")
+    return data, float(cost or 0.0)
+
+
+MOOD_NOTES_PROMPT = (
+    "You prepare expression notes for an artist drawing visual-novel sprites of one character. For each mood, write "
+    "one short line on how THIS person shows it in their face only (eyebrows, eyes, mouth), true to who they are: a "
+    "proud, arrogant or manipulative person barely moves their face (a thin one-sided smile, a slow blink, a raised "
+    "brow); an open, warm person shows more. Concrete and visible, never theatrical, no body or hands.\n"
+    "Who they are: {who}\nHow they look: {seen}\nMoods: {moods}\n"
+    'Return ONLY JSON: {{"notes": {{"<mood>": "<how they show it>"}}}}'
+)
+
+
+def write_mood_notes(user, look, moods):
+    """Bulba's line per mood on how this person shows it (a text call). Missing ones only; kept on the look."""
+    wanted = [m for m in (clean_mood(x) for x in moods) if m and m != "neutral" and not (look.mood_notes or {}).get(m)]
+    if not wanted:
+        return
+    c = look.character
+    if c is not None:
+        prof = messenger.char_profile(c)
+        who = " ".join(str(x) for x in (c.personality, prof.get("modern_persona") if look.setting == "modern" else "",
+                                        (c.description or "")[:1200]) if x)[:1800]
+    else:
+        who = str(getattr(look.author, "persona_description", "") or "")[:1200]
+    try:
+        out = messenger.ask_json(user, MOOD_NOTES_PROMPT.format(who=who or "(not described)",
+                                                               seen=identity_line(look.identity) or "(see the picture)",
+                                                               moods=", ".join(wanted)), need=("notes",), max_tokens=900)
+    except ai_client.AIError:
+        return
+    notes = out.get("notes") if isinstance(out.get("notes"), dict) else {}
+    look.mood_notes = {**(look.mood_notes or {}),
+                       **{m: " ".join(str(notes.get(m) or "").split())[:240] for m in wanted if str(notes.get(m) or "").strip()}}
+    look.save(update_fields=["mood_notes"])
+
+
+def set_mood_note(look, mood, note):
+    mood = clean_mood(mood)
+    look.mood_notes = {**(look.mood_notes or {}), mood: " ".join(str(note or "").split())[:240]}
+    look.save(update_fields=["mood_notes", "updated"])
 
 
 def _restyle_prompt(look, outfit):
@@ -248,12 +314,12 @@ def review(user, look, refs, drawn):
 def _checked(user, look, prompt, refs):
     """A neutral picture: drawn, checked by Bulba against the references, drawn once more if it's wrong."""
     from mainapp import picture_checks
-    return picture_checks.draw_checked(user, prompt, refs, checker=lambda drawn: review(user, look, refs, drawn))
+    return picture_checks.draw_checked(user, prompt, refs, checker=lambda drawn: review(user, look, refs, drawn),
+                                       draw=lambda p, r: _draw(user, look, p, r))
 
 
-def _image(user, prompt, refs):
-    data, cost = messenger.make_picture(user, prompt, references=refs)
-    return data, float(cost or 0.0)
+def _image(user, look, prompt, refs):
+    return _draw(user, look, prompt, refs)
 
 
 def _base_image(look):
@@ -274,7 +340,7 @@ def clean_mood(mood):
     return sprites.clean_name(mood) or "neutral"
 
 
-def create(user, character, setting, name, outfit, moods=None):
+def create(user, character, setting, name, outfit, moods=None, model=None):
     """A new look: the neutral picture from references, then each mood as an edit of it.
 
     Returns (look, cost, errors). A failed neutral picture raises AIError and leaves nothing behind; a failed
@@ -289,7 +355,8 @@ def create(user, character, setting, name, outfit, moods=None):
                                 + ("phone portrait" if setting == "modern" else "neutral sprite") + " first.")
     seen = identity(user, refs)
     look = EpisodeLook.objects.create(author=user, character=character, setting=setting, name=name, outfit=outfit,
-                                      identity=seen, key_colour=pick_key(identity_line(seen) + " " + outfit))
+                                      identity=seen, key_colour=pick_key(identity_line(seen) + " " + outfit),
+                                      model=picture_model(user, model))
     try:
         data, cost, checked = _checked(user, look, _base_prompt(user, character, look), refs)
     except Exception:
@@ -298,7 +365,9 @@ def create(user, character, setting, name, outfit, moods=None):
     look.moods = {"neutral": {"raw": _store(look, "neutral", data), "cut": ""}}
     look.review = checked
     look.save(update_fields=["moods", "review"])
-    more, errors = add_moods(user, look, [m for m in (moods or CORE_MOODS) if clean_mood(m) != "neutral"])
+    wanted = [m for m in (moods or CORE_MOODS) if clean_mood(m) != "neutral"]
+    write_mood_notes(user, look, wanted)
+    more, errors = add_moods(user, look, wanted)
     return look, cost + more, errors
 
 
@@ -306,6 +375,10 @@ def add_moods(user, look, moods):
     """Make the missing moods as edits of the neutral picture. Returns (cost, errors)."""
     cost, errors = 0.0, []
     base = _base_image(look)
+    already = [m for m in dict.fromkeys(clean_mood(x) for x in moods) if m in (look.moods or {})]
+    if already:
+        errors.append(f"Already in this look: {', '.join(already)}. Use Redraw on those to draw them again.")
+    write_mood_notes(user, look, [m for m in moods if clean_mood(m) not in (look.moods or {})])
     for mood in moods:
         mood = clean_mood(mood)
         if mood in look.moods:
@@ -314,7 +387,7 @@ def add_moods(user, look, moods):
             errors.append(f"{MAX_MOODS} moods is the most a look keeps.")
             break
         try:
-            data, spent = _image(user, _mood_prompt(look, mood), [base])
+            data, spent = _image(user, look, _mood_prompt(look, mood), [base])
         except ai_client.AIError as exc:
             errors.append(f"{mood}: {exc}")
             continue
@@ -335,7 +408,8 @@ def restyle(user, look, name, outfit, moods=None):
     base = _base_image(look)
     new = EpisodeLook.objects.create(author=look.author, character=look.character, setting=look.setting,
                                      name=" ".join(str(name or "").split())[:60] or f"{look.name} (changed)",
-                                     outfit=outfit, key_colour=look.key_colour, parent=look, identity=look.identity)
+                                     outfit=outfit, key_colour=look.key_colour, parent=look, identity=look.identity,
+                                     model=look.model, mood_notes=dict(look.mood_notes or {}))
     try:
         data, cost, checked = _checked(user, new, _restyle_prompt(look, outfit), [base])
     except Exception:
@@ -381,7 +455,7 @@ def save_cut(look, mood, data, body_changed=None):
 BODY_CHANGE_LIMIT = 0.03  # share of the outline a face-only edit may change (face edits measure ~0.1%; a third arm ~5%)
 
 
-def redraw_mood(user, look, mood, auto=False):
+def redraw_mood(user, look, mood, auto=False, note=""):
     """Draw one mood again from the neutral picture. Returns cost."""
     mood = clean_mood(mood)
     if mood == "neutral":
@@ -389,7 +463,7 @@ def redraw_mood(user, look, mood, auto=False):
     entry = (look.moods or {}).get(mood)
     if not entry:
         raise ValueError("That mood isn't in this look.")
-    data, cost = _image(user, _mood_prompt(look, mood), [_base_image(look)])
+    data, cost = _image(user, look, _mood_prompt(look, mood, note), [_base_image(look)])
     _drop(entry.get("raw"))
     _drop(entry.get("cut"))
     look.moods = {**look.moods, mood: {"raw": _store(look, mood, data), "cut": "", **({"retried": True} if auto else {})}}
@@ -397,7 +471,7 @@ def redraw_mood(user, look, mood, auto=False):
     return cost
 
 
-def redraw_look(user, look):
+def redraw_look(user, look, note=""):
     """Draw the neutral picture again (from the references, or from the parent look for an outfit change), check it,
     then every mood again from it. Returns (cost, errors)."""
     if look.parent_id and look.parent and (look.parent.moods or {}).get("neutral"):
@@ -409,7 +483,10 @@ def redraw_look(user, look):
             raise ai_client.AIError("There's no picture of them to work from any more.")
         if not look.identity:
             look.identity = identity(user, refs)
-        data, cost, checked = _checked(user, look, _base_prompt(user, look.character, look), refs)
+        prompt = _base_prompt(user, look.character, look)
+        if note:
+            prompt += f"\nThe user's note for this picture (follow it exactly; it fixes what was wrong before): {note}"
+        data, cost, checked = _checked(user, look, prompt, refs)
     moods = [m for m in (look.moods or {}) if m != "neutral"]
     for entry in (look.moods or {}).values():
         _drop(entry.get("raw"))
@@ -473,7 +550,8 @@ def pack(look):
             "character_slug": look.character.slug if look.character_id else "user",
             "key_colour": look.key_colour, "key_hex": KEYS.get(look.key_colour, KEYS["green"])[0],
             "parent_id": look.parent_id, "moods": moods, "identity": identity_line(look.identity),
-            "review": look.review or {},
+            "review": look.review or {}, "model": look.model, "model_name": model_name(look.model),
+            "mood_notes": look.mood_notes or {},
             "needs_cut": sorted(m for m, e in (look.moods or {}).items() if not e.get("cut"))}
 
 

@@ -806,3 +806,30 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .ep-read-direction { font-size: 13px; color: var(--ep-muted); }
 .ep-read { --ep-ink: #f1f5f9; --ep-muted: #a5b4cc; --ep-accent: #c084fc; --ep-accent-2: #f472b6; --ep-box: rgba(12, 16, 30, 0.86); --ep-line: rgba(255, 255, 255, 0.12); }
 .ep-shelf-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* The episodes' own dialogs */
+.ep-dialog-back { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px;
+  background: rgba(4, 6, 14, 0.72); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  --ep-ink: #f1f5f9; --ep-muted: #a5b4cc; --ep-accent: #c084fc; --ep-accent-2: #f472b6; --ep-line: rgba(255, 255, 255, 0.12); }
+.ep-dialog { width: min(100%, 440px); max-height: min(88vh, 860px); overflow-y: auto; box-sizing: border-box; padding: 18px;
+  border-radius: 20px; background: #0e1222; border: 1px solid var(--ep-line); color: var(--ep-ink);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.ep-dialog.is-wide { width: min(100%, 720px); }
+.ep-dialog-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ep-dialog-head strong { font-size: 17px; }
+.ep-dialog-body { display: flex; flex-direction: column; gap: 12px; }
+.ep-dialog-text { margin: 0; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.ep-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.ep-dialog .ep-input { width: 100%; flex: none; max-height: none; }
+.ep-btn-danger { border: 0; background: #ef4444; color: #fff; }
+.ep-moods { display: flex; flex-direction: column; gap: 10px; }
+.ep-mood { display: flex; gap: 12px; padding: 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--ep-line); }
+.ep-mood.is-focus { border-color: rgba(244, 114, 182, 0.6); }
+.ep-mood img { flex: 0 0 84px; width: 84px; height: 118px; object-fit: contain; border-radius: 10px;
+  background: repeating-conic-gradient(#334155 0 25%, #1e293b 0 50%) 0 0 / 12px 12px; }
+.ep-mood-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.ep-mood-flag { font-weight: 500; font-size: 12px; color: #fecaca; }
+.ep-add-moods { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid var(--ep-line); }
+.ep-thumb { cursor: pointer; }
+.ep-model { font-size: 12.5px; }
+.ep-dialog-p { margin: 0; line-height: 1.5; }

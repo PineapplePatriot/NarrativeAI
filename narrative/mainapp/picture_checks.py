@@ -61,7 +61,7 @@ def check(user, kind, drawn, refs=(), outfit="", people="", what=""):
     return {"ok": not issues, "issues": issues}
 
 
-def draw_checked(user, prompt, references=None, kind="scene", outfit="", people="", what="", checker=None):
+def draw_checked(user, prompt, references=None, kind="scene", outfit="", people="", what="", checker=None, draw=None):
     """Draw, have Bulba check it, and draw once more if something is wrong; keep the picture with fewer problems.
 
     `checker(drawn) -> review` replaces the generic check (looks use their own, which counts arms and hands).
@@ -69,17 +69,18 @@ def draw_checked(user, prompt, references=None, kind="scene", outfit="", people=
     """
     from django.conf import settings
     refs = list(references or [])
+    draw = draw or (lambda p, r: messenger.make_picture(user, p, references=r))
     if not getattr(settings, "PICTURE_CHECKS", True):
-        data, cost = messenger.make_picture(user, prompt, references=references)
+        data, cost = draw(prompt, references)
         return data, float(cost or 0.0), {"ok": None, "issues": [], "redrawn": False}
     look = checker or (lambda drawn: check(user, kind, drawn, refs, outfit=outfit, people=people, what=what))
-    data, cost = messenger.make_picture(user, prompt, references=references)
+    data, cost = draw(prompt, references)
     cost = float(cost or 0.0)
     result = look((data, "image/png"))
     if result.get("ok") is not False:
         return data, cost, {**result, "redrawn": False}
     try:
-        again, spent = messenger.make_picture(user, prompt, references=references)
+        again, spent = draw(prompt, references)
     except ai_client.AIError:
         return data, cost, {**result, "redrawn": False}
     cost += float(spent or 0.0)
