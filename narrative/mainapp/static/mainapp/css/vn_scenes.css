@@ -838,3 +838,12 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .cast-mood.is-there { border-style: solid; border-color: rgba(52, 211, 153, 0.45); color: #a7f3d0; }
 .cast-mood-notes summary { cursor: pointer; font-size: 12.5px; color: var(--ep-muted); }
 .cast-mood-notes ul { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; }
+
+/* A close shot: the camera moves in on the speaker for one passage */
+.ep-figure { transition: filter 0.25s ease, transform 0.45s cubic-bezier(.3, .7, .2, 1), left 0.45s ease, opacity 0.3s ease; }
+.ep-close .ep-figure.is-speaking { left: 50%; transform: translateX(-50%) scale(1.9); transform-origin: 50% 12%; }
+.ep-close .ep-figure:not(.is-speaking) { opacity: 0; }
+@container (max-aspect-ratio: 4 / 3) {
+  .ep-close .ep-figure.is-speaking { transform: translateX(-50%) scale(1.6); }
+}
+.ep-your-note { margin: 4px 0 0; font-size: 12px; color: var(--ep-muted); font-style: italic; }

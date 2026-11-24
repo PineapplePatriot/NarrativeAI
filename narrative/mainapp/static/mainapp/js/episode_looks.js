@@ -228,6 +228,7 @@
         this.cast = data.cast || [];
         this.coreMoods = data.core_moods || [];
         this.models = data.picture_models || [["", "Nano Banana (Google): the app's default"]];
+        this.poses = data.poses || [];
         this.defaultModel = data.default_model || "";
         this.cast.forEach((m) => {
           if (!(m.key in this.picks) || !m.looks.some((l) => l.id === this.picks[m.key])) this.picks[m.key] = m.chosen;
@@ -420,8 +421,9 @@
               <div class="ep-mood ${mood === focus ? "is-focus" : ""}" data-mood="${esc(mood)}">
                 <img src="${esc(e.url)}" alt="${esc(mood)}">
                 <div class="ep-mood-body">
-                  <strong>${esc(mood)}${e.flag ? ` <span class="ep-mood-flag">⚠ ${esc(e.flag)}</span>` : ""}</strong>
+                  <strong>${esc(mood)}${e.pose ? ` <span class="ep-badge">pose</span>` : ""}${e.flag ? ` <span class="ep-mood-flag">⚠ ${esc(e.flag)}</span>` : ""}</strong>
                   ${mood === "neutral" ? `<span class="cast-muted">The base of every mood. Redrawing it redraws the whole look.</span>`
+                    : e.pose ? `<span class="cast-muted">A pose: the arms may move, so Bulba checks it for extra limbs.</span>`
                     : `<textarea class="ep-input" data-note rows="2" placeholder="How this person shows it, e.g. a thin one-sided smile, eyes barely narrowed">${esc(notes[mood] || "")}</textarea>`}
                   <input class="ep-input" data-redo-note placeholder="Note for a redraw (optional): what was wrong, what to change">
                   <div class="ep-note-actions">
@@ -438,6 +440,12 @@
               <input class="ep-input" data-add placeholder="${esc(missing.slice(0, 3).join(", "))}"></label>
             ${missing.length ? `<div class="cast-chips">${missing.slice(0, 10).map((m) => `<button type="button" class="cast-chip" data-suggest="${esc(m)}">${esc(m)}</button>`).join("")}</div>` : ""}
             <button type="button" class="ep-btn ep-btn-primary" data-act="add">Draw the new moods</button>
+          </div>
+          <div class="ep-add-moods">
+            <label class="ep-dialog-text">Add poses, for a little movement on stage (one picture each, checked by Bulba)
+              <input class="ep-input" data-add-pose placeholder="arms crossed, hand to chin"></label>
+            <div class="cast-chips">${(self.poses || []).filter((p) => !(p in look.moods)).map((p) => `<button type="button" class="cast-chip" data-suggest-pose="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+            <button type="button" class="ep-btn" data-act="add-pose">Draw the poses</button>
           </div>`;
         const busy = (btn, label) => {
           body.querySelectorAll("button").forEach((b) => {b.disabled = true;});
@@ -460,6 +468,19 @@
           if (!have.includes(chip.dataset.suggest)) have.push(chip.dataset.suggest);
           input.value = have.join(", ");
         }));
+        body.querySelectorAll("[data-suggest-pose]").forEach((chip) => chip.addEventListener("click", () => {
+          const input = body.querySelector("[data-add-pose]");
+          const have = input.value.split(",").map((x) => x.trim()).filter(Boolean);
+          if (!have.includes(chip.dataset.suggestPose)) have.push(chip.dataset.suggestPose);
+          input.value = have.join(", ");
+        }));
+        body.querySelector('[data-act="add-pose"]').addEventListener("click", async (event) => {
+          const poses = body.querySelector("[data-add-pose]").value.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+          if (!poses.length) {window.VN_SCENES?.notify("Write the poses to add, or tap the suggestions.", true); return;}
+          busy(event.target, "Drawing poses…");
+          try {await done(await post({action: "episode_look_moods", look_id: id, moods: poses, kind: "pose"}), "Poses drawn.");}
+          catch (e) {fail(e);}
+        });
         body.querySelectorAll(".ep-mood").forEach((row) => {
           const mood = row.dataset.mood;
           const noteBox = row.querySelector("[data-note]");

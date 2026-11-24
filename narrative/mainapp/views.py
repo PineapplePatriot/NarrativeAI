@@ -6236,6 +6236,12 @@ def vn_scenes_api(request):
                     scene["direction"] = str(body["direction"])[:4000]
                 if "polish_enabled" in body:
                     scene["polish_enabled"] = bool(body["polish_enabled"])
+                if body.get("balance") in vn_story.BALANCES:
+                    scene["balance"] = body["balance"]
+                if body.get("length") in vn_story.LENGTHS:
+                    scene["length"] = body["length"]
+                if "write_out" in body:
+                    scene["write_out"] = bool(body["write_out"])
                 if scene.get("interaction_mode") == "write":
                     if previous_mode != "write":
                         scene["choice_cache"] = list(scene.get("choices") or [])
@@ -6281,7 +6287,7 @@ def vn_scenes_api(request):
                     out.append({"key": key, "name": name, "setting": setting, "looks": [episode_looks.pack(l) for l in looks],
                                 "chosen": looks[0].pk if looks else None,
                                 "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
-                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS,
+                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS, "poses": episode_looks.POSES,
                                      "picture_models": [["", "Nano Banana (Google): the app's default"],
                                                         *[[k, v] for k, v in messenger.PICTURE_MODELS.items()]],
                                      "default_model": episode_looks.picture_model(request.user)})
@@ -6303,7 +6309,10 @@ def vn_scenes_api(request):
             if action == "episode_look_moods":
                 moods = [m for m in (body.get("moods") or []) if isinstance(m, str)][:episode_looks.MAX_MOODS]
                 episode_looks.add_notes(look, body.get("mood_notes"))
-                cost, errors = episode_looks.add_moods(request.user, look, moods)
+                if body.get("kind") == "pose":
+                    cost, errors = episode_looks.add_poses(request.user, look, moods)
+                else:
+                    cost, errors = episode_looks.add_moods(request.user, look, moods)
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             if action == "episode_look_remove_mood":
                 episode_looks.remove_mood(look, str(body.get("mood") or ""))
@@ -6438,6 +6447,7 @@ def vn_scenes_api(request):
                 pulse_event=pulse_event,
                 generate_background=bool(body.get("generate_background", False)),
                 casting=body.get("casting") if isinstance(body.get("casting"), dict) else None,
+                style={k: body.get(k) for k in ("balance", "length", "write_out") if k in body},
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)

@@ -22,6 +22,7 @@ from mainapp.models import EpisodeLook
 
 CORE_MOODS = ["neutral", "happy", "sad", "angry", "surprised", "flustered"]
 MAX_MOODS = 16
+POSES = ["arms crossed", "hand on hip", "hand to chin", "hands in pockets", "leaning back", "one hand raised"]
 SETTINGS = ("canon", "modern")
 
 # Key colours for the flat background the browser cuts out. A colour the character wears or has in their
@@ -218,6 +219,49 @@ def set_mood_note(look, mood, note):
     mood = clean_mood(mood)
     look.mood_notes = {**(look.mood_notes or {}), mood: " ".join(str(note or "").split())[:240]}
     look.save(update_fields=["mood_notes", "updated"])
+
+
+def _pose_prompt(look, pose, note=""):
+    return (
+        f"Edit this exact picture. Change only the pose, to: {pose}.\n"
+        "Keep everything else identical: the face and its calm expression, hair, outfit, body proportions, framing, "
+        "art style, lighting and picture size. Exactly two arms and two hands, each attached to its shoulder; natural "
+        "hands with five fingers; nothing new held unless the pose says so.\n"
+        + (f"The user's note for this picture (follow it exactly): {note}\n" if note else "")
+        + _key_line(look)
+    )
+
+
+def add_poses(user, look, poses, note="", redraw=False):
+    """Poses (arms crossed, hand on hip…) as edits of the neutral picture. The arms may move, so instead of the
+    outline check each is checked by Bulba (arms, hands, same person) and drawn once more when wrong; one still wrong
+    after that is flagged and stays off the stage. Returns (cost, errors)."""
+    cost, errors = 0.0, []
+    base = _base_image(look)
+    for pose in dict.fromkeys(clean_mood(p) for p in poses):
+        if not pose or pose == "neutral":
+            continue
+        if pose in (look.moods or {}) and not redraw:
+            errors.append(f"“{pose}” is already in this look: use Redraw on it.")
+            continue
+        if len(look.moods) >= MAX_MOODS and pose not in look.moods:
+            errors.append(f"{MAX_MOODS} moods and poses is the most a look keeps.")
+            break
+        try:
+            data, spent, checked = _checked(user, look, _pose_prompt(look, pose, note), [base])
+        except ai_client.AIError as exc:
+            errors.append(f"{pose}: {exc}")
+            continue
+        cost += spent
+        old = (look.moods or {}).get(pose) or {}
+        _drop(old.get("raw"))
+        _drop(old.get("cut"))
+        entry = {"raw": _store(look, pose, data), "cut": "", "pose": True}
+        if checked.get("ok") is False:
+            entry["flag"] = "Bulba still sees a problem: " + " ".join(checked.get("issues", [])[:2])
+        look.moods = {**look.moods, pose: entry}
+        look.save(update_fields=["moods", "updated"])
+    return cost, errors
 
 
 def _restyle_prompt(look, outfit):
@@ -454,8 +498,9 @@ def save_cut(look, mood, data, body_changed=None):
         raise ValueError("The cut-out must be a PNG with transparency.")
     _drop(entry.get("cut"))
     kept = {**entry, "cut": _store(look, mood, data, "cut")}
-    kept.pop("flag", None)
-    if mood != "neutral" and body_changed is not None and body_changed > BODY_CHANGE_LIMIT:
+    if not entry.get("pose"):
+        kept.pop("flag", None)  # a pose's flag comes from Bulba's check, not from the cut
+    if mood != "neutral" and not entry.get("pose") and body_changed is not None and body_changed > BODY_CHANGE_LIMIT:
         # A mood is an edit of the face only; a different outline means an arm, hand or pose changed too.
         kept["flag"] = f"The body changed from the neutral picture ({round(body_changed * 100)}% of the outline): " \
                        "an extra or moved arm or hand, or a different pose."
@@ -475,6 +520,11 @@ def redraw_mood(user, look, mood, auto=False, note=""):
     entry = (look.moods or {}).get(mood)
     if not entry:
         raise ValueError("That mood isn't in this look.")
+    if entry.get("pose"):
+        cost, errors = add_poses(user, look, [mood], note=note, redraw=True)
+        if errors:
+            raise ai_client.AIError(errors[0])
+        return cost
     data, cost = _image(user, look, _mood_prompt(look, mood, note), [_base_image(look)])
     _drop(entry.get("raw"))
     _drop(entry.get("cut"))
@@ -557,7 +607,8 @@ def pack(look):
     for mood, entry in (look.moods or {}).items():
         moods[mood] = {"url": default_storage.url(entry.get("cut") or entry["raw"]) if entry.get("raw") else "",
                        "raw_url": default_storage.url(entry["raw"]) if entry.get("raw") else "",
-                       "cut": bool(entry.get("cut")), "flag": entry.get("flag", ""), "retried": bool(entry.get("retried"))}
+                       "cut": bool(entry.get("cut")), "flag": entry.get("flag", ""), "retried": bool(entry.get("retried")),
+                       "pose": bool(entry.get("pose"))}
     return {"id": look.pk, "name": look.name, "setting": look.setting, "outfit": look.outfit,
             "character_slug": look.character.slug if look.character_id else "user",
             "key_colour": look.key_colour, "key_hex": KEYS.get(look.key_colour, KEYS["green"])[0],

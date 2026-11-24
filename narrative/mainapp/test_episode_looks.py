@@ -386,3 +386,24 @@ class LookModelAndMoodTests(LooksSetup):
         listing = self.client.post(url, data=json.dumps({"action": "episode_looks", "thread_id": self.thread.pk}),
                                    content_type="application/json").json()
         self.assertIn("microsoft/mai-image-2.7", [m[0] for m in listing["picture_models"]])
+
+
+class PoseTests(LooksSetup):
+    def test_poses_are_checked_by_bulba_not_by_the_outline_and_listed_apart(self):
+        look, _, _ = self.make(moods=("happy",))
+        from mainapp import picture_checks
+        with patch.object(messenger, "make_picture", side_effect=[(b"three-arms", 0), (b"crossed", 0)]) as image, \
+             patch.object(episode_looks, "review", side_effect=[{"ok": False, "issues": ["3 arms."]}, {"ok": True, "issues": []}]), \
+             override_settings(PICTURE_CHECKS=True):
+            cost, errors = episode_looks.add_poses(self.user, look, ["arms crossed"])
+        self.assertEqual(errors, [])
+        self.assertIn("Change only the pose, to: arms crossed", image.call_args_list[0].args[1])
+        self.assertEqual(image.call_count, 2)  # wrong once, drawn again
+        self.assertTrue(look.moods["arms crossed"]["pose"])
+        self.assertNotIn("flag", look.moods["arms crossed"])
+        episode_looks.save_cut(look, "arms crossed", png(), body_changed=0.4)  # a pose may change the outline
+        self.assertNotIn("flag", look.moods["arms crossed"])
+        lines = vn_scenes._look_lines(look)
+        self.assertIn("Moods: happy, neutral", lines)
+        self.assertIn("Poses (use one as the emotion now and then", lines)
+        self.assertIn("arms crossed", lines)

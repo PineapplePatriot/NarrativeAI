@@ -51,6 +51,13 @@
 
     init() {
       if (!window.TG || !TG.state) return;
+      // 🍅 a turn, Bulba, a picture or the Watch taking a while: tomatoes to throw, as in the chat
+      if (window.NATomato && !this.tomatoes) {
+        this.tomatoes = true;
+        NATomato.watch(() => this.busy || this.watching || !!window.EPISODE_LOOKS?.busy ||
+          !!window.CASTING?.sheets?.[window.CASTING?.threadId]?.asking ||
+          !document.getElementById("vnLaunchTransition")?.hidden, "chat");
+      }
       try {this.readAloud = localStorage.getItem("ep-read-aloud") === "1";} catch (_) {this.readAloud = false;}
       if (!TG.state.vn_scenes) {
         TG.state.vn_scenes = { active_scene: null, gallery: [], music_tracks: [], backgrounds: [], meetup_cue: { ready: false, reason: "" } };
@@ -231,6 +238,9 @@
           ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
           looks: window.EPISODE_LOOKS?.chosen() || {},
+          balance: document.getElementById("vnBalance")?.value || "balanced",
+          length: document.getElementById("vnLength")?.value || "medium",
+          write_out: document.getElementById("vnWriteOut") ? !!document.getElementById("vnWriteOut").checked : true,
           casting,
           ...(casting?.cast?.length ? {character_slugs: casting.cast} : {}),
           generate_background: drawPlace || !!document.getElementById("vnGenerateBackground")?.checked,
@@ -773,7 +783,7 @@
         </div>` : "";
 
       root.innerHTML = `
-        <div class="ep-stage ${this.chromeHidden ? "ep-chrome-off" : ""}" id="epStage">
+        <div class="ep-stage ${this.chromeHidden ? "ep-chrome-off" : ""} ${blockFirst.camera === "close" && cast.some((f) => f.speaking) ? "ep-close" : ""}" id="epStage">
           <div class="ep-frame" id="epFrame">
             <div class="ep-bg" id="epBg"></div>
             <div class="ep-cast" aria-hidden="true">
@@ -796,6 +806,7 @@
               <div class="ep-box ${isNarrator ? "is-narration" : ""} ${isDirection ? "is-direction" : ""}">
                 ${name ? `<div class="ep-name">${this.attr(name)}</div>` : ""}
                 <div class="ep-text" id="epText">${TG.formatText ? TG.formatText(say(beat)) : this.attr(say(beat))}</div>
+                ${beat.note ? `<p class="ep-your-note">From your note: ${this.attr(beat.note)}</p>` : ""}
                 <div class="ep-box-foot">
                   ${this.speakable(beat, sc) ? `<button type="button" class="ep-step ep-voice ${beat.voice_url ? "has-voice" : ""}" onclick="VN_SCENES.playVoice('${this.attr(beat.id)}', true)" aria-label="Read this aloud" title="${beat.voice_url ? "Play again" : "Read aloud (uses voice credits)"}">${this.icon("voice")}</button>` : ""}
                   <span class="ep-foot-gap"></span>

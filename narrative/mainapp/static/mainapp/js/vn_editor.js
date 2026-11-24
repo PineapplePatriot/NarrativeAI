@@ -43,6 +43,12 @@
       value => change('episode_preferences', {interaction_mode: value})));
     content.append(select('Authorship', scene.authoring_mode || 'roleplay', [['roleplay', 'I control my character'], ['director', 'Direct the cast, including my character']],
       value => change('episode_preferences', {authoring_mode: value})));
+    content.append(select('Dialogue and narration', scene.balance || 'balanced', [['balanced', 'Balanced'], ['dialogue', 'More dialogue'], ['narration', 'More narration and description']],
+      value => change('episode_preferences', {balance: value})));
+    content.append(select('Each turn writes', scene.length || 'medium', [['medium', 'Medium'], ['short', 'Short'], ['long', 'Long']],
+      value => change('episode_preferences', {length: value})));
+    content.append(select('My notes', scene.write_out === false ? 'as_is' : 'write_out', [['write_out', "Turn into my character's words"], ['as_is', 'Use exactly as I type them']],
+      value => change('episode_preferences', {write_out: value === 'write_out'})));
     const directions = text(scene.direction, 'Length, pacing, voice or other writing directions');
     directions.dataset.screenField = 'direction';
     const label = node('label', 'Bulba polish '); const polish = node('input'); polish.type = 'checkbox'; polish.checked = !!scene.polish_enabled; label.append(polish);

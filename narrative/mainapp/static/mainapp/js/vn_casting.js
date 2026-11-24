@@ -124,6 +124,11 @@
                 <select class="tg-select" id="vnInteractionMode" data-screen-field="mode"><option value="mixed">Choices and writing</option><option value="choices">Classic choices</option><option value="write">Write yourself</option></select></label>
               <label class="cast-field" for="vnAuthoringMode">Who writes the cast
                 <select class="tg-select" id="vnAuthoringMode" data-screen-field="authoring" onchange="CASTING.sheet().authoring = this.value; CASTING.save(); window.EPISODE_LOOKS?.render()"><option value="roleplay">Roleplay: I control my character</option><option value="director">Directing: the storyteller may write my character too</option></select></label>
+              <label class="cast-field" for="vnBalance">Dialogue and narration
+                <select class="tg-select" id="vnBalance" data-screen-field="balance"><option value="balanced">Balanced</option><option value="dialogue">More dialogue</option><option value="narration">More narration and description</option></select></label>
+              <label class="cast-field" for="vnLength">How much each turn writes
+                <select class="tg-select" id="vnLength" data-screen-field="length"><option value="medium">Medium</option><option value="short">Short: back to me sooner</option><option value="long">Long: let the scene unfold</option></select></label>
+              <label class="cast-check"><input type="checkbox" id="vnWriteOut" data-screen-field="write_out" checked> Turn my notes into my character's actual words and actions <span class="cast-muted">(Bulba writes them in your voice; type exact words in quotes to keep them as they are)</span></label>
               <label class="cast-field" for="vnWritingDirection">Writing preferences <span class="cast-muted">(optional)</span>
                 <textarea class="ep-input" id="vnWritingDirection" data-screen-field="direction" rows="2" placeholder="Length, narration, dialogue, pacing…"></textarea></label>
               <label class="cast-check"><input type="checkbox" id="vnPolishEnabled" data-screen-field="polish"> Let Bulba polish the habits I approved before each turn shows</label>
