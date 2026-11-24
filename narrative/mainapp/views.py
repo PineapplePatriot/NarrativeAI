@@ -2802,7 +2802,7 @@ def prompt_slots(user, character, prompt, chat_persona=None):
 
 
 def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True, generation="normal",
-                       tail=()):
+                       tail=(), model=None):
     """
     The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
     message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
@@ -2830,7 +2830,8 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if control.mode_of(preset) == "director" and not tail:
         history = control.frame_directions(history, names)
     history += list(tail)
-    _, model = ai_client.resolve(user, "chat")
+    if not model:  # (another model only when comparing models: the request is shaped for that one)
+        _, model = ai_client.resolve(user, "chat")
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
                                 generation=generation)

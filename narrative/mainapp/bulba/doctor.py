@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
-from mainapp.bulba import analyst, control, flow, library, lore, memory, polish, rules, tune
+from mainapp.bulba import analyst, compare, control, flow, library, lore, memory, polish, rules, tune
 from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -575,6 +575,7 @@ def tools():
         basics_tool(),
         CARD_EDIT_TOOL,
         CLEAN_CARD_TOOL,
+        *compare.tool_defs(_fn, STR),
         *polish.tool_defs(_fn, STR),
         *watch_mod.tool_defs(_fn, STR),
         *memory.tool_defs(_fn, STR),
@@ -591,7 +592,7 @@ HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_p
             **tune.HANDLERS,
             **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply,
-            "clean_card_writing": tool_clean_card_writing}
+            "clean_card_writing": tool_clean_card_writing, **compare.HANDLERS}
 
 
 # ---------------------------------------------------------------------------

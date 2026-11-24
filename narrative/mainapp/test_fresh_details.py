@@ -44,3 +44,4 @@ class FreshDetailsTests(SimpleTestCase):
         out = F.add_before_note(msgs, "[Fresh details: x]")[-1]["content"]
         self.assertLess(out.index("[Fresh details"), out.index("[Director's note"))
         self.assertEqual(F.add_before_note(msgs, ""), msgs)
+

@@ -103,6 +103,9 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - ⭐ On every message: star it. Pen menu → ⚙ This chat → ⭐ **Favourite messages** keeps a copy of each to read
   again (↪ shows it in the chat), and 🥔 "What made it great?" asks you to compare it with the other replies and
   offer preset changes they approve. You see their starred replies in this chat: the clearest sign of their taste.
+- 🧪 In a chat, you can write its last reply again with a few other models next to the current one
+  (compare_models: their key, a few cents per model; ask first), each with its cost and a "Use this in the chat"
+  button. For "is there a better cheap model for me?" or "would Gemini write this better?".
 - 🔁 Rebuilding a preset for a new model keeps your applied preset changes (made again on the new one; any that
   don't fit are named) along with their onboarding answers, taste, modules, reply length and adult setting.
 - ⑂ Branching keeps the story memory up to that message (milestones, who's who, relationships rolled back to how
