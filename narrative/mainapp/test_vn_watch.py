@@ -97,3 +97,71 @@ class EpisodeWatchTests(TestCase):
         with patch.object(messenger, "ask_json", return_value={"slips": []}):
             _, slips = vn_watch.run(self.user)
         self.assertEqual(slips, [])
+
+
+class PresenceTests(EpisodeWatchTests):
+    def test_leaving_and_arriving_change_who_is_on_stage_from_that_passage(self):
+        turn = {"handoff": "user_turn", "beats": [
+            {"speaker_slug": self.ivo.slug, "text": "I'll leave you two to it.", "stage": {"leave": [self.ivo.slug, "ghost"]}},
+            {"speaker_slug": "narrator", "text": "The door closes behind him."},
+            {"speaker_slug": "narrator", "text": "Ivo comes back with tea.", "stage": {"enter": [self.ivo.slug]}}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn):
+            scene, new = vn_scenes.step_scene(self.user, "I wave him off.")
+        goodbye, door, back = new
+        self.assertIn(self.ivo.slug, goodbye["stage"]["present"])  # he says it, then goes
+        self.assertEqual(goodbye["left"], [self.ivo.slug])
+        self.assertNotIn(self.ivo.slug, door["stage"]["present"])
+        self.assertIn(self.ivo.slug, back["stage"]["present"])
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"handoff": "user_turn", "beats": [
+                {"speaker_slug": self.mira.slug, "text": "Thanks.", "stage": {"leave": [self.ivo.slug]}}]}):
+            scene, _ = vn_scenes.step_scene(self.user, "I take a cup.")
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"handoff": "user_turn", "beats": [
+                {"speaker_slug": self.ivo.slug, "text": "Me again."}]}) as model:
+            scene, new = vn_scenes.step_scene(self.user, "I wait.")
+        self.assertIn("GONE (not here until an \"enter\"): Ivo", model.call_args.args[1])
+        self.assertTrue(new[0]["auto_entered"])  # he spoke without arriving: on stage, and the Watch is told
+        with patch.object(messenger, "ask_json", return_value={"slips": []}) as bulba:
+            vn_watch.run(self.user)
+        self.assertIn("Gone when the turn began", bulba.call_args.args[1])
+        self.assertIn("speaks in this turn without an arrival", bulba.call_args.args[1])
+
+
+class PhoneHandoffTests(EpisodeWatchTests):
+    def test_a_finished_episode_leaves_a_card_and_updates_right_now(self):
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"handoff": "user_turn", "beats": [
+                {"speaker_slug": "narrator", "text": "Rain soaks Mira's cardigan.",
+                 "stage": {"outfit_change": {self.mira.slug: "grey cardigan, soaked"}}},
+                {"speaker_slug": self.ivo.slug, "text": "I'm off.", "stage": {"leave": [self.ivo.slug]}}]}):
+            vn_scenes.step_scene(self.user, "Bye, Ivo.")
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"chat_summary": "They found the map.", "visual_prompt": "x"}):
+            vn_scenes.finish_scene_with_cg(self.user, capture_image=False)
+        self.thread.refresh_from_db()
+        data = messenger.thread_data(self.thread)
+        card = [m for m in data["messages"] if m.get("episode")][-1]
+        self.assertEqual(card["episode"]["title"], "Map room")
+        self.assertEqual(card["episode"]["summary"], "They found the map.")
+        self.assertEqual(data["scene"]["Mira"]["where"], "The map room")
+        self.assertEqual(data["scene"]["Mira"]["wearing"], "grey cardigan, soaked")
+        self.assertNotEqual(data["scene"]["Ivo"]["where"], "The map room")  # he had left
+
+
+class CostTests(EpisodeWatchTests):
+    def test_the_episode_counts_its_cost_from_casting_on(self):
+        from users.models import UsageRecord
+        vn_scenes.save_vn_state(self.user, {"active_scene": None})
+        UsageRecord.objects.create(user=self.user, task="chat", cost=5.0)  # before casting: not this episode's
+        import time
+        vn_scenes.mark_prep(self.user)
+        since = vn_scenes.get_vn_state(self.user)["prep_since"]
+        UsageRecord.objects.create(user=self.user, task="sprites", cost=0.04)
+        UsageRecord.objects.create(user=self.user, task="bulba", cost=0.01)
+        reply = {"title": "T", "handoff": "user_turn", "beats": [{"speaker_slug": self.mira.slug, "text": "Hi."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply):
+            scene = vn_scenes.start_scene(self.user, self.thread)
+        self.assertEqual(scene["cost_since"], since)
+        self.assertIsNone(vn_scenes.get_vn_state(self.user)["prep_since"])
+        UsageRecord.objects.create(user=self.user, task="chat", cost=0.02)
+        cost = vn_scenes.episode_cost(self.user, scene["cost_since"])
+        self.assertEqual(cost, {"total": 0.07, "pictures": 1, "picture_cost": 0.04, "text_cost": 0.03})
+        payload = self.client.get(reverse("vn_scenes_api")).json()["vn_scenes"]
+        self.assertEqual(payload["cost"]["total"], 0.07)

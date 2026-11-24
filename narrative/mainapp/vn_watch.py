@@ -33,7 +33,12 @@ def established(user, scene):
             value = record[key] if isinstance(record[key], str) else json.dumps(record[key], ensure_ascii=False)
             lines.append(f"{label}: {value[:1200]}")
     names = scene.get("character_names") or []
-    lines.append("Present: " + ", ".join(names + [(scene.get("user_participant") or {}).get("name") or "the user"]))
+    before = ((scene.get("current_beats") or [{}])[0].get("stage_before") or {}).get("present")
+    here = [n for s, n in zip(scene.get("character_slugs") or [], names) if not isinstance(before, list) or s in before]
+    lines.append("Present when the turn began: " + ", ".join(here + [(scene.get("user_participant") or {}).get("name") or "the user"]))
+    gone = [n for n in names if n not in here]
+    if gone:
+        lines.append("Gone when the turn began (not present unless the turn has them arrive): " + ", ".join(gone))
     looks = vn_scenes.scene_looks(user, scene)
     worn = record.get("outfits") if isinstance(record.get("outfits"), dict) else {}
     for slug, name in zip(scene.get("character_slugs") or [], names):
@@ -65,7 +70,9 @@ def check(user, scene, beats):
         "You check one turn of an interactive visual novel for CONTINUITY only: not style, not quality, not taste.\n"
         "ESTABLISHED:\n" + established(user, scene) + "\n\n"
         "THE TURN, passage by passage:\n"
-        + "\n".join(f"[{label}] {speaker}: {text[:1200]}" for label, _, speaker, text in blocks) + "\n\n"
+        + "\n".join(f"[{label}] {speaker}: {text[:1200]}" for label, _, speaker, text in blocks) + "\n"
+        + "".join(f"(Note: {b.get('speaker_name')} speaks in this turn without an arrival being written.)\n"
+                  for b in beats if b.get("auto_entered")) + "\n"
         "List each passage that clearly contradicts something established: someone knows something they couldn't "
         "know, a fact, plan or promise is contradicted, the place, time or objects are wrong, clothes don't match what "
         "they wear, someone acts as present who isn't there. Only clear contradictions; when in doubt, it's fine.\n"

@@ -565,7 +565,7 @@ class MessengerHubTests(TestCase):
         # Verify the linked TeleChat thread received both the scene summary and the Finale CG photo bubble
         thread.refresh_from_db()
         td = messenger.thread_data(thread)
-        self.assertTrue(any("Meet-Up Scene Completed" in (m.get("text") or "") for m in td["messages"]))
+        self.assertTrue(any(m.get("episode") for m in td["messages"]))
         self.assertTrue(any((m.get("photo") or {}).get("url") == entry["cg_url"] for m in td["messages"]))
 
 

@@ -369,6 +369,14 @@
     var lastUserId = null;
     msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
+      if (m.role === "system" && m.episode && m.episode.id) {  // 🎬 an episode played in person: its card
+        var ep = m.episode, pic = ep.cg_url || ep.backdrop || "";
+        out.push('<button type="button" class="tg-episode-card" id="msg-' + esc(m.id) + '" onclick="TG.openEpisode(\'' + esc(ep.id) + '\')">' +
+          (pic ? '<img src="' + esc(pic) + '" alt="">' : '<span class="tg-episode-mark">🎬</span>') +
+          '<span class="tg-episode-text"><small>In person · ' + esc(ep.location || "") + '</small><strong>' + esc(ep.title || "Episode") + '</strong>' +
+          '<span>' + esc(ep.summary || "") + '</span><em>Reread · ' + Number(ep.pages || 0) + ' pages</em></span></button>');
+        return;
+      }
       if (m.role === "system") {
         var pulseLink = Number.isSafeInteger(Number(m.pulse_event_id)) && Number(m.pulse_event_id) > 0
           ? '<button type="button" class="tg-fmt-btn" onclick="ScreenHome.openPulse(' + Number(m.pulse_event_id) + ',' + Number(t.id) + ')">View plan</button>' : '';
@@ -1677,6 +1685,13 @@
     },
 
     // 💬 Chat files: every chat with the same character(s), a new one, branches, rename, delete
+    openEpisode: function (id) {  // 🎬 a played episode from its card in the chat: reread it in Scenes
+      if (!window.VN_SCENES) return;
+      TG.switchApp("scenes");
+      VN_SCENES.switchTab("gallery");
+      VN_SCENES.viewGalleryTranscript(id);
+    },
+
     openChats: function () {
       var t = STATE.active_thread; if (!t) return;
       var key = (t.members || []).map(function (m) { return m.slug; }).sort().join("|");

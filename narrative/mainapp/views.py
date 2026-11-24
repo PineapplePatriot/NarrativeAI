@@ -4899,6 +4899,8 @@ def screen_hub(request):
             "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
             "look_packs": vn_scenes.look_packs(request.user, vn_scenes.get_vn_state(request.user)["active_scene"]),
             "watch_on": messenger._watch_on(request.user),
+            "cost": vn_scenes.episode_cost(request.user, (vn_scenes.get_vn_state(request.user)["active_scene"] or {}).get("cost_since")
+                                           or vn_scenes.get_vn_state(request.user).get("prep_since")),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6091,6 +6093,7 @@ def vn_scenes_api(request):
             "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
             "look_packs": vn_scenes.look_packs(request.user, st.get("active_scene")),
             "watch_on": messenger._watch_on(request.user),
+            "cost": vn_scenes.episode_cost(request.user, (st.get("active_scene") or {}).get("cost_since") or st.get("prep_since")),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6222,6 +6225,9 @@ def vn_scenes_api(request):
                                 "chosen": looks[0].pk if looks else None,
                                 "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
                 return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS})
+            if action in ("episode_look_create", "episode_look_moods", "episode_look_redraw") and \
+                    not vn_scenes.get_vn_state(request.user).get("active_scene"):
+                vn_scenes.mark_prep(request.user)  # looks made while casting count toward the coming episode
             if action == "episode_look_create":
                 key = str(body.get("key") or "")
                 character = member(key)
@@ -6277,6 +6283,8 @@ def vn_scenes_api(request):
         from . import vn_casting
         from .models import EpisodePlace
         try:
+            if not vn_scenes.get_vn_state(request.user).get("active_scene"):
+                vn_scenes.mark_prep(request.user)  # the coming episode's cost counts from its casting
             if action == "casting_propose":  # Bulba's casting sheet for this chat (one call to Bulba's model)
                 t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
                 if not t_obj:

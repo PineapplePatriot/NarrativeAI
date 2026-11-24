@@ -307,6 +307,7 @@
         this.busy = false;
         if (btn && btn.isConnected) {btn.disabled = false; btn.textContent = orig;}
         this.render();
+        window.CASTING?.refreshCost();
       }
     },
 

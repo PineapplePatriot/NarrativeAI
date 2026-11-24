@@ -109,6 +109,9 @@ def finish_timeline(beats, reported):
     ending = {k: v for k, v in (reported or {}).items() if k in ("summary", "open_threads")}
     stage["continuity"] = vn_support.continuity_update(stage.get("continuity"), ending)
     beats[-1]["stage"] = copy.deepcopy(stage)
+    if beats[-1].get("left") and isinstance(stage.get("present"), list):
+        # Someone left on the turn's last passage: still seen saying it, gone from the next turn on.
+        stage["present"] = [k for k in stage["present"] if k not in beats[-1]["left"]]
     return stage
 
 

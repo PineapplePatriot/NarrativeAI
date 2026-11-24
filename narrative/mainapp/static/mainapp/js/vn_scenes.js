@@ -673,6 +673,7 @@
                 </div>
               ` : ""}
               ${e.quote ? `<div style="font-size:15px; font-style:italic; color:#fbcfe8; text-align:center;">"${this.attr(e.quote)}"</div>` : ""}
+              ${this.costLine(e.cost, "This episode cost")}
               <div style="font-size:13.5px; color:#e2e8f0; background:rgba(30,41,59,0.65); padding:11px 14px; border-radius:12px;">
                 ${this.attr(e.summary || "")}
               </div>
@@ -804,6 +805,7 @@
           <aside class="ep-sheet" id="epSheet" ${this.sheetOpen ? "" : "hidden"} aria-label="Episode menu">
             <div class="ep-sheet-head"><strong>${this.attr(sc.title || "Episode")}</strong>
               <button type="button" class="ep-icon" onclick="VN_SCENES.closeSheet()" aria-label="Close">${this.icon("close")}</button></div>
+            ${this.costLine(TG.state.vn_scenes?.cost, "So far")}
             <section class="ep-sheet-part" id="epSheetPassage"><h4>This passage</h4>
               ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${this.attr(beat.original_text)}</div></details>` : ""}
               ${spBeat && spBeat.look_id ? `<button type="button" class="ep-btn" onclick="VN_SCENES.promptLookMood(this)">Add a mood to ${this.attr(spBeat.speaker_name)}'s look · 1 picture</button>` : ""}
@@ -843,6 +845,15 @@
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
       });
       this.bindStage();
+    },
+
+    /* What the episode has cost, from its casting on (the provider's own figures). */
+    costLine(cost, label) {
+      if (!cost || !(cost.total > 0)) return "";
+      const money = (v) => "$" + (v >= 1 ? v.toFixed(2) : v.toFixed(3));
+      return `<p class="ep-cost" title="Everything this account spent since the casting began, phone chats included">${label}: ${money(cost.total)}`
+        + (cost.pictures ? ` · ${cost.pictures} ${cost.pictures === 1 ? "picture" : "pictures"} ${money(cost.picture_cost)}` : "")
+        + (cost.text_cost > 0 ? ` · writing ${money(cost.text_cost)}` : "") + `</p>`;
     },
 
     /* ---------- Bulba's Watch: continuity slips in the latest turn ---------- */
@@ -936,7 +947,8 @@
       const current = TG.state.vn_scenes?.looks || {};
       const camera = (this.activeSpriteBeat() || {}).speaker;
       const talking = beat.kind === "dialogue" && beat.speaker !== "narrator" ? camera : null;
-      const keys = [...(sc.character_slugs || []), ...(sc.authoring_mode === "director" ? ["user"] : [])];
+      const everyone = [...(sc.character_slugs || []), ...(sc.authoring_mode === "director" ? ["user"] : [])];
+      const keys = Array.isArray(stage.present) ? everyone.filter((k) => stage.present.includes(k)) : everyone;
       const out = [];
       keys.forEach((key) => {
         const lookId = (stage.looks || {})[key];

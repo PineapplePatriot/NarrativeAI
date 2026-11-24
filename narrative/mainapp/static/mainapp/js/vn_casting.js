@@ -131,7 +131,8 @@
             </details>
 
             <footer class="cast-foot">
-              <button type="button" class="ep-btn ep-btn-quiet" onclick="TG.switchApp('messenger')">Back to the phone</button>
+              <span class="cast-foot-left"><button type="button" class="ep-btn ep-btn-quiet" onclick="TG.switchApp('messenger')">Back to the phone</button>
+                ${vn().costLine(TG.state.vn_scenes?.cost, "Casting so far")}</span>
               <button type="button" class="ep-btn ep-btn-primary cast-start" onclick="VN_SCENES.launchFromActiveThread()">${
                 s.place.state === "applied" && !placeBg ? "Start the episode<small>draws the place · 1 picture</small>" : "Start the episode"}</button>
             </footer>
@@ -249,6 +250,14 @@
       if (after) after.scrollTop = top;
     },
 
+    /* The spending so far, after a step that cost something. */
+    async refreshCost() {
+      try {
+        const data = await fetch((window.TG_CFG && TG_CFG.vn_scenes_api) || "/main/screen/scenes/api/").then((r) => r.json());
+        if (data.vn_scenes && !vn().activeScene()) {TG.state.vn_scenes = data.vn_scenes; this.rerender();}
+      } catch (_) { /* the line just stays as it was */ }
+    },
+
     /* ---------- Bulba ---------- */
 
     async ask(btn) {
@@ -271,6 +280,7 @@
         s.asking = false;
         this.save();
         this.rerender();
+        this.refreshCost();
       }
     },
 
@@ -364,6 +374,7 @@
       } finally {
         if (btn.isConnected) {btn.disabled = false; btn.textContent = orig;}
         this.rerender();
+        this.refreshCost();
       }
     },
 

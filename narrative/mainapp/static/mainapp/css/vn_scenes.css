@@ -749,3 +749,5 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .ep-slip-fix { font-size: 13px; color: #e2e8f0; white-space: pre-wrap; }
 .ep-slip details summary { cursor: pointer; font-size: 12.5px; color: #fde68a; margin-bottom: 6px; }
 .ep-watch { white-space: nowrap; }
+.ep-cost { margin: 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ep-muted, #a5b4cc); }
+.cast-foot-left { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }

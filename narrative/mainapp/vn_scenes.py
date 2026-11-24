@@ -60,6 +60,7 @@ def get_vn_state(user):
         "active_scene": active,
         "gallery": gallery,
         "drafts": raw.get("drafts") or [],
+        "prep_since": raw.get("prep_since"),
         "music_catalog": available_music_tracks(),
         "bg_catalog": available_backgrounds(),
     }
@@ -81,6 +82,29 @@ def save_vn_state(user, updates, expected=None):
     settings_obj.appearance = app
     settings_obj.save(update_fields=["appearance"])
     return cur
+
+
+def mark_prep(user):
+    """The moment preparing the next episode began (casting, looks, places), so its cost counts from there."""
+    if not get_vn_state(user).get("prep_since"):
+        save_vn_state(user, {"prep_since": time.time()})
+
+
+def episode_cost(user, since, until=None):
+    """What was spent from `since` (casting) on, as the provider reported it: {"total", "pictures", "picture_cost",
+    "text_cost"}. Everything the account spent in that window counts, phone chats included."""
+    from datetime import datetime, timezone as tz
+    from django.db.models import Count, Sum
+    from users.models import UsageRecord
+    if not since:
+        return {"total": 0.0, "pictures": 0, "picture_cost": 0.0, "text_cost": 0.0}
+    rows = UsageRecord.objects.filter(user=user, time_create__gte=datetime.fromtimestamp(float(since), tz=tz.utc))
+    if until:
+        rows = rows.filter(time_create__lte=datetime.fromtimestamp(float(until), tz=tz.utc))
+    pics = rows.filter(task="sprites").aggregate(n=Count("id"), s=Sum("cost"))
+    total = rows.aggregate(s=Sum("cost"))["s"] or 0.0
+    return {"total": round(total, 4), "pictures": pics["n"] or 0, "picture_cost": round(pics["s"] or 0.0, 4),
+            "text_cost": round(total - (pics["s"] or 0.0), 4)}
 
 
 def available_music_tracks(characters=None):
@@ -243,6 +267,9 @@ VISUAL NOVEL ENGINE RULES:
      * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
      * A **Character Dialogue block** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
    - Return 6–10 complete beats per request, ending at a natural input point. Continue in the next request.
+1b. WHO IS PRESENT:
+   - Only people who are present speak, act or are seen. When someone arrives, add to THAT block's `stage`: `"enter": ["<slug>"]`; when someone goes, `"leave": ["<slug>"]` on the block where they go.
+   - Someone who left is gone until an "enter" brings them back; don't write them as present.
 2. EXPRESSIONS AND OUTFITS:
    - On every block with character speech or a silent reaction, set `"emotion"` to the face they show right now, chosen ONLY from that character's own mood list in PARTICIPATING CHARACTER(S). Do not invent moods; pick the closest listed one.
    - Each character wears exactly the outfit written under their name. Describe it only with those items. Clothes change only when the story makes them change.
@@ -375,6 +402,18 @@ def _call_vn_json(user, prompt, scene=None, generation="normal"):
     raise ai_client.AIError("The model returned incomplete or invalid scene JSON twice. Your saved episode and draft are preserved. Retry the request.")
 
 
+def present_line(chars, scene):
+    """Who is in the room at the end of the episode so far, and who has left."""
+    here = (scene.get("current_stage") or {}).get("present")
+    if not isinstance(here, list):
+        return ""
+    names = {c.slug: messenger.char_profile(c)["display_name"] for c in chars}
+    names["user"] = (scene.get("user_participant") or {}).get("name") or "the user"
+    away = [names[s] for s in names if s not in here and s != "user"]
+    return ("PRESENT NOW: " + (", ".join(names.get(s, s) for s in here) or "nobody but the user")
+            + (f". GONE (not here until an \"enter\"): {', '.join(away)}" if away else "") + ".")
+
+
 def _look_lines(look, worn=""):
     """A person's moods and clothes for the storyteller. `worn` is the outfit the story has changed them into."""
     if not look:
@@ -461,6 +500,14 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
                                     **{c["slug"]: c["outfit"] for c in outfit_changes}}
                 change = {**change, "continuity": patch}
         current = vn_story.advance_stage(current, change, tracks, bgs)
+        present = list(current.get("present") or [c.slug for c in chars])
+        known = set(char_by_slug) | ({"user"} if authoring_mode == "director" else set())
+        listed = lambda key: [k for k in (change.get(key) or []) if isinstance(k, str) and k in known] \
+            if isinstance(change.get(key), list) else []
+        for key in listed("enter"):
+            if key not in present:
+                present.append(key)
+        leaving = listed("leave")
         sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip().strip("`").strip()
         sp_low = sp_raw.casefold()
         narrator = rb.get("kind") == "narration" or sp_low in ("narrator", "narration", "system", "")
@@ -469,6 +516,11 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
             c.slug.casefold(), c.name.casefold(), messenger.char_profile(c)["display_name"].casefold())), None)
         if user_speaks and authoring_mode != "director":
             break
+        auto_entered = False
+        if speaker_char is not None and speaker_char.slug not in present:
+            present.append(speaker_char.slug)  # speaking puts them in the room; the Watch sees it wasn't announced
+            auto_entered = True
+        current["present"] = present
         if not narrator and not user_speaks and speaker_char is None:
             txt = f"{sp_raw}: {txt}"
             narrator = True
@@ -503,8 +555,13 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
                           "sprite_url": "" if side_character else sp_info["url"], "hide_sprite": side_character,
                           "text": part, "block_text": txt if i == 0 else "",
                           **({"outfit_change": outfit_changes} if outfit_changes and i == 0 else {}),
+                          **({"auto_entered": True} if auto_entered and i == 0 else {}),
                           "original_text": (rb.get("original_text") or "") if i == 0 else "",
                           "stage": copy.deepcopy(current), "stage_before": before})
+        if leaving:  # they say their piece on this block, and are gone from the next one
+            current = {**current, "present": [k for k in present if k not in leaving]}
+            if boxes:
+                boxes[-1]["left"] = leaving
     return boxes
 
 
@@ -589,7 +646,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     beats = _enrich_beats(user, chars, raw_blocks, looks=scene_looks(user, seed), continuity=continuity,
                         initial_stage={"background": chosen_bg, "music": chosen_music,
                                        "location": (casting or {}).get("place", {}).get("name") or parsed.get("location") or location_hint,
-                                       "continuity": continuity, "looks": dict(picked_looks)},
+                                       "continuity": continuity, "looks": dict(picked_looks),
+                                       "present": [c.slug for c in chars] + (["user"] if seed["authoring_mode"] == "director" else [])},
                         authoring_mode=seed["authoring_mode"], user_participant=seed["user_participant"])
     if not beats:
         raise ai_client.AIError("The model returned no scene text. Try starting the episode again.")
@@ -609,6 +667,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         "location": str((casting or {}).get("place", {}).get("name") or parsed.get("location") or location_hint
                         or now_local.strftime("%H:%M")).strip()[:120],
         "casting": casting,
+        "cost_since": get_vn_state(user).get("prep_since") or time.time(),
         "continuity_before_turn": copy.deepcopy(continuity),
         "background": chosen_bg,
         "music": chosen_music,
@@ -654,7 +713,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
     if scene["interaction_mode"] == "write": scene["choices"] = []
     scene["choice_cache"] = list(scene["choices"])
-    save_vn_state(user, {"active_scene": scene}, expected=("", 0))
+    save_vn_state(user, {"active_scene": scene, "prep_since": None}, expected=("", 0))
     return scene
 
 
@@ -730,6 +789,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
         char_roster=roster_text,
         telechat_context=json.dumps(context, ensure_ascii=False),
         scene_history=((__import__("mainapp.vn_casting", fromlist=["brief"]).brief(scene.get("casting")) + "\n\n")
+                       + present_line(chars, scene) + "\n"
                        + "Continuity record (carry earlier facts forward):\n"
                        + json.dumps(scene.get("continuity") or {}, ensure_ascii=False)
                        + "\nRecent transcript:\n" + "\n".join(hist_lines)),
@@ -1006,6 +1066,7 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     all_beats = scene.get("beats") or scene.get("history") or []
     gallery_entry = {
         "id": scene["id"],
+        "cost": episode_cost(user, scene.get("cost_since")),
         "episode": copy.deepcopy(scene),
         "thread_id": scene.get("thread_id"),
         "title": scene.get("title"),
@@ -1042,10 +1103,30 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
                 td["messages"].append({
                     "id": uuid.uuid4().hex[:10],
                     "role": "system",
-                    "text": f"🎬 Meet-Up Scene Completed: \"{scene.get('title')}\" ({scene.get('location')}) — {chat_summary}",
+                    "text": f"🎬 In person: \"{scene.get('title')}\" ({scene.get('location')}) — {chat_summary}",
+                    "episode": {"id": scene["id"], "title": scene.get("title") or "", "location": scene.get("location") or "",
+                                "summary": chat_summary[:600], "cg_url": cg_url,
+                                "backdrop": ((scene.get("current_stage") or {}).get("background") or {}).get("url", ""),
+                                "pages": len(all_beats), "finished_at": finished_str},
                     "time": now_hm,
                     "ts": time.time(),
                 })
+                # "📍 Right now" picks up where the episode left everyone: the place, and the clothes they ended in.
+                end = scene.get("current_stage") or {}
+                worn = (scene.get("continuity") or {}).get("outfits") or {}
+                looks_now = scene_looks(user, scene)
+                present = end.get("present") if isinstance(end.get("present"), list) else [c.slug for c in chars]
+                place = str(scene.get("location") or "")[:300]
+                now_scene = dict(td.get("scene") or {})
+                for c in chars:
+                    outfit = str(worn.get(c.slug) or (looks_now[c.slug].outfit if c.slug in looks_now else "") or "")
+                    row = dict(now_scene.get(c.name) or {})
+                    row.update({"where": place if c.slug in present else row.get("where", ""),
+                                "doing": f"just after the episode \"{scene.get('title')}\""[:300]})
+                    if outfit:
+                        row["wearing"] = outfit[:300]
+                    now_scene[c.name] = {k: str(row.get(k) or "")[:300] for k in messenger.SCENE_FIELDS}
+                td["scene"] = now_scene
                 if cg_url:
                     td["messages"].append({
                         "id": uuid.uuid4().hex[:10],
