@@ -539,7 +539,8 @@ class ChatPromptTests(TestCase):
         self.assertNotIn("[CHAT HISTORY]", joined)
         self.assertNotIn("[LAST USER MESSAGE]", joined)
         self.assertEqual(joined.count("Where is the tower?"), 1)
-        self.assertEqual(messages[-1], {"role": "user", "content": "Let's go there."})
+        self.assertEqual(messages[-1]["role"], "user")  # their words, then the app's short notes (🛡 keep out…)
+        self.assertEqual(messages[-1]["content"].split("\n\n[")[0], "Let's go there.")
 
     def test_regenerate_does_not_add_empty_user_message(self):
         self.post({"action": "chat", "message": "Hi!"})
@@ -549,7 +550,7 @@ class ChatPromptTests(TestCase):
         self.assertEqual(len(after), len(before))
         self.assertEqual([m[0] for m in after], ["assistant", "user", "assistant"])
         self.assertFalse(any(m[0] == "user" and not m[2] for m in after))
-        self.assertEqual(self.sent[-1]["messages"][-1], {"role": "user", "content": "Hi!"})
+        self.assertEqual(self.sent[-1]["messages"][-1]["content"].split("\n\n[")[0], "Hi!")
 
     def test_ai_error_is_shown_and_user_message_kept(self):
         self.reply_status = 401
@@ -5098,7 +5099,7 @@ class CardNoteTests(ChatPromptTests):
         self.post({"action": "chat", "message": "Walk with me"})
         msgs = self.sent[-1]["messages"]
         i = next(i for i, m in enumerate(msgs) if m["content"] == "Rose hides her limp.")
-        self.assertEqual(msgs[i + 1]["content"], "Walk with me")  # one message from the end
+        self.assertEqual(msgs[i + 1]["content"].split("\n\n[")[0], "Walk with me")  # one message from the end
         page = self.client.get(reverse("character", args=[self.character.slug]))
         self.assertContains(page, "Character's note (from the card)")
 
@@ -6631,6 +6632,39 @@ class PolishChatTests(WatchChatTests):
         self.polish_answer = {"fixes": []}
         from mainapp.bulba import watch
         watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": False})  # only what they approve
+        from unittest import mock
+        from mainapp.bulba import polish
+        every = mock.patch.object(polish, "FULL_EVERY", 1)  # (these tests: every reply gets the full check)
+        every.start()
+        self.addCleanup(every.stop)
+
+    def test_free_checks_decide_and_only_flagged_sentences_are_sent(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        self.approve("quiet_menace")  # a habit code can spot
+        with mock.patch.object(polish, "FULL_EVERY", 3):
+            self.post({"action": "chat", "message": "Go on."})  # "A reply.": nothing to fix
+            self.assertFalse(self.post({"action": "polish"}).json()["changed"])
+            self.assertEqual(self.polish_calls, [])  # no call at all
+            msgs = self.saved_messages()
+            text = "The rain stops. He did not raise his voice. The street is empty."
+            msgs[-1] = [msgs[-1][0], msgs[-1][1], text, *msgs[-1][3:]]
+            self.assertTrue(polish.due(self.user, self.character.chats.first(), msgs))
+            self.polish_answer = {"fixes": [{"find": "He did not raise his voice.", "replace": "He answered at once."}]}
+            with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+                new, fixes = polish.polish(self.user, self.character, self.character.chats.first(), msgs, "A long summary.")
+        self.assertEqual(new, "The rain stops. He answered at once. The street is empty.")
+        sent = self.polish_calls[-1]["messages"][1]["content"]
+        self.assertIn("He did not raise his voice.", sent)
+        self.assertNotIn("The street is empty", sent)  # only the flagged sentence
+        self.assertNotIn("A long summary", sent)
+
+    def test_habits_code_cant_spot_get_a_full_check_every_third_reply(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        msgs = [("assistant", "", "A.", "neutral", 1)]
+        with mock.patch.object(polish, "FULL_EVERY", 3):
+            self.assertEqual([polish.full_turn(msgs * n) for n in (1, 2, 3, 4, 5, 6)], [False, False, True, False, False, True])
 
     def test_known_slop_is_fixed_by_default(self):
         from mainapp.bulba import polish, watch

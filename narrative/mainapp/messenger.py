@@ -1646,7 +1646,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         + (f" Special direction for this turn: {extra_instruction}" if extra_instruction else "")
         + "]"
     )
-    messages.append({"role": "user", "content": reminder})
+    from mainapp.bulba import polish  # 🛡 the habits to keep out, before they write
+    avoid = polish.avoid_line(user)
+    messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "")})
     return messages
 
 

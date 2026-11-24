@@ -102,14 +102,119 @@ def due(user, chat_obj, messages):
     habits = approved(user)
     if not habits or not messages or messages[-1][0] != "assistant" or watch.chat_data(chat_obj).get("off"):
         return False
-    if set(habits) <= watch.FREE_LABELS:  # every habit has a free check: only call when one hits
-        return bool(_free_hits(messages, habits))
-    return True
+    hit = bool(_free_hits(messages, habits) or flagged(str(messages[-1][2]), habits)[0])
+    if code_checked(habits):  # every habit has a free check: only call when one hits
+        return hit
+    return hit or full_turn(messages)  # the rest: a full check every FULL_EVERY replies
+
+
+# 🛡 Prevention: what the reply itself is asked to avoid (cheaper than fixing it afterwards). The witty-writing
+# family always; the habits they asked polish to fix, too
+ALWAYS_AVOID = ("theme_saturation", "quiet_menace", "absolutes", "epigram", "quip_loop")
+
+
+def avoid_line(user):
+    """A short line for the end of every reply request: the habits to keep out of this reply."""
+    try:
+        mine = approved(user)
+        muted = set(watch.user_data(user).get("muted") or [])
+    except Exception:
+        mine, muted = [], set()
+    labels = [h for h in (*ALWAYS_AVOID, *mine) if h not in muted and h != MODEL_KNOWN
+              and (h in MEANING) and h not in watch.FREE_LABELS]
+    labels = list(dict.fromkeys(labels))[:10]
+    if not labels:
+        return ""
+    return ("[Keep out of this reply: " + "; ".join(MEANING[h].split(":")[0].split(" (")[0] for h in labels)
+            + ". Write what this person specifically does and says instead.]")
 
 
 def others_before(messages, index, role="assistant"):
     """The texts of the earlier messages of the same role (for the repeated-phrase check)."""
     return [str(m[2]) for m in messages[:index] if m[0] == role]
+
+
+# 🔍 Free checks (no AI) for habits code can spot: a reply is only sent to the polish model when one fires, and
+# then only the flagged sentences. English and Ukrainian/Russian forms where they're common.
+_I = re.I | re.U
+DETECTORS = {
+    "stock_reactions": re.compile(
+        r"\b(jaw (?:tighten|clench|set)|clench(?:es|ed|ing)? (?:his|her|their) (?:jaw|fists?|hands?)|"
+        r"unclench|breath (?:caught|hitched|he didn't know|she didn't know)|swallow(?:s|ed)? hard|"
+        r"knuckles (?:whiten|white)|щелепа напруж|стиснув кулак|стиснула кулак|затамува)", _I),
+    "vague_emotion": re.compile(
+        r"\b(something (?:shift|flicker|chang|dark)\w* (?:in|behind|across) (?:his|her|their) (?:eyes|gaze|face|"
+        r"expression|voice)|(?:his|her|their) eyes darken|a flicker of \w+ (?:in|across)|щось (?:змінилось|"
+        r"майнуло|промайнуло) в (?:його|її) (?:очах|погляді|голосі))", _I),
+    "corrective_contrast": re.compile(
+        r"\b(?:it|this|that) (?:wasn't|was not|isn't|is not)\b[^.!?\n]{1,60}[.,;:—-]\s*(?:it|this|that) (?:was|is)\b|"
+        r"\bnot (?:a|an) \w+[,;—-]\s*(?:but )?(?:a|an) \w+\b|\bце (?:не|була не)\b[^.!?\n]{1,60}[.,—-]\s*це\b", _I),
+    "quiet_menace": re.compile(
+        r"\b((?:didn't|doesn't|does not|never|did not) raise (?:his|her|their) voice|(?:voice|tone) (?:went|goes|"
+        r"dropped|drops|turned) (?:quiet|soft|low|cold|very quiet)|dangerous(?:ly)? (?:calm|quiet|soft)|"
+        r"deceptively (?:calm|soft|gentle)|quiet(?:ly)? dangerous|went (?:very )?(?:quiet|still)|"
+        r"не підвищ\w* голос|небезпечно спокій|голос став тих)", _I),
+    "absolutes": re.compile(
+        r"\b((?:never|always) (?:forget|forgets|forgot|forgive|forgives|loses|wins|gets what)|ніколи не забува)", _I),
+}
+# A character's job or world in every line: a family of words, counted over the reply
+THEMES = [
+    re.compile(r"\b(ledger|debts?|prices?|priced|costs?|invest\w*|interest|dividends?|collateral|leverage|"
+               r"accounts?|transactions?|bargain\w*|wager\w*|gambl\w*|profit\w*|assets?|liabilit\w*|"
+               r"payments?|repay\w*|interest rate|креди\w*|борг\w*|ціна|ціни|рахун\w*|інвест\w*|ставк\w*)\b", _I),
+    re.compile(r"\b(data|experiment\w*|variables?|hypothes\w*|specimens?|samples?|results?|subjects?|"
+               r"observation\w*|експеримент\w*|зразк\w*|гіпотез\w*)\b", _I),
+]
+THEME_MIN = 4  # words of one family in a reply before it counts
+CODE_CHECKED = set(DETECTORS) | {"staccato", "theme_saturation"}
+_SENT = re.compile(r"[^.!?…\n]+[.!?…]*[\"”»]?|\n")
+
+
+def _sentences(text):
+    return [s for s in (m.group(0).strip() for m in _SENT.finditer(text or "")) if s]
+
+
+def flagged(text, habits):
+    """(the habits a free check found in `text`, the sentences that showed them), no AI."""
+    sents, hits, picked = _sentences(text), [], []
+    for label, rx in DETECTORS.items():
+        if label in habits:
+            these = [s for s in sents if rx.search(s)]
+            if these:
+                hits.append(label)
+                picked += these
+    if "staccato" in habits:  # three or more very short sentences in a row
+        run = []
+        for s in sents + [""]:
+            if s and len(s.split()) <= 3:
+                run.append(s)
+                continue
+            if len(run) >= 3:
+                hits.append("staccato") if "staccato" not in hits else None
+                picked += run
+            run = []
+    if "theme_saturation" in habits:
+        for rx in THEMES:
+            if len(rx.findall(text or "")) >= THEME_MIN:
+                hits.append("theme_saturation")
+                picked += [s for s in sents if rx.search(s)]
+                break
+    seen = set()
+    return hits, [s for s in picked if not (s in seen or seen.add(s))]
+
+
+FULL_EVERY = 3  # habits code can't spot (the model's own, unearned depth…): a full check every third reply
+
+
+def full_turn(messages, index=None):
+    """This reply gets the full (whole-reply) check for the habits code can't spot."""
+    index = len(messages) - 1 if index is None else index
+    return sum(1 for m in messages[:index + 1] if m[0] == "assistant") % FULL_EVERY == 0
+
+
+def code_checked(habits):
+    """Every habit can be spotted for free (then the polish model is only called on a hit)."""
+    return bool(habits) and set(habits) <= (CODE_CHECKED | watch.FREE_LABELS)
 
 
 def free_hits_text(text, others, habits):
@@ -197,11 +302,20 @@ def apply_fixes(text, fixes):
     return new, kept
 
 
-def polish_text(user, character, chat_obj, text, others, summary, habits, whose="reply"):
-    """One polish pass over `text`. Returns (new text, fixes kept); the text is unchanged when nothing passed."""
+def polish_text(user, character, chat_obj, text, others, summary, habits, whose="reply", excerpt=None):
+    """One polish pass over `text`. Returns (new text, fixes kept); the text is unchanged when nothing passed.
+    With `excerpt` (the flagged sentences), the model sees only those: a far smaller and cheaper call; the fixes
+    still apply to the whole text."""
     rejected = watch.user_data(user)["polish"].get("examples") or []
-    answer = ai_client.complete(user, "polish", _prompt(character, chat_obj, text, others, summary, habits, whose, rejected),
-                                max_tokens=4000, temperature=0, response_format={"type": "json_object"})
+    shown = text if excerpt is None else excerpt
+    messages = _prompt(character, chat_obj, shown, others, "" if excerpt is not None else summary, habits, whose, rejected)
+    if excerpt is not None:
+        messages[-1]["content"] = messages[-1]["content"].replace(
+            "## The reply\n", "## Sentences from the reply that look like slips (fix only these; each find must be "
+                               "copied exactly from them)\n")
+    answer = ai_client.complete(user, "polish", messages,
+                                max_tokens=1500 if excerpt is not None else 4000, temperature=0,
+                                response_format={"type": "json_object"})
     return apply_fixes(text, _parse(answer))
 
 
@@ -221,14 +335,24 @@ def why_not_now(user, chat_obj, messages, index=None):
     return None
 
 
-def polish(user, character, chat_obj, messages, summary="", index=None):
-    """Polishes a reply (the newest by default) with the habits they approved."""
+def polish(user, character, chat_obj, messages, summary="", index=None, full=False):
+    """Polishes a reply (the newest by default) with the habits they approved. Automatic passes look only at what
+    the free checks flagged (and the whole reply every FULL_EVERY replies); `full` (they pressed 🧹) checks all."""
     index = len(messages) - 1 if index is None else index
     habits = approved(user)
-    if set(habits) <= watch.FREE_LABELS:
-        habits = _free_hits(messages, habits, index) or habits
-    return polish_text(user, character, chat_obj, str(messages[index][2]),
-                       others_before(messages, index), summary, habits)
+    text, others = str(messages[index][2]), others_before(messages, index)
+    if not full and (code_checked(habits) or not full_turn(messages, index)):  # 🔍 the flagged sentences only
+        found, sentences = flagged(text, habits)
+        free = _free_hits(messages, habits, index)
+        if "same_openings" in free:  # (that one is about the whole reply)
+            return polish_text(user, character, chat_obj, text, others, summary, found + free)
+        if "repeated_phrase" in free:
+            phrases = [p for p, _ in _repeated(text, others)]
+            sentences += [s for s in _sentences(text) if any(p in s.lower() for p in phrases) and s not in sentences]
+        if found or free:
+            return polish_text(user, character, chat_obj, text, others, summary, found + free,
+                               excerpt="\n".join(sentences) or text)
+    return polish_text(user, character, chat_obj, text, others, summary, habits)
 
 
 def habits_for_draft(user, chat_obj, text, others):

@@ -225,7 +225,8 @@ def _save_connections(user, data):
         ts = get_task_setting(user, task)
         ts.profile = ref_to_profile.get(item.get("profile_id"))
         ts.model = (item.get("model") or "").strip()
-        ts.enabled = bool(item.get("enabled", True)) if TASKS[task].get("toggleable") else True
+        if not TASKS[task].get("model_only"):  # (Watch is switched on and off on the Extras page, not here)
+            ts.enabled = bool(item.get("enabled", True)) if TASKS[task].get("toggleable") else True
         if TASKS[task].get("schedulable"):
             ts.mode = item.get("mode") if item.get("mode") in dict(TaskSetting.MODES) else TaskSetting.MODE_MANUAL
             try:

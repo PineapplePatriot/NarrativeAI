@@ -1150,7 +1150,7 @@ def chat(request, slug):
             earlier = rec_now if (now and not again) or (rec_now and rec_now.get("echo")) else None
             try:
                 new_text, fixes = polish.polish(request.user, character, chat_obj, messages, _story_text(request.user, chat_state, len(messages)),
-                                                index)
+                                                index, full=now or again)  # (pressed by them: the whole check)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             messages = load_messages()  # read again: they may have moved on while it worked
@@ -1980,9 +1980,6 @@ def chat(request, slug):
                                                 tables=story.of_type(systems, "table"))
                     if stand_in:
                         built = {**built, "params": {**built["params"], "model": stand_in}}
-                    english = translation.english_note(request.user)  # read in another language: written in English
-                    if english:
-                        built = {**built, "messages": built["messages"] + [english]}
                     # 🔁 a detail the last replies keep coming back to (a street lamp, the rain): leave it out this time
                     plain = [m for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and not chats.is_note(m)]
                     stale = fresh_details.repeated(
@@ -1990,6 +1987,11 @@ def chat(request, slug):
                         theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
                         names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
+                    from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(request.user))}
+                    english = translation.english_note(request.user)  # read in another language: written in English
+                    if english:
+                        built = {**built, "messages": built["messages"] + [english]}
                     if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
                         built = {**built, "messages": speaker_colors.remind(built["messages"])}
                     if thinking.needs_leash(chat_model, samplers.thinking_now(request.user)):  # MiMo: think briefly, then write
