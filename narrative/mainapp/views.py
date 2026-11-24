@@ -4898,6 +4898,7 @@ def screen_hub(request):
             **vn_scenes.get_vn_state(request.user),
             "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
             "look_packs": vn_scenes.look_packs(request.user, vn_scenes.get_vn_state(request.user)["active_scene"]),
+            "watch_on": messenger._watch_on(request.user),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6089,6 +6090,7 @@ def vn_scenes_api(request):
             **st,
             "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
             "look_packs": vn_scenes.look_packs(request.user, st.get("active_scene")),
+            "watch_on": messenger._watch_on(request.user),
             "music_tracks": vn_scenes.available_music_tracks(chars),
             "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
             "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
@@ -6248,7 +6250,8 @@ def vn_scenes_api(request):
                 if body.get("mood") == "all":
                     cost, errors = episode_looks.redraw_look(request.user, look)
                 else:
-                    cost, errors = episode_looks.redraw_mood(request.user, look, str(body.get("mood") or "")), []
+                    cost, errors = episode_looks.redraw_mood(request.user, look, str(body.get("mood") or ""),
+                                                             auto=bool(body.get("auto"))), []
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             if action == "episode_look_delete":
                 episode_looks.delete(look)
@@ -6258,6 +6261,17 @@ def vn_scenes_api(request):
         except ai_client.AIError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
         return JsonResponse({"error": "Unknown look action."}, status=400)
+
+    if action in ("episode_watch", "watch_dismiss"):  # Bulba's continuity check of the latest turn
+        from . import vn_watch
+        try:
+            if action == "episode_watch":
+                vn_watch.run(request.user)
+            else:
+                vn_watch.dismiss(request.user, str(body.get("beat_id") or ""))
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"vn_scenes": _full_vn_payload()})
 
     if action in ("casting_propose", "place_draw", "place_delete"):
         from . import vn_casting

@@ -609,6 +609,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         "location": str((casting or {}).get("place", {}).get("name") or parsed.get("location") or location_hint
                         or now_local.strftime("%H:%M")).strip()[:120],
         "casting": casting,
+        "continuity_before_turn": copy.deepcopy(continuity),
         "background": chosen_bg,
         "music": chosen_music,
         "handoff": parsed.get("handoff") if parsed.get("handoff") in ("user_turn", "auto_continue", "climax_ready") else "user_turn",
@@ -629,12 +630,13 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
                 kept, _ = vn_casting.draw_place(user, casting["place"], scene_setting(chars))
                 generated_bg = {"id": f"place_{kept.pk}", "name": kept.name, "url": default_storage.url(kept.image), "kept": True}
             else:
-                image, cost = messenger.make_picture(user, (
+                from mainapp import picture_checks
+                image, cost, _ = picture_checks.draw_checked(user, (
                     f"Create an immersive visual novel background of {location}. "
                     f"Scene context: {beats[0]['text']}\n"
                     f"Setting details: {json.dumps(opening.get('continuity') or {}, ensure_ascii=False)}\n"
                     "Environment only, no people, no portraits, no lettering. Wide establishing shot."
-                ))
+                ), kind="place", what=location)
                 path = default_storage.save(
                     f"messenger/vn_backgrounds/{user.pk}/{uuid.uuid4().hex}.png", ContentFile(image))
                 generated_bg = {"id": "generated_" + scene["id"], "name": location,
@@ -674,6 +676,8 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
 
     context = scene.get("context") or vn_support.scene_context(user, vn_support.linked_thread(user, scene))
     scene["context"] = context
+    scene["continuity_before_turn"] = copy.deepcopy(scene.get("continuity") or {})  # what the Watch checks against
+    scene.pop("watch", None)
     u_name = context["user_name"]
     clock_str = (scene.get("continuity") or {}).get("time") or context["clock"]
 
@@ -725,7 +729,8 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
         user_persona=context["persona"],
         char_roster=roster_text,
         telechat_context=json.dumps(context, ensure_ascii=False),
-        scene_history=("Continuity record (carry earlier facts forward):\n"
+        scene_history=((__import__("mainapp.vn_casting", fromlist=["brief"]).brief(scene.get("casting")) + "\n\n")
+                       + "Continuity record (carry earlier facts forward):\n"
                        + json.dumps(scene.get("continuity") or {}, ensure_ascii=False)
                        + "\nRecent transcript:\n" + "\n".join(hist_lines)),
         step_input=step_dir + "\nUser's writing directions: " + scene.get("direction", ""),
@@ -956,6 +961,17 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
                 refs.append(reference)
                 ref_labels.append(f"Reference {len(refs)}: {player['name']} (the user's character)")
     refs.extend(extra_refs[:max(0, 5 - len(refs))])
+    # How each person looks, from what Bulba saw in their look's reference, and what they wear at the end.
+    worn_now = (scene.get("continuity") or {}).get("outfits") or {}
+    seen_lines = []
+    for c in chars:
+        look = looks.get(c.slug)
+        seen = episode_looks.identity_line(look.identity) if look else ""
+        outfit = str(worn_now.get(c.slug) or (look.outfit if look else "") or "")
+        seen_lines.append(f"{messenger.char_profile(c)['display_name']}: " + "; ".join(
+            x for x in (seen or (messenger.char_profile(c).get("appearance_notes") or "")[:300],
+                        f"wearing {outfit}" if outfit else "") if x))
+    char_visuals = seen_lines + char_visuals[len(chars):]
 
     full_cg_prompt = (
         f"Create a full-scene Visual Novel Event CG illustration featuring {', '.join(scene.get('character_names') or [lead_char.name])} at {scene.get('location')}.\n"
@@ -964,13 +980,21 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
         f"Reference identities: {'; '.join(ref_labels)}. Additional references support these same identities.\n"
         f"Participant appearances: {'; '.join(char_visuals)}\n"
         f"Established setting, clothing, positions and story time (override reference outfits where changed): {json.dumps(scene.get('continuity') or {}, ensure_ascii=False)}\n"
-        f"Event CG scene: {visual_prompt}"
+        f"Event CG scene: {visual_prompt}\n"
+        "Anatomy: every person has exactly two arms, two hands and two legs, each attached where it belongs; no "
+        "merged or extra limbs. If the references disagree with any written description of how someone looks, the "
+        "references win."
     )
 
     cg_url, cost, image_error = "", 0, ""
     if capture_image:
         try:
-            img_bytes, cost = messenger.make_picture(user, full_cg_prompt, references=refs)
+            from mainapp import picture_checks
+            img_bytes, cost, cg_check = picture_checks.draw_checked(
+                user, full_cg_prompt, refs, kind="scene", what=visual_prompt,
+                people=", ".join(scene.get("character_names") or [lead_char.name]))
+            if cg_check.get("ok") is False:
+                image_error = "Saved, but Bulba still sees a problem in the illustration: " + " ".join(cg_check["issues"][:2])
             rel_path = f"messenger/vn_cg/{lead_char.slug}-cg-{uuid.uuid4().hex[:8]}.png"
             saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
             cg_url = default_storage.url(saved_path)

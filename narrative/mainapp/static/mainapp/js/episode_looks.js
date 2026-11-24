@@ -192,6 +192,14 @@
       const moods = order(all ? Object.keys(look.moods) : (look.needs_cut || []));
       let latest = look;
       for (const mood of moods) latest = await cutOne(latest, mood, strength);
+      // A mood whose body changed gets one automatic second try (one picture); if that's wrong too, it stays
+      // flagged for the user, and off the stage.
+      for (const [mood, entry] of Object.entries(latest.moods)) {
+        if (!entry.flag || entry.retried || mood === "neutral") continue;
+        window.VN_SCENES?.notify(`“${mood}” came out with a changed body: drawing it once more…`);
+        const again = await post({action: "episode_look_redraw", look_id: latest.id, mood, auto: true});
+        latest = await cutOne(again.look, mood, strength);
+      }
       return latest;
     },
 

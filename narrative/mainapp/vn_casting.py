@@ -82,7 +82,8 @@ Return ONLY this JSON:
 {{
   "cast": ["keys of the people present when the episode opens"],
   "place": {{"name": "short name of the place", "background_id": "an id from the list ONLY if that backdrop really shows this place, else ''",
-            "time": "story day and time", "light": "the light", "weather": "weather, or '' indoors",
+            "time": "story day and time", "light": "where the light comes from and its colour", "weather": "weather, or '' indoors",
+            "layout": "as seen standing in it at eye level: what is on the left, in the middle, at the back, on the right",
             "details": ["3 to 6 concrete things in this place that stay put: furniture, objects, layout"]}},
   "outfits": [{{"key": "person key", "look_id": "id of their existing look if it fits time, place and plan, else null",
                "name": "2-3 word name for the outfit", "items": "item by item: garment, colour, material; shoes; accessories",
@@ -138,6 +139,7 @@ def clean(raw, ctx):
     backdrop_ids = {b["id"] for b in ctx["backdrops"]}
     place = {"name": text(place.get("name"), 120), "time": text(place.get("time"), 120),
              "light": text(place.get("light"), 200), "weather": text(place.get("weather"), 160),
+             "layout": text(place.get("layout"), 400),
              "details": [text(d, 160) for d in (place.get("details") or []) if text(d, 160)][:6] if isinstance(place.get("details"), list) else [],
              "background_id": place.get("background_id") if place.get("background_id") in backdrop_ids else ""}
     outfits = []
@@ -160,7 +162,7 @@ def place_card(place):
     if not isinstance(place, dict):
         return ""
     parts = [place.get("name") or ""]
-    for label, key in (("Time", "time"), ("Light", "light"), ("Weather", "weather")):
+    for label, key in (("Time", "time"), ("Light", "light"), ("Weather", "weather"), ("Layout", "layout")):
         if place.get(key):
             parts.append(f"{label}: {place[key]}")
     if place.get("details"):
@@ -174,10 +176,12 @@ def draw_place(user, place, setting="canon"):
     if not (place or {}).get("name"):
         raise ai_client.AIError("Give the place a name first.")
     era = "present day" if setting == "modern" else "the world and era of the story"
-    image, cost = messenger.make_picture(user, (
+    from mainapp import picture_checks
+    image, cost, _ = picture_checks.draw_checked(user, (
         f"A visual-novel background of {card}.\nSetting: {era}.\n"
         "Environment only: no people, no characters, no text or lettering. Eye-level wide shot, as if standing in the "
-        "room or street, with open space in the lower middle where characters will stand. Every listed detail visible."))
+        "room or street, arranged exactly as the layout says, with open floor in the lower middle where characters "
+        "will stand. Every listed detail visible."), kind="place", what=card)
     path = default_storage.save(f"episode_places/{user.pk}/{uuid.uuid4().hex}.png", ContentFile(image))
     kept = EpisodePlace.objects.create(author=user, name=place["name"][:120], card=card, setting=setting, image=path)
     return kept, float(cost or 0.0)
@@ -216,6 +220,7 @@ def checked(raw, chars, user):
         "cast": [k for k in (raw.get("cast") or []) if k in keys],
         "place": {"name": text(place.get("name"), 120), "time": text(place.get("time"), 120),
                   "light": text(place.get("light"), 200), "weather": text(place.get("weather"), 160),
+                  "layout": text(place.get("layout"), 400),
                   "details": [text(d, 160) for d in (place.get("details") or [])][:6] if isinstance(place.get("details"), list) else [],
                   "background_id": place.get("background_id") if place.get("background_id") in ids else ""},
         "facts": [text(f, 240) for f in (raw.get("facts") or []) if text(f, 240)][:MAX_FACTS] if isinstance(raw.get("facts"), list) else [],

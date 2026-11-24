@@ -172,6 +172,7 @@
             <label class="cast-field">Light<input class="ep-input" data-place="light" maxlength="200" value="${esc(p.light)}" placeholder="green reading lamps"></label>
             <label class="cast-field">Weather<input class="ep-input" data-place="weather" maxlength="160" value="${esc(p.weather)}" placeholder="rain on the skylight"></label>
           </div>
+          <label class="cast-field">Layout, as you stand in it<input class="ep-input" data-place="layout" maxlength="400" value="${esc(p.layout || "")}" placeholder="Shelves on the left, the oak table in the middle, the cabinet at the back, a window on the right"></label>
           <label class="cast-field">What stays put, one per line<textarea class="ep-input" data-place="details" rows="3">${esc((p.details || []).join("\n"))}</textarea></label>
           <label class="cast-field">Backdrop<select class="tg-select" data-place="background_id">
             <option value="">None yet (draw it after applying)</option>
@@ -187,6 +188,7 @@
           <div class="cast-place-text">
             <strong>${esc(p.name || "Unnamed place")}</strong>
             <span class="cast-muted">${[p.time, p.light, p.weather].filter(Boolean).map(esc).join(" · ")}</span>
+            ${p.layout ? `<span class="cast-layout">${esc(p.layout)}</span>` : ""}
             ${(p.details || []).length ? `<ul>${p.details.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
             ${bg ? `<span class="cast-muted">Backdrop: ${bg.kept ? "kept place · " : ""}${esc(bg.name)}</span>` : ""}
           </div>

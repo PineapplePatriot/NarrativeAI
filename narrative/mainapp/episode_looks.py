@@ -167,8 +167,9 @@ IDENTITY_PROMPT = (
 
 def identity(user, refs):
     """{field: words} from the first reference picture; {} if it can't be looked at. A text call, no picture made."""
+    from django.conf import settings
     from mainapp.bulba import vision
-    if not refs:
+    if not refs or not getattr(settings, "PICTURE_CHECKS", True):
         return {}
     try:
         data_url, _ = vision.prepare(refs[0][0])
@@ -244,6 +245,12 @@ def review(user, look, refs, drawn):
     return {"ok": not issues, "issues": issues}
 
 
+def _checked(user, look, prompt, refs):
+    """A neutral picture: drawn, checked by Bulba against the references, drawn once more if it's wrong."""
+    from mainapp import picture_checks
+    return picture_checks.draw_checked(user, prompt, refs, checker=lambda drawn: review(user, look, refs, drawn))
+
+
 def _image(user, prompt, refs):
     data, cost = messenger.make_picture(user, prompt, references=refs)
     return data, float(cost or 0.0)
@@ -284,12 +291,12 @@ def create(user, character, setting, name, outfit, moods=None):
     look = EpisodeLook.objects.create(author=user, character=character, setting=setting, name=name, outfit=outfit,
                                       identity=seen, key_colour=pick_key(identity_line(seen) + " " + outfit))
     try:
-        data, cost = _image(user, _base_prompt(user, character, look), refs)
+        data, cost, checked = _checked(user, look, _base_prompt(user, character, look), refs)
     except Exception:
         look.delete()
         raise
     look.moods = {"neutral": {"raw": _store(look, "neutral", data), "cut": ""}}
-    look.review = review(user, look, refs, (data, "image/png"))
+    look.review = checked
     look.save(update_fields=["moods", "review"])
     more, errors = add_moods(user, look, [m for m in (moods or CORE_MOODS) if clean_mood(m) != "neutral"])
     return look, cost + more, errors
@@ -330,12 +337,12 @@ def restyle(user, look, name, outfit, moods=None):
                                      name=" ".join(str(name or "").split())[:60] or f"{look.name} (changed)",
                                      outfit=outfit, key_colour=look.key_colour, parent=look, identity=look.identity)
     try:
-        data, cost = _image(user, _restyle_prompt(look, outfit), [base])
+        data, cost, checked = _checked(user, new, _restyle_prompt(look, outfit), [base])
     except Exception:
         new.delete()
         raise
     new.moods = {"neutral": {"raw": _store(new, "neutral", data), "cut": ""}}
-    new.review = review(user, new, [base], (data, "image/png"))
+    new.review = checked
     new.save(update_fields=["moods", "review"])
     wanted = [m for m in (moods or list(look.moods)) if clean_mood(m) != "neutral"]
     more, errors = add_moods(user, new, wanted)
@@ -374,7 +381,7 @@ def save_cut(look, mood, data, body_changed=None):
 BODY_CHANGE_LIMIT = 0.03  # share of the outline a face-only edit may change (face edits measure ~0.1%; a third arm ~5%)
 
 
-def redraw_mood(user, look, mood):
+def redraw_mood(user, look, mood, auto=False):
     """Draw one mood again from the neutral picture. Returns cost."""
     mood = clean_mood(mood)
     if mood == "neutral":
@@ -385,7 +392,7 @@ def redraw_mood(user, look, mood):
     data, cost = _image(user, _mood_prompt(look, mood), [_base_image(look)])
     _drop(entry.get("raw"))
     _drop(entry.get("cut"))
-    look.moods = {**look.moods, mood: {"raw": _store(look, mood, data), "cut": ""}}
+    look.moods = {**look.moods, mood: {"raw": _store(look, mood, data), "cut": "", **({"retried": True} if auto else {})}}
     look.save(update_fields=["moods", "updated"])
     return cost
 
@@ -395,20 +402,20 @@ def redraw_look(user, look):
     then every mood again from it. Returns (cost, errors)."""
     if look.parent_id and look.parent and (look.parent.moods or {}).get("neutral"):
         refs = [_base_image(look.parent)]
-        data, cost = _image(user, _restyle_prompt(look.parent, look.outfit), refs)
+        data, cost, checked = _checked(user, look, _restyle_prompt(look.parent, look.outfit), refs)
     else:
         refs = references(user, look.character, look.setting)
         if not refs:
             raise ai_client.AIError("There's no picture of them to work from any more.")
         if not look.identity:
             look.identity = identity(user, refs)
-        data, cost = _image(user, _base_prompt(user, look.character, look), refs)
+        data, cost, checked = _checked(user, look, _base_prompt(user, look.character, look), refs)
     moods = [m for m in (look.moods or {}) if m != "neutral"]
     for entry in (look.moods or {}).values():
         _drop(entry.get("raw"))
         _drop(entry.get("cut"))
     look.moods = {"neutral": {"raw": _store(look, "neutral", data), "cut": ""}}
-    look.review = review(user, look, refs, (data, "image/png"))
+    look.review = checked
     look.save(update_fields=["moods", "review", "identity", "updated"])
     more, errors = add_moods(user, look, moods)
     return cost + more, errors
@@ -461,7 +468,7 @@ def pack(look):
     for mood, entry in (look.moods or {}).items():
         moods[mood] = {"url": default_storage.url(entry.get("cut") or entry["raw"]) if entry.get("raw") else "",
                        "raw_url": default_storage.url(entry["raw"]) if entry.get("raw") else "",
-                       "cut": bool(entry.get("cut")), "flag": entry.get("flag", "")}
+                       "cut": bool(entry.get("cut")), "flag": entry.get("flag", ""), "retried": bool(entry.get("retried"))}
     return {"id": look.pk, "name": look.name, "setting": look.setting, "outfit": look.outfit,
             "character_slug": look.character.slug if look.character_id else "user",
             "key_colour": look.key_colour, "key_hex": KEYS.get(look.key_colour, KEYS["green"])[0],

@@ -90,6 +90,7 @@
 
     async apiPost(payload) {
       if (this.busy) throw new Error("The episode is still working on your previous request.");
+      if (this.watchPromise) await this.watchPromise.catch(() => {});  // let Bulba's check save first
       this.setBusy(true);
       try {
       const url = (window.TG_CFG && window.TG_CFG.vn_scenes_api) || "/main/screen/scenes/api/";
@@ -242,6 +243,7 @@
         this.lastFinaleEntry = null;
         this.render();
         this.syncAudioTrack(!!document.getElementById('app-scenes')?.classList.contains('active'));
+        if (TG.state.vn_scenes?.watch_on) this.runWatch();
         this.notify(data.scene.background_error || data.scene.polish_error || `🎬 Scene started: ${data.scene.title}`, !!(data.scene.background_error || data.scene.polish_error));
       } catch (e) {
         this.notify(e.message, true);
@@ -334,6 +336,7 @@
         this.renderStageOnly();
         this.syncAudioTrack(this.musicPlaying);
         if (data.scene.polish_error) this.notify(data.scene.polish_error, true);
+        if (TG.state.vn_scenes?.watch_on) this.runWatch();
       } catch (e) {
         this.notify(e.message, true);
       } finally {
@@ -775,6 +778,7 @@
             <div class="ep-top">
               <span class="ep-where" title="${this.attr(visual.location || sc.title || "Episode")}">${this.attr(visual.location || sc.title || "Episode")}</span>
               <div class="ep-icons">
+                ${this.watchChip(sc)}
                 <button type="button" class="ep-icon" onclick="VN_SCENES.toggleMusic()" aria-label="${this.musicPlaying ? "Pause music" : "Play music"}" title="${this.attr(visual.music?.name || "Silence")}">${this.icon(this.musicPlaying ? "music" : "mute")}</button>
                 <button type="button" class="ep-icon" onclick="VN_SCENES.openLog()" aria-label="Backlog" title="Backlog">${this.icon("log")}</button>
                 <button type="button" class="ep-icon ${this.autoPlay ? "is-on" : ""}" onclick="VN_SCENES.toggleAuto()" aria-label="Auto" title="Auto">${this.icon("auto")}</button>
@@ -782,7 +786,7 @@
                 <button type="button" class="ep-icon" onclick="VN_SCENES.openSheet()" aria-label="Menu" title="Menu">${this.icon("menu")}</button>
               </div>
             </div>
-            <div class="ep-asides">${outfitNotes}${moodChip}</div>
+            <div class="ep-asides">${this.slipNotes(sc, blockFirst)}${outfitNotes}${moodChip}</div>
             <div class="ep-dock">
               <div class="ep-box ${isNarrator ? "is-narration" : ""} ${isDirection ? "is-direction" : ""}">
                 ${name ? `<div class="ep-name">${this.attr(name)}</div>` : ""}
@@ -813,7 +817,9 @@
                 </div>
               </details>
             </section>
-            <section class="ep-sheet-part" id="epSheetEpisode"><h4>Episode</h4></section>
+            <section class="ep-sheet-part" id="epSheetEpisode"><h4>Episode</h4>
+              <button type="button" class="ep-btn" onclick="VN_SCENES.closeSheet(); VN_SCENES.runWatch(true)">🥔 Check this turn for slips</button>
+            </section>
             <section class="ep-sheet-part" id="epSheetFinish"><h4>Finish</h4>
               <button type="button" class="ep-btn" onclick="VN_SCENES.finishScene(this)">Finish and save</button>
               <details class="vn-illustration-options"><summary>Illustration hint (optional)</summary><textarea class="tg-textarea" id="vnIllustrationHint" data-screen-field="illustration_hint" placeholder="What should the illustration show?"></textarea></details>
@@ -837,6 +843,89 @@
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
       });
       this.bindStage();
+    },
+
+    /* ---------- Bulba's Watch: continuity slips in the latest turn ---------- */
+
+    runWatch(asked = false) {
+      if (this.watching) return this.watchPromise;
+      this.watchPromise = this.watchTurn(asked).finally(() => {this.watchPromise = null;});
+      return this.watchPromise;
+    },
+
+    async watchTurn(asked) {
+      const sc = this.activeScene();
+      if (!sc) return;
+      this.watching = true;
+      this.renderStageOnly();
+      try {
+        const resp = await fetch(TG_CFG.vn_scenes_api, {method: "POST",
+          headers: {"Content-Type": "application/json", "X-CSRFToken": TG_CFG.csrf || ""},
+          body: JSON.stringify({action: "episode_watch", scene_id: sc.id, revision: sc.revision})});
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+        if (this.activeScene()?.id === sc.id) TG.state.vn_scenes = data.vn_scenes;
+        const slips = this.activeScene()?.watch?.slips || [];
+        if (asked || slips.length) this.notify(slips.length ? `Bulba noticed ${slips.length === 1 ? "a slip" : slips.length + " slips"} in this turn.` : "Bulba checked this turn: nothing contradicts what's established.");
+      } catch (e) {
+        // A turn written in the meantime makes the check stale; it simply runs again after that turn.
+        if (asked || !/changed in another tab/.test(e.message)) this.notify("Bulba couldn't check this turn: " + e.message, true);
+      } finally {
+        this.watching = false;
+        this.renderStageOnly();
+      }
+    },
+
+    watchChip(sc) {
+      if (this.watching) return `<span class="ep-watch is-busy" role="status">🥔 checking…</span>`;
+      const slips = sc.watch?.slips || [];
+      if (!slips.length) return "";
+      return `<button type="button" class="ep-watch" onclick="VN_SCENES.jumpToSlip()" aria-label="Show the slips Bulba found">🥔 ${slips.length} ${slips.length === 1 ? "slip" : "slips"}</button>`;
+    },
+
+    jumpToSlip() {
+      const sc = this.activeScene(), first = sc?.watch?.slips?.[0];
+      if (!first) return;
+      this.cutNext = true;
+      this.beatIndex = Math.max(0, (sc.beats || []).findIndex((b) => b.id === first.beat_id));
+      this.renderStageOnly();
+    },
+
+    slipNotes(sc, blockFirst) {
+      return (sc.watch?.slips || []).filter((s) => s.beat_id === blockFirst.id).map((s) => `
+        <div class="ep-note ep-slip" role="status">
+          <strong>🥔 Bulba noticed a slip</strong>
+          <p>${this.attr(s.what)}${s.fact ? `<br><span class="ep-slip-fact">Established: ${this.attr(s.fact)}</span>` : ""}</p>
+          ${s.fix ? `<details><summary>Bulba's fix</summary><p class="ep-slip-fix">${this.attr(s.fix)}</p></details>` : ""}
+          <div class="ep-note-actions">
+            ${s.fix ? `<button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.useSlipFix('${this.attr(s.beat_id)}')">Use Bulba's fix</button>` : ""}
+            <button type="button" class="ep-btn" onclick="VN_SCENES.regenerateSlip('${this.attr(s.beat_id)}')">Regenerate from here</button>
+            <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.dismissSlip('${this.attr(s.beat_id)}')">Ignore</button>
+          </div>
+        </div>`).join("");
+    },
+
+    slipOf(beatId) {return (this.activeScene()?.watch?.slips || []).find((s) => s.beat_id === beatId);},
+
+    async useSlipFix(beatId) {
+      const slip = this.slipOf(beatId);
+      if (slip?.fix) await this.passageChange?.("edit_passage", {beat_id: beatId, text: slip.fix});
+    },
+
+    async regenerateSlip(beatId) {
+      const slip = this.slipOf(beatId);
+      if (!slip) return;
+      const ok = await this.passageChange?.("regenerate_passage", {beat_id: beatId,
+        direction: `Fix this continuity slip: ${slip.what}${slip.fact ? ` Established: ${slip.fact}` : ""}`});
+      if (ok && TG.state.vn_scenes?.watch_on) this.runWatch();
+    },
+
+    async dismissSlip(beatId) {
+      try {
+        const data = await this.apiPost({action: "watch_dismiss", beat_id: beatId});
+        TG.state.vn_scenes = data.vn_scenes;
+        this.renderStageOnly();
+      } catch (e) {this.notify(e.message, true);}
     },
 
     /* Everyone standing on stage at this passage: their look's picture for the face they show, the one on

@@ -233,6 +233,7 @@ class FaceTests(LooksSetup):
         self.assertEqual(new[0]["emotion"], "sad")  # carried over from the last turn's stage
 
 
+@override_settings(PICTURE_CHECKS=True)
 class LookCheckTests(LooksSetup):
     SEEN = '{"hair": "silver, shoulder length, straight fringe", "eyes": "green", "skin": "pale", "face": "narrow", ' \
            '"build": "slim", "marks": "", "art_style": "anime cel shading"}'
@@ -302,7 +303,7 @@ class LookCheckTests(LooksSetup):
         self.assertEqual(errors, [])
         self.assertEqual(sorted(look.moods), ["happy", "neutral", "sad"])
         self.assertEqual(image.call_args_list[1].kwargs["references"], [(b"n2", "image/png")])
-        self.assertEqual(look.review, {"ok": True, "issues": []})
+        self.assertTrue(look.review["ok"])
 
     def test_the_browser_sends_the_outline_change_with_the_cut(self):
         look, _, _ = self.make()

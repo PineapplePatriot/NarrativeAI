@@ -2584,7 +2584,11 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             refs = (refs[:4] if len(refs) >= 5 else refs) + [face]
             prompt += (f"\nThe LAST attached picture is an EXPRESSION REFERENCE ONLY ({face_mood}): copy how the face "
                        "moves (eyes, brows, mouth), never its clothes, background or framing.")
-    img_bytes, cost = make_picture(user, prompt, references=refs)
+    # 🔍 Bulba checks it (limbs, fingers, the face, who's in it) and it's drawn once more if something's wrong
+    from mainapp import picture_checks
+    img_bytes, cost, _ = picture_checks.draw_checked(
+        user, prompt, refs, kind="photo", what=desc_clean[:400],
+        people=character.name + (f" and {other.name}" if other else ""))
     rel_path = f"messenger/photos/{character.slug}-{uuid.uuid4().hex[:8]}.png"
     saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
     return default_storage.url(saved_path), cost
