@@ -1747,6 +1747,13 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertIn("Ivan: a guard", out["linked"][0]["text"])
         self.assertEqual(len(self.all_calls), calls)  # free: nothing summarized
 
+    def test_a_detail_every_reply_repeats_is_steered_away_from(self):
+        for i in range(4):  # the stand-in model answers "A reply." every time
+            self.post({"action": "chat", "message": f"Turn {i}"})
+        sent = json.dumps(next(c["messages"] for c in reversed(self.all_calls) if "Turn 3" in json.dumps(c["messages"])))
+        self.assertIn("Fresh details", sent)
+        self.assertIn("reply", sent.split("Fresh details", 1)[1][:200])
+
     def test_starred_messages_are_kept_and_bulba_sees_them(self):
         from mainapp.models import BulbaSession
         from mainapp.bulba import doctor
@@ -10718,6 +10725,36 @@ class BulbaOrderTests(BulbaTests):
             self.assertIn("at most 8 entries", out["error"])
             out, _ = lore.tool_propose_lorebook(session, {"type": "essentials", "entries": [entry(i) for i in range(3)], "why": "x"})
         self.assertIn("Essentials, 3 entries", session.proposals[-1]["summary"][0])
+
+    def test_a_card_cleaned_once_on_request(self):
+        from unittest import mock
+        from mainapp import card_sections, chats
+        from mainapp.models import BulbaSession, Character
+        from mainapp.bulba import actions, doctor, watch
+        pan = Character.objects.create(name="Pantalone", slug="pan-clean", author=self.user, initial_message="Hm.",
+                                       scenario="A meeting on the top floor.")
+        card_sections.apply(pan, {"kind": "character", "people": [{"name": "Pantalone", "sections": {
+            "personality": {"text": "Never raises his voice. Never forgets an account.", "on": True},
+            "appearance": {"text": "Tall, grey suit.", "on": True}}}]})
+        pan.save()
+        session = BulbaSession.objects.create(user=self.user, target_model="x", mode="chat", chat=chats.current(pan))
+        watch.change_memory(self.user, "fix_known", new=False)  # asked for: it runs even with the switch off
+        def fake(user, texts, what="character card", force=False):
+            self.assertTrue(force)
+            return {k: ("Speaks precisely when angry and goes after the person's weak point." if "Never" in v else v)
+                    for k, v in texts.items()}
+        with mock.patch("mainapp.bulba.polish.clean_written", side_effect=fake):
+            out, _ = doctor.tool_clean_card_writing(session, {})
+        self.assertEqual(out["status"], "waiting for Apply")
+        session.save()
+        actions.apply(session, out["proposal"])
+        pan.refresh_from_db()
+        person = card_sections.clean(pan.sections)["people"][0]["sections"]
+        self.assertIn("goes after the person's weak point", person["personality"]["text"])
+        self.assertEqual(person["appearance"]["text"], "Tall, grey suit.")
+        with mock.patch("mainapp.bulba.polish.clean_written", side_effect=lambda u, t, w="", force=False: t):
+            out, _ = doctor.tool_clean_card_writing(session, {})
+        self.assertIn("fine as it is", out["result"])
 
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(BulbaOrderTests, _name, None) is getattr(BulbaTests, _name, None):

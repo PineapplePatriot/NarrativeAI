@@ -35,7 +35,7 @@ from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
-from . import echo, speaker_colors
+from . import echo, fresh_details, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation, voice
 from .bulba import control, polish, watch
@@ -1983,6 +1983,13 @@ def chat(request, slug):
                     english = translation.english_note(request.user)  # read in another language: written in English
                     if english:
                         built = {**built, "messages": built["messages"] + [english]}
+                    # 🔁 a detail the last replies keep coming back to (a street lamp, the rain): leave it out this time
+                    plain = [m for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and not chats.is_note(m)]
+                    stale = fresh_details.repeated(
+                        [m[2] for m in plain if m[0] == "assistant"],
+                        theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
+                        names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
                     if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
                         built = {**built, "messages": speaker_colors.remind(built["messages"])}
                     if thinking.needs_leash(chat_model, samplers.thinking_now(request.user)):  # MiMo: think briefly, then write

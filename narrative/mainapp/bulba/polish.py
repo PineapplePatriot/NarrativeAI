@@ -406,11 +406,12 @@ def tool_defs(fn, STR):
 SECTION = "§§ {} §§"
 
 
-def clean_written(user, fields, what="character card"):
+def clean_written(user, fields, what="character card", force=False):
     """{field: text} with the known AI habits rewritten out (one pass for all of them). On any trouble, or with
-    "Always fix the known AI habits" off, the fields come back as they were."""
+    "Always fix the known AI habits" off (unless `force`: they asked for this cleanup), the fields come back as
+    they were."""
     mine = watch.user_data(user)
-    if not mine.get("fix_known", True):
+    if not mine.get("fix_known", True) and not force:
         return fields
     texts = {k: v for k, v in fields.items() if isinstance(v, str) and v.strip()}
     if not texts:
