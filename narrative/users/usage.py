@@ -71,6 +71,20 @@ def _messages_sent(user):
     return sent, notes, with_messages
 
 
+def checker_costs(user_ids, since=None):
+    """🧹 What Bulba Watch and polish cost per 100 chat replies (and how often polish is called), from the recorded
+    AI requests: to compare a cheaper checker model with a stronger one."""
+    from django.db.models import Count
+    from users.models import UsageRecord
+    rows = UsageRecord.objects.filter(user_id__in=user_ids, task__in=("chat", "watch", "polish"),
+                                      **({"time_create__gte": since} if since else {}))
+    by = {t: (n, c or 0) for t, n, c in rows.values_list("task").annotate(n=Count("id"), c=Sum("cost")).values_list("task", "n", "c")}
+    replies = by.get("chat", (0, 0))[0]
+    per = lambda task, i: round(by.get(task, (0, 0))[i] * 100 / replies, 4 if i else 1) if replies else 0
+    return {"watch_cost_per_100_replies": per("watch", 1), "polish_cost_per_100_replies": per("polish", 1),
+            "polish_calls_per_100_replies": per("polish", 0)}
+
+
 def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunday"):
     """Everything the stats page shows. `days`: only the last N days of activity; `exclude`: usernames left out
     (the demo account, which graders share); staff accounts are left out unless include_staff."""
@@ -161,6 +175,7 @@ def report(days=None, exclude=("demo",), include_staff=False, week_starts="sunda
             "bulba_changes_proposed": sum(r["bulba_proposed"] for r in rows),
             "messages_to_bulba": sum(r["bulba_asked"] for r in rows),
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
+            **checker_costs(ids, since),
             "filled_feedback_form": sum(1 for r in rows if r["feedback"]),
         },
         "weekly": weekly(sessions_by_user, now, starts=week_starts),
@@ -249,6 +264,9 @@ LABELS = {
     "avg_session_minutes": "Average session (minutes)", "median_session_minutes": "Median session (minutes)",
     "page_views": "Page views", "messages_sent": "Messages sent", "notes_sent": "Director's notes sent", "finished_bulba_setup": "Finished Bulba's setup",
     "used_bulba_in_a_chat": "Used Bulba in a chat", "spend_usd": "Spent on AI (USD)",
+    "watch_cost_per_100_replies": "Bulba Watch: cost per 100 replies (USD)",
+    "polish_cost_per_100_replies": "Polish: cost per 100 replies (USD)",
+    "polish_calls_per_100_replies": "Polish: calls per 100 replies",
     "bulba_changes_accepted": "Bulba's changes accepted", "bulba_changes_proposed": "Bulba's changes proposed",
     "messages_to_bulba": "Messages to Bulba",
     "filled_feedback_form": "Filled in the feedback form",

@@ -685,6 +685,24 @@ class ConnectionsPageTests(TestCase):
         profile.refresh_from_db()
         self.assertEqual((profile.api_key, profile.model), ("sk-or-secret-1234", "a/c"))
 
+    def test_watch_and_polish_can_have_their_own_model(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile, TaskSetting
+        self.save({"profiles": [{"id": "new-1", "name": "Main", "provider": "openrouter", "api_key": "k", "model": "x/mimo"}],
+                   "tasks": []})
+        self.assertEqual(ai_client.resolve(self.user, "polish")[1], ai_client.BULBA_MODEL)  # nothing chosen: as before
+        watch_off = ai_client.get_task_setting(self.user, "watch")
+        watch_off.enabled = False
+        watch_off.save()
+        profile = ConnectionProfile.objects.get(user=self.user)
+        self.save({"profiles": [{"id": profile.id, "name": "Main", "provider": "openrouter", "api_key": "", "model": "x/mimo"}],
+                   "tasks": [{"task": "polish", "profile_id": profile.id, "model": "google/gemini-flash"},
+                             {"task": "watch", "profile_id": None, "model": "google/gemini-pro", "enabled": True}]})
+        self.assertEqual(ai_client.resolve(self.user, "polish")[1], "google/gemini-flash")
+        self.assertEqual(ai_client.resolve(self.user, "watch")[1], "google/gemini-pro")
+        self.assertFalse(TaskSetting.objects.get(user=self.user, task="watch").enabled)  # its switch untouched
+        self.assertFalse(ai_client.TASKS["polish"].get("hidden"))  # listed on the Connections page
+
     def test_task_can_point_at_new_profile(self):
         from users.models import TaskSetting
         resp = self.save({
@@ -8454,6 +8472,18 @@ class UsageTests(TestCase):
         self.assertEqual((s["accounts"], s["active_users"], s["returning_users"], s["sessions"]), (1, 1, 1, 3))
         self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
         self.assertIn("reader", usage.csv_text(data))
+
+    def test_report_shows_what_the_checkers_cost_per_100_replies(self):
+        from users import usage
+        from users.models import UsageRecord
+        for _ in range(4):
+            UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=0.01)
+        UsageRecord.objects.create(user=self.user, task="watch", model="m", cost=0.02)
+        for _ in range(2):
+            UsageRecord.objects.create(user=self.user, task="polish", model="m", cost=0.01)
+        s = usage.report()["summary"]
+        self.assertEqual((s["watch_cost_per_100_replies"], s["polish_cost_per_100_replies"],
+                          s["polish_calls_per_100_replies"]), (0.5, 0.5, 50.0))
 
     def test_report_counts_bulbas_changes_and_messages(self):
         from mainapp.models import BulbaSession
