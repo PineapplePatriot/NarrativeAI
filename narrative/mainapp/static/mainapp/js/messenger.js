@@ -1687,6 +1687,7 @@
     // 💬 Chat files: every chat with the same character(s), a new one, branches, rename, delete
     openEpisode: function (id) {  // 🎬 a played episode from its card in the chat: reread it in Scenes
       if (!window.VN_SCENES) return;
+      VN_SCENES.tab = "gallery";  // straight to the shelf, without drawing the open episode on the way
       TG.switchApp("scenes");
       VN_SCENES.switchTab("gallery");
       VN_SCENES.viewGalleryTranscript(id);

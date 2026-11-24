@@ -751,3 +751,58 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .ep-watch { white-space: nowrap; }
 .ep-cost { margin: 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ep-muted, #a5b4cc); }
 .cast-foot-left { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+
+/* The curtain over a change of place (and the opening) */
+.ep-curtain { position: absolute; inset: 0; z-index: 26; container-type: inline-size; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 20px; text-align: center; pointer-events: none; color: #f8fafc;
+  background: radial-gradient(ellipse at 50% 45%, #2b1e4f 0%, #0a0d1a 75%);
+  animation: ep-curtain 1.9s cubic-bezier(.6, 0, .3, 1) forwards; }
+.ep-curtain strong { font-size: clamp(20px, 5cqw, 34px); letter-spacing: -0.01em; }
+.ep-curtain span { font-size: 15px; color: #e9d5ff; }
+.ep-curtain small { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: #c4b5fd; letter-spacing: .06em; }
+@keyframes ep-curtain {
+  0%, 55% { clip-path: inset(0 0 0 0); opacity: 1; }
+  100% { clip-path: inset(0 0 0 100%); opacity: 1; visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ep-curtain { animation: ep-curtain-fade 1.6s ease forwards; }
+  @keyframes ep-curtain-fade { 0%, 60% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+}
+.ep-foot-gap { flex: 1; }
+.ep-voice.has-voice { color: #f9a8d4; }
+.ep-toggle { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.ep-toggle small { color: var(--ep-muted); }
+
+/* Saved episodes */
+.ep-shelf { align-items: stretch; background: radial-gradient(ellipse at 20% 0%, #24183f 0%, #070b14 60%); }
+.ep-shelf-inner { width: min(100%, 1100px); margin: 0 auto; padding: 22px 18px 30px; box-sizing: border-box; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 18px; }
+.ep-shelf-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.ep-shelf-head h2 { margin: 2px 0 4px; font-size: 26px; }
+.ep-shelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.ep-card { display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; background: var(--ep-box);
+  border: 1px solid var(--ep-line); }
+.ep-card-pic { aspect-ratio: 16 / 9; border: 0; padding: 0; cursor: pointer; background: #1b1430 center / cover; font-size: 34px; color: #f9a8d4; }
+.ep-card-body { display: flex; flex-direction: column; gap: 5px; padding: 12px 14px 14px; }
+.ep-card-body strong { font-size: 16px; }
+.ep-card-body p { margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical; overflow: hidden; }
+.ep-card-body em { font-size: 13px; color: #fbcfe8; }
+.ep-card-meta { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ep-muted); }
+.ep-card-actions { display: flex; justify-content: space-between; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.ep-shelf-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 16px; text-align: center; color: var(--ep-muted); }
+.ep-shelf-empty .cast-potato { font-size: 34px; }
+
+/* Rereading a saved episode */
+.ep-read { display: flex; flex-direction: column; gap: 12px; color: #e2e8f0; }
+.ep-read-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ep-read-head h3 { margin: 2px 0; font-size: 20px; }
+.ep-read-cg { width: 100%; max-height: 340px; object-fit: cover; border-radius: 14px; }
+.ep-read-summary { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(219, 39, 119, 0.1); font-size: 13.5px; }
+.ep-read-text { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.6; }
+.ep-read-text p { margin: 0; }
+.ep-read-line strong { display: block; font-size: 12.5px; color: #e9d5ff; }
+.ep-read-narration { font-style: italic; color: #cbd5e1; }
+.ep-read-direction { font-size: 13px; color: var(--ep-muted); }
+.ep-read { --ep-ink: #f1f5f9; --ep-muted: #a5b4cc; --ep-accent: #c084fc; --ep-accent-2: #f472b6; --ep-box: rgba(12, 16, 30, 0.86); --ep-line: rgba(255, 255, 255, 0.12); }
+.ep-shelf-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

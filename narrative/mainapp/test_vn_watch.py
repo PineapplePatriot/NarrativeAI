@@ -165,3 +165,62 @@ class CostTests(EpisodeWatchTests):
         self.assertEqual(cost, {"total": 0.07, "pictures": 1, "picture_cost": 0.04, "text_cost": 0.03})
         payload = self.client.get(reverse("vn_scenes_api")).json()["vn_scenes"]
         self.assertEqual(payload["cost"]["total"], 0.07)
+
+
+class ReaderLanguageTests(EpisodeWatchTests):
+    def setUp(self):
+        super().setUp()
+        self.user.display_language = "uk"
+        self.user.save(update_fields=["display_language"])
+
+    def test_a_turn_is_shown_translated_while_the_english_stays_the_working_text(self):
+        turn = {"handoff": "user_turn", "choices": ["Open it.", "Wait."],
+                "beats": [{"speaker_slug": self.mira.slug, "text": "The cabinet sticks."}]}
+        answer = json.dumps({"segments": {"1": "Шафа заїдає.", "c1": "Відчинити.", "c2": "Чекати."}})
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn), \
+             patch("mainapp.ai_client.complete", return_value=answer) as call:
+            scene, new = vn_scenes.step_scene(self.user, "I try the drawer.")
+        self.assertEqual(call.call_args.args[1], "translation")
+        self.assertIn("Ukrainian", call.call_args.args[2][1]["content"])
+        self.assertEqual(new[0]["text"], "The cabinet sticks.")
+        self.assertEqual(new[0]["shown"], "Шафа заїдає.")
+        self.assertEqual(scene["choices"], ["Open it.", "Wait."])
+        self.assertEqual(scene["choices_shown"], ["Відчинити.", "Чекати."])
+        with patch.object(vn_scenes, "_call_vn_json", return_value={"handoff": "user_turn", "beats": [
+                {"speaker_slug": self.mira.slug, "text": "Got it."}]}) as model, \
+             patch("mainapp.ai_client.complete", return_value=json.dumps({"segments": {"1": "Є."}})):
+            vn_scenes.step_scene(self.user, "Good.")
+        self.assertIn("The cabinet sticks.", model.call_args.args[1])  # the storyteller reads the English
+        self.assertNotIn("Шафа", model.call_args.args[1])
+
+    def test_a_failed_translation_shows_english_and_says_so(self):
+        turn = {"handoff": "user_turn", "beats": [{"speaker_slug": self.mira.slug, "text": "Hi."}]}
+        from mainapp import ai_client
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn), \
+             patch("mainapp.ai_client.complete", side_effect=ai_client.AIError("busy")):
+            scene, new = vn_scenes.step_scene(self.user, "Hello.")
+        self.assertNotIn("shown", new[0])
+        self.assertIn("shows in English", scene["translation_error"])
+
+
+class VoiceTests(EpisodeWatchTests):
+    def test_a_line_is_voiced_once_in_its_speakers_voice_and_kept(self):
+        beat = vn_scenes.get_vn_state(self.user)["active_scene"]["beats"][0]
+        with patch.object(messenger, "synthesize_voice_bubble", return_value="/media/v.mp3") as speak:
+            response = self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": "voice_line", "beat_id": beat["id"]}),
+                                        content_type="application/json")
+            again = self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": "voice_line", "beat_id": beat["id"]}),
+                                     content_type="application/json")
+        self.assertEqual(response.json()["url"], "/media/v.mp3")
+        self.assertEqual(again.json()["url"], "/media/v.mp3")
+        speak.assert_called_once()
+        self.assertEqual(speak.call_args.args[1], self.mira)
+        self.assertEqual(vn_scenes.get_vn_state(self.user)["active_scene"]["beats"][0]["voice_url"], "/media/v.mp3")
+
+    def test_narration_without_a_narrator_voice_stays_silent(self):
+        turn = {"handoff": "user_turn", "beats": [{"speaker_slug": "narrator", "text": "Rain."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn):
+            _, new = vn_scenes.step_scene(self.user, "I listen.")
+        from mainapp import ai_client
+        with self.assertRaises(ai_client.AIError):
+            vn_scenes.voice_line(self.user, new[0]["id"])

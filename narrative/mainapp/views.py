@@ -6268,6 +6268,13 @@ def vn_scenes_api(request):
             return JsonResponse({"error": str(exc)}, status=400)
         return JsonResponse({"error": "Unknown look action."}, status=400)
 
+    if action == "voice_line":  # 🔊 one page read aloud in the speaker's voice (kept, so replays are free)
+        try:
+            _, url = vn_scenes.voice_line(request.user, str(body.get("beat_id") or ""))
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"url": url, "vn_scenes": _full_vn_payload()})
+
     if action in ("episode_watch", "watch_dismiss"):  # Bulba's continuity check of the latest turn
         from . import vn_watch
         try:

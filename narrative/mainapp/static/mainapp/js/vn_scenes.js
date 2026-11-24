@@ -51,6 +51,7 @@
 
     init() {
       if (!window.TG || !TG.state) return;
+      try {this.readAloud = localStorage.getItem("ep-read-aloud") === "1";} catch (_) {this.readAloud = false;}
       if (!TG.state.vn_scenes) {
         TG.state.vn_scenes = { active_scene: null, gallery: [], music_tracks: [], backgrounds: [], meetup_cue: { ready: false, reason: "" } };
       }
@@ -115,6 +116,7 @@
     },
 
     switchTab(tab) {
+      if (tab !== "stage") document.getElementById("epCurtain")?.remove();
       if (tab !== 'stage') this.stopMusic();
       this.tab = tab;
       document.querySelectorAll(".vn-tab-btn").forEach((b) => {
@@ -335,7 +337,7 @@
           : Math.min(prevLen, Math.max(0, newBeats.length - 1));
         this.renderStageOnly();
         this.syncAudioTrack(this.musicPlaying);
-        if (data.scene.polish_error) this.notify(data.scene.polish_error, true);
+        if (data.scene.polish_error || data.scene.translation_error) this.notify(data.scene.polish_error || data.scene.translation_error, true);
         if (TG.state.vn_scenes?.watch_on) this.runWatch();
       } catch (e) {
         this.notify(e.message, true);
@@ -598,35 +600,27 @@
     viewGalleryTranscript(id) {
       const gallery = (TG.state.vn_scenes && TG.state.vn_scenes.gallery) || [];
       const item = gallery.find((g) => g.id === id);
-      if (!item) return;
       const modal = document.getElementById("modalStory");
       const body = document.getElementById("modalStoryBody");
-      if (!modal || !body) return;
-
-      const beatsHtml = (item.beats || []).map((b) => {
-        if (b.kind === "narration" || b.speaker === "narrator") {
-          return `<div style="font-style:italic; color:#94a3b8; padding:6px 0;">${this.attr(b.text)}</div>`;
-        }
-        const emo = b.emotion ? ` <span style="font-size:11px; color:#f472b6;">(${this.attr(b.emotion)})</span>` : "";
-        return `<div style="padding:6px 0;"><strong style="color:#f8fafc;">${this.attr(b.speaker_name || b.speaker)}</strong>${emo}: <span style="color:#e2e8f0;">${this.attr(b.text)}</span></div>`;
+      if (!item || !modal || !body) return;
+      const lines = (item.beats || []).map((b) => {
+        const text = this.attr((!this.showOriginal && b.shown) || b.text || "");
+        if (b.kind === "narration" || b.speaker === "narrator") return `<p class="ep-read-narration">${text}</p>`;
+        if (b.kind === "direction") return `<p class="ep-read-direction">Direction: ${text}</p>`;
+        return `<p class="ep-read-line"><strong>${this.attr(b.speaker_name || b.speaker)}</strong>${text}</p>`;
       }).join("");
-
       body.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-          <div>
-            <h3 style="margin:0;">🎬 ${this.attr(item.title)}</h3>
-            <div style="font-size:12px; color:var(--tg-muted);">📍 ${this.attr(item.location)} · 🎵 ${this.attr((item.music && item.music.name) || "BGM")} · ${this.attr(item.finished_at || "")}</div>
+        <div class="ep-read">
+          <div class="ep-read-head">
+            <div><span class="cast-kicker">${this.attr(item.location || "In person")}</span><h3>${this.attr(item.title || "Episode")}</h3>
+              <span class="cast-muted">${this.attr(item.finished_at || "")}</span></div>
+            <button type="button" class="ep-icon" onclick="TG.closeModals()" aria-label="Close">${this.icon("close")}</button>
           </div>
-          <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
-        </div>
-        ${item.cg_url ? `<img src="${this.attr(item.cg_url)}" alt="Finale CG" style="width:100%; max-height:320px; object-fit:cover; border-radius:12px; border:1px solid rgba(255,255,255,0.14);">` : ""}
-        <div style="font-size:13px; color:#fbcfe8; background:rgba(219,39,119,0.12); padding:10px 12px; border-radius:10px;">
-          <strong>Summary:</strong> ${this.attr(item.summary || "")}
-        </div>
-        <div style="max-height:280px; overflow-y:auto; padding:10px 12px; background:rgba(15,23,42,0.75); border-radius:10px; font-size:13px; border:1px solid rgba(255,255,255,0.08);">
-          ${beatsHtml}
-        </div>
-      `;
+          ${item.cg_url ? `<img class="ep-read-cg" src="${this.attr(item.cg_url)}" alt="">` : ""}
+          ${item.summary ? `<p class="ep-read-summary">${this.attr(item.summary)}</p>` : ""}
+          ${this.costLine(item.cost, "Cost")}
+          <div class="ep-read-text">${lines}</div>
+        </div>`;
       modal.classList.add("open");
     },
 
@@ -641,7 +635,7 @@
       if (badgeEl) badgeEl.textContent = galleryCount;
 
       if (this.tab === "gallery") {
-        document.getElementById("app-scenes")?.classList.remove("ep-playing");
+        document.getElementById("app-scenes")?.classList.add("ep-playing");
         this.renderGallery(root);
       } else {
         this.renderStageOnly();
@@ -726,9 +720,17 @@
       const isNarrator = beat.kind === "narration" || beat.speaker === "narrator";
       const handoff = sc.handoff || "user_turn";
       const choices = sc.interaction_mode === "write" ? [] : Array.isArray(sc.choices) ? sc.choices : [];
-      const fresh = !this.seenBeats.has(beat.id) && !this.cutNext;
+      // Only a render the reader can see counts: a passage drawn while Scenes is hidden is still new to them.
+      const visible = !!document.getElementById("app-scenes")?.classList.contains("active");
+      const fresh = visible && !this.seenBeats.has(beat.id) && !this.cutNext;
+      // A curtain when the place changes going forward (and over the opening): a scene change, not a swap.
+      const placeKey = `${sc.id}|${visual.location || ""}|${(visual.background || {}).id || ""}`;
+      const curtain = fresh && placeKey !== this.lastPlaceKey && (this.lastPlaceKey === undefined || this.lastPlaceKey.startsWith(sc.id + "|") || idx === 0);
+      if (visible) this.lastPlaceKey = placeKey;
       this.cutNext = false;
-      if (beat.id) this.seenBeats.add(beat.id);
+      const say = (b) => (this.showOriginal ? b.text : (b.shown || b.text)) || "";
+      const translated = (sc.beats || []).some((b) => b.shown);
+      if (beat.id && visible) this.seenBeats.add(beat.id);
 
       const outfitNotes = (blockFirst.outfit_change || []).map((c) => {
         const worn = (TG.state.vn_scenes?.looks || {})[c.slug];
@@ -756,7 +758,7 @@
       const name = isDirection ? "Direction" : isNarrator ? "" : (beat.speaker_name || beat.speaker);
       const turnEnd = isLastBeat ? `
         ${choices.length ? `<div class="ep-choices" role="group" aria-label="Choices">${choices.map((c, i) =>
-          `<button type="button" class="ep-choice" data-choice-index="${i}">${this.attr(c)}</button>`).join("")}</div>` : ""}
+          `<button type="button" class="ep-choice" data-choice-index="${i}">${this.attr((!this.showOriginal && (sc.choices_shown || [])[i]) || c)}</button>`).join("")}</div>` : ""}
         <div class="ep-well">
           ${sc.interaction_mode !== "choices" ? `
             <textarea class="ep-input" id="vnShortInput" rows="1" data-screen-field="reply"
@@ -791,8 +793,10 @@
             <div class="ep-dock">
               <div class="ep-box ${isNarrator ? "is-narration" : ""} ${isDirection ? "is-direction" : ""}">
                 ${name ? `<div class="ep-name">${this.attr(name)}</div>` : ""}
-                <div class="ep-text" id="epText">${TG.formatText ? TG.formatText(beat.text || "") : this.attr(beat.text || "")}</div>
+                <div class="ep-text" id="epText">${TG.formatText ? TG.formatText(say(beat)) : this.attr(say(beat))}</div>
                 <div class="ep-box-foot">
+                  ${this.speakable(beat, sc) ? `<button type="button" class="ep-step ep-voice ${beat.voice_url ? "has-voice" : ""}" onclick="VN_SCENES.playVoice('${this.attr(beat.id)}', true)" aria-label="Read this aloud" title="${beat.voice_url ? "Play again" : "Read aloud (uses voice credits)"}">${this.icon("voice")}</button>` : ""}
+                  <span class="ep-foot-gap"></span>
                   <button type="button" class="ep-step" onclick="VN_SCENES.prevBeat()" ${idx <= 0 ? "disabled" : ""} aria-label="Back">${this.icon("back")}</button>
                   <span class="ep-count">${idx + 1} / ${beats.length}</span>
                   ${!isLastBeat ? `<button type="button" class="ep-step" onclick="VN_SCENES.nextBeat()" aria-label="Next">${this.icon("next")}</button>
@@ -821,6 +825,8 @@
             </section>
             <section class="ep-sheet-part" id="epSheetEpisode"><h4>Episode</h4>
               <button type="button" class="ep-btn" onclick="VN_SCENES.closeSheet(); VN_SCENES.runWatch(true)">🥔 Check this turn for slips</button>
+              <label class="ep-toggle"><input type="checkbox" ${this.readAloud ? "checked" : ""} onchange="VN_SCENES.setReadAloud(this.checked)"> Read lines aloud as they come <small>(each line uses voice credits)</small></label>
+              ${translated ? `<label class="ep-toggle"><input type="checkbox" ${this.showOriginal ? "checked" : ""} onchange="VN_SCENES.showOriginal = this.checked; VN_SCENES.cutNext = true; VN_SCENES.renderStageOnly()"> Show the original English</label>` : ""}
             </section>
             <section class="ep-sheet-part" id="epSheetFinish"><h4>Finish</h4>
               <button type="button" class="ep-btn" onclick="VN_SCENES.finishScene(this)">Finish and save</button>
@@ -836,7 +842,13 @@
         </div>
       `;
       document.getElementById("app-scenes")?.classList.add("ep-playing");
+      if (curtain) {
+        this.lastBgUrl = bgUrl;  // the curtain covers the change; no crossfade under it
+        this.showCurtain(idx === 0 ? (sc.title || visual.location || "") : (visual.location || ""),
+          idx === 0 && visual.location && visual.location !== sc.title ? visual.location : "", (visual.continuity || {}).time || "");
+      }
       this.paintBackground(bgUrl);
+      if (fresh && this.readAloud && this.speakable(beat, sc)) this.playVoice(beat.id, false);
       root.querySelectorAll(".ep-figure").forEach((img) => img.addEventListener("error", () => img.remove(), {once: true}));
       this.typeText(document.getElementById("epText"), fresh);
       this.bindDrafts(root, "vn:" + sc.id);
@@ -845,6 +857,63 @@
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
       });
       this.bindStage();
+    },
+
+    /* The curtain lives outside the stage's redraws, so it always plays to the end. */
+    showCurtain(title, sub, time) {
+      const host = document.getElementById("app-scenes");
+      if (!host) return;
+      document.getElementById("epCurtain")?.remove();
+      const el = document.createElement("div");
+      el.id = "epCurtain"; el.className = "ep-curtain"; el.setAttribute("aria-hidden", "true");
+      el.innerHTML = `<strong>${this.attr(title)}</strong>${sub ? `<span>${this.attr(sub)}</span>` : ""}${time ? `<small>${this.attr(time)}</small>` : ""}`;
+      host.append(el);
+      clearTimeout(this.curtainTimer);
+      this.curtainTimer = setTimeout(() => el.remove(), 2000);
+    },
+
+    /* ---------- Voices ---------- */
+
+    speakable(beat, sc) {
+      if (!beat || beat.kind === "direction" || beat.speaker === "user" || beat.speaker_slug === "user") return false;
+      return !!beat.voice_url || (sc.character_slugs || []).includes(beat.speaker_slug || beat.speaker) || beat.speaker === "narrator";
+    },
+
+    setReadAloud(on) {
+      this.readAloud = on;
+      try {localStorage.setItem("ep-read-aloud", on ? "1" : "");} catch (_) {}
+    },
+
+    /* Play a page in its speaker's voice; the music dips while they talk. `asked`: the user pressed the button. */
+    async playVoice(beatId, asked) {
+      const sc = this.activeScene();
+      const beat = (sc?.beats || []).find((b) => b.id === beatId);
+      if (!beat) return;
+      try {
+        let url = beat.voice_url;
+        if (!url) {
+          const resp = await fetch(TG_CFG.vn_scenes_api, {method: "POST",
+            headers: {"Content-Type": "application/json", "X-CSRFToken": TG_CFG.csrf || ""},
+            body: JSON.stringify({action: "voice_line", beat_id: beatId, scene_id: sc.id, revision: sc.revision})});
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
+          url = data.url;
+          if (this.activeScene()?.id === sc.id) TG.state.vn_scenes = data.vn_scenes;
+        }
+        if (!asked && this.currentBeat()?.id !== beatId) return;  // the reader moved on while it was being made
+        this.voiceAudio?.pause();
+        const music = document.getElementById("vnAudioPlayer");
+        const before = music ? music.volume : 1;
+        if (music) music.volume = Math.min(before, 0.25);
+        this.voiceAudio = new Audio(url);
+        this.voiceAudio.addEventListener("ended", () => {if (music) music.volume = before;}, {once: true});
+        this.voiceAudio.addEventListener("pause", () => {if (music) music.volume = before;}, {once: true});
+        await this.voiceAudio.play();
+        const btn = document.querySelector(".ep-voice");
+        if (btn) btn.classList.add("has-voice");
+      } catch (e) {
+        if (asked) this.notify(e.message, true);
+      }
     },
 
     /* What the episode has cost, from its casting on (the provider's own figures). */
@@ -985,6 +1054,7 @@
         back: '<path d="M15 18l-6-6 6-6"/>',
         next: '<path d="M9 18l6-6-6-6"/>',
         skip: '<path d="M5 18l6-6-6-6M13 18l6-6-6-6"/>',
+        voice: '<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
       };
       return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ""}</svg>`;
     },
@@ -1076,7 +1146,7 @@
           <button type="button" class="ep-icon" onclick="document.getElementById('epLog').hidden = true" aria-label="Close">${this.icon("close")}</button></div>
         <ol class="ep-log-list">${upto.map((b, i) => `<li><button type="button" data-log-index="${i}">
           ${b.kind === "narration" || b.speaker === "narrator" ? "" : `<strong>${this.attr(b.speaker_name || b.speaker)}</strong>`}
-          <span>${this.attr(b.text)}</span></button></li>`).join("")}</ol>`;
+          <span>${this.attr((!this.showOriginal && b.shown) || b.text)}</span></button></li>`).join("")}</ol>`;
       log.hidden = false;
       log.querySelectorAll("[data-log-index]").forEach((btn) => btn.addEventListener("click", () => {
         this.cutNext = true; this.beatIndex = Number(btn.dataset.logIndex); this.renderStageOnly();
@@ -1121,59 +1191,40 @@
 
     renderGallery(root) {
       const gallery = (TG.state.vn_scenes && TG.state.vn_scenes.gallery) || [];
-      if (!gallery.length) {
-        root.innerHTML = `
-          <div class="vn-gallery-pane">
-            <div style="max-width:560px; margin:40px auto; text-align:center; padding:28px; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.1); border-radius:18px;">
-              <div style="font-size:40px; margin-bottom:8px;">🖼️</div>
-              <h3 style="margin:0 0 6px;">No completed episodes yet</h3>
-              <p style="margin:0 0 16px; font-size:13px; color:#94a3b8;">
-                Launch a scene from TeleChat and finish it to save a replayable transcript here. You can optionally generate an illustration when finishing.
-              </p>
-              <button type="button" class="tg-send-btn" onclick="VN_SCENES.switchTab('stage')">🎬 Go to Visual Novel Stage</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const cardsHtml = gallery.map((item) => `
-        <article class="vn-cg-card">
-          ${item.cg_url ? `
-            <img class="vn-cg-thumb" src="${this.attr(item.cg_url)}" alt="${this.attr(item.title)}" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">
-          ` : `
-            <div class="vn-cg-thumb" style="display:flex; align-items:center; justify-content:center; font-size:32px;" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">🎬</div>
-          `}
-          <div class="vn-cg-body">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-              <strong style="font-size:14.5px; color:#f8fafc;">${this.attr(item.title)}</strong>
-              <span style="font-size:11px; color:#94a3b8; white-space:nowrap;">${this.attr(item.finished_at || "")}</span>
-            </div>
-            <div style="font-size:11.5px; color:#f472b6;">
-              📍 ${this.attr(item.location || "Meet-Up")} · 🎵 ${this.attr((item.music && item.music.name) || "BGM")}
-            </div>
-            ${item.quote ? `<div style="font-size:12px; font-style:italic; color:#fbcfe8;">"${this.attr(item.quote)}"</div>` : ""}
-            <p style="margin:0; font-size:12.5px; color:#cbd5e1; line-height:1.45;">${this.attr(item.summary || "")}</p>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px;">
-              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">📖 Read episode (${(item.beats || []).length} pages)</button>
-              <button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="VN_SCENES.deleteGalleryItem('${this.attr(item.id)}')" title="Remove from gallery">🗑</button>
-            </div>
-          </div>
-        </article>
-      `).join("");
-
+      const pic = (item) => item.cg_url || ((item.episode?.current_stage || {}).background || {}).url || "";
+      const people = (item) => (item.episode?.character_names || []).join(", ");
       root.innerHTML = `
-        <div class="vn-gallery-pane">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-              <h2 style="margin:0 0 3px; font-size:19px;">🖼️ Visual Novel Event CG & Scene Gallery</h2>
-              <p style="margin:0; font-size:12.5px; color:#94a3b8;">Your completed episodes, illustrations and full transcripts.</p>
-            </div>
-            <button type="button" class="tg-send-btn" onclick="VN_SCENES.switchTab('stage')">🎬 Back to VN Stage</button>
+        <div class="ep-stage ep-shelf">
+          <div class="ep-shelf-inner">
+            <header class="ep-shelf-head">
+              <div><span class="cast-kicker">In person</span><h2>Saved episodes</h2>
+                <p class="cast-muted">Every episode you finished, with its illustration and the whole story to reread.</p></div>
+              <div class="ep-shelf-actions">
+                <button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.switchTab('stage')">${this.activeScene() ? "Back to the episode" : "New episode"}</button>
+                ${(TG.state.vn_scenes?.drafts || []).length ? `<button type="button" class="ep-btn" onclick="VN_SCENES.openVersions?.()">Unfinished (${TG.state.vn_scenes.drafts.length})</button>` : ""}
+                <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.returnToPhone()">Back to the phone</button>
+              </div>
+            </header>
+            ${gallery.length ? `<div class="ep-shelf-grid">${gallery.map((item) => `
+              <article class="vn-cg-card ep-card">
+                <button type="button" class="ep-card-pic" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')" aria-label="Reread ${this.attr(item.title)}"
+                  style="${pic(item) ? `background-image:url(${this.attr(JSON.stringify(pic(item)))})` : ""}">${pic(item) ? "" : "🎬"}</button>
+                <div class="vn-cg-body ep-card-body">
+                  <span class="ep-card-meta">${this.attr(item.location || "")}${item.finished_at ? " · " + this.attr(item.finished_at) : ""}</span>
+                  <strong>${this.attr(item.title || "Episode")}</strong>
+                  ${people(item) ? `<span class="ep-card-meta">With ${this.attr(people(item))}</span>` : ""}
+                  ${item.quote ? `<em>“${this.attr(item.quote)}”</em>` : ""}
+                  <p>${this.attr(item.summary || "")}</p>
+                  ${this.costLine(item.cost, "Cost")}
+                  <div class="ep-card-actions">
+                    <button type="button" class="ep-btn" onclick="VN_SCENES.viewGalleryTranscript('${this.attr(item.id)}')">Reread · ${(item.beats || []).length} pages</button>
+                    <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.deleteGalleryItem('${this.attr(item.id)}')" aria-label="Delete this saved episode">Delete</button>
+                  </div>
+                </div>
+              </article>`).join("")}</div>`
+            : `<div class="ep-shelf-empty"><span class="cast-potato">🥔</span><p>Nothing saved yet. Finish an episode and it waits here, ready to reread.</p></div>`}
           </div>
-          <div class="vn-gallery-grid">${cardsHtml}</div>
-        </div>
-      `;
+        </div>`;
     },
   };
 

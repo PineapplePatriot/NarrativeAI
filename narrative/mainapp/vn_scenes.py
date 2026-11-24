@@ -713,6 +713,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
     if scene["interaction_mode"] == "write": scene["choices"] = []
     scene["choice_cache"] = list(scene["choices"])
+    scene["choices_shown"], scene["translation_error"] = vn_support.translate_turn(user, beats, scene["choices"])
     save_vn_state(user, {"active_scene": scene, "prep_since": None}, expected=("", 0))
     return scene
 
@@ -820,6 +821,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
 
     if scene.get("interaction_mode") == "write": scene["choices"] = []
     scene["choice_cache"] = list(scene["choices"])
+    scene["choices_shown"], scene["translation_error"] = vn_support.translate_turn(user, new_beats, scene["choices"])
     save_vn_state(user, {**(save_updates or {}), "active_scene": scene}, expected=expected)
     return scene, new_beats
 
@@ -840,6 +842,7 @@ def suggest_choices(user):
         raise ai_client.AIError("The model returned no usable options. The episode is unchanged.")
     scene["choices"] = [c.strip()[:240] for c in choices[:3]]
     scene["choice_cache"] = list(scene["choices"])
+    scene["choices_shown"], _ = vn_support.translate_turn(user, [], scene["choices"])
     if scene.get("last_request"):
         scene["last_request"]["operation"] = "suggest_choices"
     save_vn_state(user, {"active_scene": scene}, expected=expected)
@@ -1151,3 +1154,43 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
                 messenger.save_thread_data(thread, td)
 
     return gallery_entry, float(cost or 0.0)
+
+
+def voice_line(user, beat_id):
+    """🔊 One page read aloud in the speaker's own voice (narration in the lead card's narrator voice, when it has
+    one); kept on the page, so hearing it again costs nothing. Returns (scene, url)."""
+    from mainapp import voice
+    state = get_vn_state(user)
+    scene = state.get("active_scene")
+    if not scene:
+        raise ai_client.AIError("No episode is open.")
+    beat = next((b for b in scene.get("beats") or [] if b.get("id") == beat_id), None)
+    if not beat:
+        raise ai_client.AIError("That page isn't in this episode any more.")
+    if beat.get("voice_url"):
+        return scene, beat["voice_url"]
+    chars = {c.slug: c for c in vn_support.scene_characters(user, scene.get("character_slugs") or [])}
+    text = str(beat.get("shown") or beat.get("text") or "").strip()
+    speaker = chars.get(beat.get("speaker_slug") or beat.get("speaker"))
+    try:
+        if speaker is not None:
+            url = messenger.synthesize_voice_bubble(user, speaker, text)
+        elif beat.get("kind") == "narration" or beat.get("speaker") == "narrator":
+            lead = next(iter(chars.values()), None)
+            narrator = getattr(lead, "eleven_voice_narr_id", "") if lead else ""
+            if not narrator:
+                raise ai_client.AIError("No narrator voice is set on the card, so narration stays silent.")
+            audio = voice.synthesize_single(user, text[:2500], voice_id=narrator)
+            url = default_storage.url(default_storage.save(f"messenger/voice/narration-{uuid.uuid4().hex[:8]}.mp3",
+                                                           ContentFile(audio)))
+        else:
+            raise ai_client.AIError("Your own lines aren't read aloud.")
+    except voice.VoiceError as exc:
+        raise ai_client.AIError(str(exc))
+    expected = (scene["id"], scene.get("revision", 0))
+    for collection in ("beats", "history", "current_beats"):
+        for b in scene.get(collection) or []:
+            if b.get("id") == beat_id:
+                b["voice_url"] = url
+    save_vn_state(user, {"active_scene": scene}, expected=expected)
+    return get_vn_state(user)["active_scene"], url
