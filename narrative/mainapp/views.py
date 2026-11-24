@@ -4885,13 +4885,14 @@ def screen_hub(request):
 
     if active_thread is not None:
         t_data = messenger.thread_data(active_thread)
-        if t_data.get("unread"):
+        if t_data.get("unread") and (request.GET.get("app") == "messenger" or wanted_slug or wanted_thread_id):
             t_data["unread"] = 0
             messenger.save_thread_data(active_thread, t_data)
 
     serialized_threads = [messenger.serialize_thread_summary(t) for t in threads]
     serialized_active = messenger.serialize_thread_full(active_thread, request.user) if active_thread else None
 
+    from . import subtext, vn_scenes
     char_catalog = []
     for c in chars:
         prof = messenger.char_profile(c)
@@ -4900,10 +4901,12 @@ def screen_hub(request):
             "name": c.name,
             "edit_url": reverse("character", kwargs={"slug": c.slug}),
             "chat_url": reverse("chat", kwargs={"slug": c.slug}),
+            "burner_handle": subtext.burner_handle_for(c),
             **prof,
         })
 
     initial_state = {
+        "account_id": request.user.pk,
         "threads": serialized_threads,
         "active_thread": serialized_active,
         "characters": char_catalog,
@@ -4915,6 +4918,18 @@ def screen_hub(request):
         "voices": voice.list_voices_for_user(request.user),
         "tts_models": list(voice.OPENROUTER_TTS_MODELS),
         "active_model": messenger.active_model_texting_rules(request.user),
+        "subtext": subtext.get_subtext_state(request.user, chars),
+        "vn_scenes": {
+            **vn_scenes.get_vn_state(request.user),
+            "looks": vn_scenes.looks_payload(request.user, vn_scenes.get_vn_state(request.user)["active_scene"] or {}),
+            "look_packs": vn_scenes.look_packs(request.user, vn_scenes.get_vn_state(request.user)["active_scene"]),
+            "watch_on": messenger._watch_on(request.user),
+            "cost": vn_scenes.episode_cost(request.user, (vn_scenes.get_vn_state(request.user)["active_scene"] or {}).get("cost_since")
+                                           or vn_scenes.get_vn_state(request.user).get("prep_since")),
+            "music_tracks": vn_scenes.available_music_tracks(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
+            "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
+        },
     }
     return render(request, "mainapp/messenger.html", {
         "initial_json": json.dumps(initial_state, ensure_ascii=False),
@@ -4934,6 +4949,8 @@ def messenger_api(request):
     if request.method == "GET":
         action = request.GET.get("action") or "poll"
         if action == "poll":
+            from . import pulse
+            pulse.deliver_due(user=request.user, limit=100)
             u_prof = messenger.user_profile(request.user)
             threads = list(MessengerThread.objects.filter(user=request.user).prefetch_related("characters"))
             # Optional spontaneous check-in when enabled and user is on another page
@@ -5904,3 +5921,606 @@ def messenger_api(request):
             return JsonResponse({"message": new_m, "url": img_url, "cost": cost})
 
     return JsonResponse({"error": f"Unknown action '{action}'."}, status=400)
+
+
+@login_required
+def subtext_api(request):
+    """JSON endpoint for Subtext / Chirp (Public posts, Locked Burners, AITA threads, and Forward-to-TeleChat DMs)."""
+    import time
+    from django.utils import timezone
+    from . import messenger, subtext
+    from .models import MessengerThread
+
+    chars = _user_characters(request.user)
+    char_by_slug = {c.slug: c for c in chars}
+
+    if request.method == "GET":
+        return JsonResponse({"subtext": subtext.get_subtext_state(request.user, chars)})
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    action = body.get("action") or ""
+
+    if action == "generate_wave":
+        slugs = body.get("character_slugs") or []
+        picked = [char_by_slug[s] for s in slugs] or chars[:4]
+        mode = body.get("mode") if body.get("mode") in ("mix", "burner", "aita", "subtweet") else "mix"
+        topic = str(body.get("topic") or "").strip()
+        try:
+            new_posts = subtext.generate_wave(request.user, picked, mode=mode, topic_hint=topic)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "new_posts": new_posts,
+            "subtext": subtext.get_subtext_state(request.user, chars),
+        })
+
+    if action == "create_post":
+        text = str(body.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "Write something to post first."}, status=400)
+        vis = body.get("visibility") if body.get("visibility") in ("public", "burner", "aita") else "public"
+        title = str(body.get("title") or "").strip()
+        ask_replies = bool(body.get("ask_replies", True))
+        slugs = body.get("character_slugs") or []
+        picked = ([char_by_slug[s] for s in slugs if s in char_by_slug] or chars[:3]) if ask_replies else []
+        post = subtext.create_user_post(request.user, text, visibility=vis, title=title, chars_for_replies=picked)
+        return JsonResponse({
+            "post": post,
+            "subtext": subtext.get_subtext_state(request.user, chars),
+        })
+
+    if action == "add_comment":
+        pid = body.get("post_id")
+        text = str(body.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"error": "Comment cannot be empty."}, status=400)
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        u_prof = messenger.user_profile(request.user)
+        now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
+        verdict = str(body.get("verdict") or "").strip().upper()
+        if verdict not in ("NTA", "YTA", "ESH"):
+            verdict = ""
+        if post.get("visibility") == "aita" and verdict:
+            votes = post.setdefault("aita_votes", {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""})
+            v_key = verdict.lower()
+            votes[v_key] = votes.get(v_key, 0) + 1
+            votes["user_vote"] = verdict
+        user_c = {
+            "id": "stc_" + uuid.uuid4().hex[:8],
+            "author_slug": "user",
+            "author_name": u_prof.get("display_name") or request.user.username,
+            "author_avatar": u_prof.get("avatar_url") or "",
+            "handle": u_prof.get("handle") or "@you",
+            "is_burner": False,
+            "verdict": verdict,
+            "text": text[:600],
+            "time": now_hm,
+            "ts": time.time(),
+        }
+        post.setdefault("comments", []).append(user_c)
+        if body.get("ask_replies", True) and chars:
+            author_char = char_by_slug.get(post.get("author_slug"))
+            reply_pool = [author_char] if author_char else []
+            for c in chars:
+                if c not in reply_pool and len(reply_pool) < 3:
+                    reply_pool.append(c)
+            try:
+                subtext.generate_replies_for_post(request.user, post, reply_pool)
+            except Exception:
+                pass
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"post": post, "subtext": state})
+
+    if action == "generate_replies":
+        pid = body.get("post_id")
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        slugs = body.get("character_slugs") or []
+        picked = [char_by_slug[s] for s in slugs if s in char_by_slug] or chars[:3]
+        try:
+            added = subtext.generate_replies_for_post(request.user, post, picked)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"post": post, "added_comments": added, "subtext": state})
+
+    if action == "react_post":
+        pid = body.get("post_id")
+        emo = str(body.get("emoji") or "❤️").strip()[:8]
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        u_name = messenger.user_profile(request.user).get("display_name") or request.user.username
+        reacts = dict(post.get("reactions") or {})
+        lst = list(reacts.get(emo) or [])
+        if u_name in lst:
+            lst.remove(u_name)
+        else:
+            lst.append(u_name)
+        if lst:
+            reacts[emo] = lst
+        else:
+            reacts.pop(emo, None)
+        post["reactions"] = reacts
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"post": post, "reactions": reacts})
+
+    if action == "vote_aita":
+        pid = body.get("post_id")
+        verdict = str(body.get("verdict") or "").strip().upper()
+        if verdict not in ("NTA", "YTA", "ESH"):
+            return JsonResponse({"error": "Invalid verdict."}, status=400)
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        votes = post.setdefault("aita_votes", {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""})
+        prev = votes.get("user_vote") or ""
+        if prev and prev.lower() in votes:
+            votes[prev.lower()] = max(0, int(votes[prev.lower()]) - 1)
+        v_key = verdict.lower()
+        votes[v_key] = int(votes.get(v_key) or 0) + 1
+        votes["user_vote"] = verdict
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"post": post, "aita_votes": votes})
+
+    if action == "generate_photo":
+        pid = body.get("post_id")
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        c_obj = char_by_slug.get(post.get("author_slug")) or (chars[0] if chars else None)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        p_info = dict(post.get("photo") or {})
+        prompt_desc = str(body.get("prompt") or p_info.get("prompt") or post.get("text") or "").strip()
+        try:
+            img_url, cost = messenger.generate_messenger_photo(request.user, c_obj, description=prompt_desc, kind="casual")
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        p_info["prompt"] = prompt_desc
+        p_info["url"] = img_url
+        post["photo"] = p_info
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"post": post, "url": img_url, "cost": cost})
+
+    if action == "forward_to_telechat":
+        pid = body.get("post_id")
+        comment = str(body.get("comment") or "").strip()
+        state = subtext.get_subtext_state(request.user, chars)
+        post = next((p for p in state["posts"] if p.get("id") == pid), None)
+        if not post:
+            return JsonResponse({"error": "Post not found."}, status=404)
+        target_slug = body.get("char_slug") or post.get("author_slug")
+        c_obj = char_by_slug.get(target_slug) or (chars[0] if chars else None)
+        if not c_obj:
+            return JsonResponse({"error": "Pick a character to DM this post to."}, status=400)
+        try:
+            thread, user_msg, turn = subtext.forward_post_to_telechat(request.user, post, c_obj, user_comment=comment)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": all_threads,
+            "user_message": user_msg,
+            "turn": turn,
+        })
+
+    if action == "delete_post":
+        pid = body.get("post_id")
+        state = subtext.get_subtext_state(request.user, chars)
+        state["posts"] = [p for p in state["posts"] if p.get("id") != pid]
+        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
+        return JsonResponse({"subtext": state})
+
+    return JsonResponse({"error": f"Unknown subtext action '{action}'."}, status=400)
+
+
+@login_required
+def vn_scenes_api(request):
+    """JSON endpoint for Visual Novel Meet-Up Scenes, Dynamic Sprite Generation, and Event CG Gallery."""
+    from . import messenger, vn_scenes
+    from .models import MessengerThread
+
+    chars = _user_characters(request.user)
+    char_by_slug = {c.slug: c for c in chars}
+
+    def _full_vn_payload(active_thread=None):
+        st = vn_scenes.get_vn_state(request.user)
+        return {
+            **st,
+            "looks": vn_scenes.looks_payload(request.user, st["active_scene"]) if st.get("active_scene") else {},
+            "look_packs": vn_scenes.look_packs(request.user, st.get("active_scene")),
+            "watch_on": messenger._watch_on(request.user),
+            "cost": vn_scenes.episode_cost(request.user, (st.get("active_scene") or {}).get("cost_since") or st.get("prep_since")),
+            "music_tracks": vn_scenes.available_music_tracks(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars, request.user),
+            "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
+        }
+
+    if request.method == "GET":
+        tid = request.GET.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if (tid and str(tid).isdigit()) else None
+        return JsonResponse({"vn_scenes": _full_vn_payload(t_obj)})
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        # The browser's transparent cut-out of one episode-look mood.
+        from . import episode_looks
+        upload = request.FILES.get("file")
+        if request.POST.get("kind") != "episode_cut" or not upload:
+            return JsonResponse({"error": "Attach the cut-out picture."}, status=400)
+        try:
+            look = episode_looks.owned(request.user, request.POST.get("look_id"))
+            try:
+                changed = float(request.POST.get("body_changed"))
+                changed = changed if 0 <= changed <= 1 else None
+            except (TypeError, ValueError):
+                changed = None
+            episode_looks.save_cut(look, request.POST.get("mood") or "", upload.read(), body_changed=changed)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"look": episode_looks.pack(look)})
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    if not isinstance(body, dict):
+        return JsonResponse({"error": "Expected a JSON object."}, status=400)
+    for field in ("polish_enabled", "capture_image"):
+        if field in body and not isinstance(body[field], bool):
+            return JsonResponse({"error": f"{field} must be true or false."}, status=400)
+    if body.get("thread_id") is not None and (isinstance(body["thread_id"], bool) or not str(body["thread_id"]).isdigit() or len(str(body["thread_id"])) > 19 or not 0 < int(body["thread_id"]) <= 2**63 - 1):
+        return JsonResponse({"error": "Invalid chat ID."}, status=400)
+
+    action = body.get("action") or ""
+
+    if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
+        active = vn_scenes.get_vn_state(request.user).get("active_scene") or {}
+        if body.get("scene_id") and (body["scene_id"] != active.get("id") or
+                ("revision" in body and body["revision"] != active.get("revision", 0))):
+            return JsonResponse({"error": "This episode changed in another tab. Reload it before continuing."}, status=409)
+
+    if action in ("edit_passage", "regenerate_passage", "branch_passage", "resume_draft", "reopen_completed", "episode_preferences", "suggest_choices", "park_scene", "inspect_request"):
+        from . import vn_history, vn_story
+        try:
+            if action == "park_scene":
+                vn_history.park(request.user)
+                return JsonResponse({"scene": None, "vn_scenes": _full_vn_payload()})
+            if action == "inspect_request":
+                _, scene = vn_history.current(request.user)
+                return JsonResponse({"request": scene.get("last_request")})
+            if action == "suggest_choices":
+                scene = vn_scenes.suggest_choices(request.user)
+            elif action == "edit_passage":
+                scene = vn_history.edit(request.user, str(body.get("beat_id") or ""), str(body.get("text") or ""))
+            elif action == "regenerate_passage":
+                scene = vn_history.regenerate(request.user, str(body.get("beat_id") or ""), str(body.get("direction") or ""))
+            elif action == "branch_passage":
+                scene = vn_history.branch(request.user, str(body.get("beat_id") or ""))
+            elif action == "resume_draft":
+                scene = vn_history.resume(request.user, str(body.get("draft_id") or ""))
+            elif action == "reopen_completed":
+                scene = vn_history.reopen_completed(request.user, str(body.get("episode_id") or ""))
+            else:
+                _, scene = vn_history.current(request.user)
+                expected = (scene["id"], scene.get("revision", 0))
+                previous_mode = scene.get("interaction_mode", "mixed")
+                if body.get("interaction_mode") in vn_story.INTERACTIONS:
+                    scene["interaction_mode"] = body["interaction_mode"]
+                if body.get("authoring_mode") in vn_story.AUTHORING:
+                    scene["authoring_mode"] = body["authoring_mode"]
+                if "direction" in body:
+                    scene["direction"] = str(body["direction"])[:4000]
+                if "polish_enabled" in body:
+                    scene["polish_enabled"] = bool(body["polish_enabled"])
+                if scene.get("interaction_mode") == "write":
+                    if previous_mode != "write":
+                        scene["choice_cache"] = list(scene.get("choices") or [])
+                    scene["choices"] = []
+                elif previous_mode == "write":
+                    scene["choices"] = list(scene.get("choice_cache") or [])
+                vn_scenes.save_vn_state(request.user, {"active_scene": scene}, expected=expected)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        linked = MessengerThread.objects.filter(user=request.user, id=scene.get("thread_id")).first()
+        return JsonResponse({"scene": scene, "vn_scenes": _full_vn_payload(),
+                             "thread": messenger.serialize_thread_full(linked, request.user) if linked else None,
+                             "threads": [messenger.serialize_thread_summary(t) for t in MessengerThread.objects.filter(user=request.user)]})
+
+    if action == "check_meetup":
+        tid = body.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if tid else None
+        return JsonResponse({"meetup_cue": vn_scenes.detect_meetup_cue(t_obj)})
+
+    if action.startswith("episode_look"):
+        from . import episode_looks
+        from .models import EpisodeLook
+
+        def member(key):
+            if key == "user":
+                return None
+            if key not in char_by_slug:
+                raise ValueError("Choose someone from your characters.")
+            return char_by_slug[key]
+        try:
+            if action == "episode_looks":  # who is in the cast, their setting, their looks and the default pick
+                slugs = body.get("character_slugs")
+                if not isinstance(slugs, list):
+                    t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
+                    slugs = [c.slug for c in t_obj.characters.all()] if t_obj else []
+                cast = [char_by_slug[s] for s in slugs if isinstance(s, str) and s in char_by_slug]
+                people = [(c.slug, c, messenger.char_profile(c)["display_name"], episode_looks.setting_for(c)) for c in cast]
+                people.append(("user", None, messenger.user_profile(request.user).get("display_name") or "You",
+                               vn_scenes.scene_setting(cast)))
+                out = []
+                for key, character, name, setting in people:
+                    looks = episode_looks.looks_for(request.user, character, setting)
+                    out.append({"key": key, "name": name, "setting": setting, "looks": [episode_looks.pack(l) for l in looks],
+                                "chosen": looks[0].pk if looks else None,
+                                "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
+                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS})
+            if action in ("episode_look_create", "episode_look_moods", "episode_look_redraw") and \
+                    not vn_scenes.get_vn_state(request.user).get("active_scene"):
+                vn_scenes.mark_prep(request.user)  # looks made while casting count toward the coming episode
+            if action == "episode_look_create":
+                key = str(body.get("key") or "")
+                character = member(key)
+                setting = (episode_looks.setting_for(character) if character else
+                           ("modern" if body.get("setting") == "modern" else "canon"))
+                moods = body.get("moods") if isinstance(body.get("moods"), list) else None
+                look, cost, errors = episode_looks.create(request.user, character, setting, body.get("name"),
+                                                          body.get("outfit"), moods=moods)
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            look = episode_looks.owned(request.user, body.get("look_id"))
+            if action == "episode_look_moods":
+                moods = [m for m in (body.get("moods") or []) if isinstance(m, str)][:episode_looks.MAX_MOODS]
+                cost, errors = episode_looks.add_moods(request.user, look, moods)
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            if action == "episode_look_remove_mood":
+                episode_looks.remove_mood(look, str(body.get("mood") or ""))
+                return JsonResponse({"look": episode_looks.pack(look)})
+            if action == "episode_look_rename":
+                look.name = " ".join(str(body.get("name") or "").split())[:60] or look.name
+                look.save(update_fields=["name", "updated"])
+                return JsonResponse({"look": episode_looks.pack(look)})
+            if action == "episode_look_restyle":
+                new, cost, errors = episode_looks.restyle(request.user, look, body.get("name"), body.get("outfit"))
+                return JsonResponse({"look": episode_looks.pack(new), "cost": cost, "errors": errors})
+            if action == "episode_look_redraw":  # one mood again, or the whole look when mood is "all"
+                if body.get("mood") == "all":
+                    cost, errors = episode_looks.redraw_look(request.user, look)
+                else:
+                    cost, errors = episode_looks.redraw_mood(request.user, look, str(body.get("mood") or ""),
+                                                             auto=bool(body.get("auto"))), []
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            if action == "episode_look_delete":
+                episode_looks.delete(look)
+                return JsonResponse({"ok": True})
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"error": "Unknown look action."}, status=400)
+
+    if action == "voice_line":  # 🔊 one page read aloud in the speaker's voice (kept, so replays are free)
+        try:
+            _, url = vn_scenes.voice_line(request.user, str(body.get("beat_id") or ""))
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"url": url, "vn_scenes": _full_vn_payload()})
+
+    if action in ("episode_watch", "watch_dismiss"):  # Bulba's continuity check of the latest turn
+        from . import vn_watch
+        try:
+            if action == "episode_watch":
+                vn_watch.run(request.user)
+            else:
+                vn_watch.dismiss(request.user, str(body.get("beat_id") or ""))
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"vn_scenes": _full_vn_payload()})
+
+    if action in ("casting_propose", "place_draw", "place_delete"):
+        from . import vn_casting
+        from .models import EpisodePlace
+        try:
+            if not vn_scenes.get_vn_state(request.user).get("active_scene"):
+                vn_scenes.mark_prep(request.user)  # the coming episode's cost counts from its casting
+            if action == "casting_propose":  # Bulba's casting sheet for this chat (one call to Bulba's model)
+                t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
+                if not t_obj:
+                    return JsonResponse({"error": "Open the chat this episode continues first."}, status=400)
+                cast = list(t_obj.characters.all())
+                pulse_event = None
+                if body.get("pulse_event_id") is not None:
+                    from . import pulse, screen_apps
+                    from .models import ScreenEntry
+                    event = ScreenEntry.objects.filter(owner=request.user, thread=t_obj, kind="event",
+                                                       pk=screen_apps.positive(body["pulse_event_id"])).first()
+                    if event:
+                        pulse_event = pulse.scene_seed(request.user, event, screen_apps.positive(body.get("pulse_event_revision")))
+                sheet = vn_casting.propose(request.user, t_obj, cast, pulse_event=pulse_event,
+                                           wish=str(body.get("wish") or "")[:600], director=body.get("authoring_mode") == "director")
+                return JsonResponse({"casting": sheet,
+                                     "backgrounds": vn_scenes.available_backgrounds(cast, request.user)})
+            if action == "place_draw":  # draw the written-out place once and keep it as a backdrop
+                place = body.get("place") if isinstance(body.get("place"), dict) else {}
+                place = vn_casting.checked({"place": place}, [], request.user)["place"]
+                kept, cost = vn_casting.draw_place(request.user, place, "modern" if body.get("setting") == "modern" else "canon")
+                return JsonResponse({"place": vn_casting.pack_place(kept), "cost": cost})
+            kept = EpisodePlace.objects.filter(author=request.user, pk=str(body.get("place_id") or "").replace("place_", "") or 0).first()
+            if kept:
+                from django.core.files.storage import default_storage
+                default_storage.delete(kept.image)
+                kept.delete()
+            return JsonResponse({"ok": True})
+        except (ValueError, ai_client.AIError) as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+
+    if action == "start_scene":
+        tid = body.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
+        if tid and t_obj is None:
+            return JsonResponse({"error": "That chat no longer exists or is not yours."}, status=404)
+        pulse_event = None
+        if body.get("pulse_event_id") is not None:
+            from . import pulse, screen_apps
+            from .models import ScreenEntry
+            try:
+                event = ScreenEntry.objects.filter(owner=request.user, thread=t_obj,
+                    pk=screen_apps.positive(body["pulse_event_id"]), kind="event").first()
+                if not event:
+                    return JsonResponse({"error": "Pulse plan not found in this chat."}, status=404)
+                pulse_event = pulse.scene_seed(request.user, event, screen_apps.positive(body.get("pulse_event_revision")))
+            except ValueError as exc:
+                return JsonResponse({"error": str(exc)}, status=400)
+        slugs = body.get("character_slugs") or []
+        if not isinstance(slugs, list) or any(not isinstance(s, str) or s not in char_by_slug for s in slugs):
+            return JsonResponse({"error": "Choose available scene characters."}, status=400)
+        picked = [char_by_slug[s] for s in slugs if s in char_by_slug]
+        if pulse_event:
+            if any(s not in char_by_slug for s in pulse_event["participants"]):
+                return JsonResponse({"error": "A plan participant is no longer available."}, status=400)
+            picked = [char_by_slug[s] for s in pulse_event["participants"]]
+        if not picked and t_obj:
+            picked = list(t_obj.characters.all())
+        if not picked:
+            return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
+        hint = str(body.get("location_hint") or "").strip()
+        try:
+            scene = vn_scenes.start_scene(
+                request.user,
+                thread=t_obj,
+                characters=picked,
+                location_hint=hint,
+                looks=body.get("looks") if isinstance(body.get("looks"), dict) else None,
+                direction=str(body.get("direction") or "").strip()[:4000],
+                polish_enabled=bool(body.get("polish_enabled", False)),
+                interaction_mode=body.get("interaction_mode", "mixed"),
+                authoring_mode=body.get("authoring_mode", "roleplay"),
+                pulse_event=pulse_event,
+                generate_background=bool(body.get("generate_background", False)),
+                casting=body.get("casting") if isinstance(body.get("casting"), dict) else None,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "scene": scene,
+            "looks": vn_scenes.looks_payload(request.user, scene),
+            "vn_scenes": _full_vn_payload(t_obj),
+        })
+
+    if action == "step_scene":
+        user_input = str(body.get("user_input") or "").strip()
+        try:
+            scene, new_beats = vn_scenes.step_scene(request.user, user_input=user_input)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "scene": scene,
+            "new_beats": new_beats,
+            "looks": vn_scenes.looks_payload(request.user, scene),
+            "vn_scenes": _full_vn_payload(),
+        })
+
+    if action == "add_look_mood":  # one more mood for the look on stage, drawn as an edit of its neutral picture
+        try:
+            scene, look, cost = vn_scenes.add_look_mood(request.user, beat_id=str(body.get("beat_id") or ""),
+                                                        emotion=str(body.get("emotion") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"scene": scene, "look": look, "cost": cost,
+                             "looks": vn_scenes.looks_payload(request.user, scene)})
+
+    if action == "change_look":  # from one passage on: another of their looks, a new outfit edited from this one, or keep
+        look_id = body.get("look_id")
+        try:
+            scene, cost, errors = vn_scenes.change_look(
+                request.user, str(body.get("beat_id") or ""), str(body.get("key") or ""),
+                look_id=int(look_id) if str(look_id or "").isdigit() else None,
+                name=str(body.get("name") or ""), outfit=str(body.get("outfit") or "")[:1200], keep=bool(body.get("keep")))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"scene": scene, "cost": cost, "errors": errors, "vn_scenes": _full_vn_payload()})
+
+    if action == "set_stage":
+        from . import vn_story
+        state = vn_scenes.get_vn_state(request.user)
+        scene = state.get("active_scene")
+        if not scene:
+            return JsonResponse({"error": "No active scene."}, status=400)
+        expected = (scene["id"], scene.get("revision", 0))
+        beat = next((b for b in scene.get("beats", []) if b.get("id") == body.get("beat_id")), None)
+        if not beat:
+            beat = (scene.get("beats") or [{}])[-1]
+        change = {k: body[src] for k, src in (("music", "music_id"), ("background", "background_id")) if body.get(src)}
+        stage = vn_story.advance_stage(beat.get("stage") or vn_story.stage_of(scene), change,
+                                      vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars, request.user))
+        group = beat.get("block_id") or beat.get("id")
+        for collection in (scene.get("beats", []), scene.get("history", []), scene.get("current_beats", [])):
+            for item in collection:
+                if (item.get("block_id") or item.get("id")) == group:
+                    item["stage"] = stage
+        if group == ((scene.get("beats") or [{}])[-1].get("block_id") or (scene.get("beats") or [{}])[-1].get("id")):
+            scene["current_stage"] = stage
+            scene.update({k: stage.get(k) for k in ("background", "music", "location", "continuity")})
+        try:
+            vn_scenes.save_vn_state(request.user, {"active_scene": scene}, expected=expected)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"scene": scene})
+
+    if action == "finish_scene":
+        cg_hint = str(body.get("cg_hint") or "").strip()
+        try:
+            entry, cost = vn_scenes.finish_scene_with_cg(request.user, cg_hint=cg_hint,
+                                                       capture_image=bool(body.get("capture_image", True)))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        tid = entry.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "gallery_entry": entry,
+            "cost": cost,
+            "vn_scenes": _full_vn_payload(t_obj),
+            "thread": messenger.serialize_thread_full(t_obj, request.user) if t_obj else None,
+            "threads": all_threads,
+        })
+
+    if action == "delete_gallery_item":
+        gid = body.get("id")
+        state = vn_scenes.get_vn_state(request.user)
+        gallery = [g for g in (state.get("gallery") or []) if g.get("id") != gid]
+        vn_scenes.save_vn_state(request.user, {"gallery": gallery})
+        return JsonResponse({"vn_scenes": _full_vn_payload()})
+
+    return JsonResponse({"error": f"Unknown scenes action '{action}'."}, status=400)
+
+

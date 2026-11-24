@@ -14,6 +14,7 @@
   var replyToMsg = null;
   var currentDrawerTab = "char";
   var selectedDrawerCharSlug = "";
+  var threadSelectionRequest = 0;
   window.selectedDrawerCharSlugSet = function (slug) { selectedDrawerCharSlug = slug; };  // (the card's Edit button)
   var activeAudio = null;
   var activeAudioMsgId = null;
@@ -303,6 +304,7 @@
     var openEdit = document.getElementById("tgEditText");
     if (openEdit) editDraft = openEdit.value;  // ✏️ (a redraw keeps what they've typed)
     var t = STATE.active_thread;
+    window.dispatchEvent(new Event("telechat-rendered"));
     var hdrTitle = document.getElementById("hdrTitle");
     var hdrSub = document.getElementById("hdrSub");
     var hdrAvatar = document.getElementById("hdrAvatar");
@@ -341,16 +343,6 @@
       hdrSub.textContent = (!t.is_group && TG._typing) || TG._subLine;
       hdrSub.classList.toggle("tg-typing-sub", !t.is_group && !!TG._typing);
     }
-    var am = (t && t.active_model) || STATE.active_model;
-    var mdlLbl = document.getElementById("hdrModelLabel");
-    var mdlBadge = document.getElementById("hdrModelBadge");
-    if (mdlLbl && am) {
-      mdlLbl.textContent = am.label || "Auto Rules";
-      if (mdlBadge && am.rules) {
-        mdlBadge.title = "Active Model Rules (" + (am.label || "") + "):\n" + am.rules;
-      }
-    }
-
     // Pinned message bar
     if (pinBar) {
       var pinnedMsg = t.pinned_id
@@ -386,9 +378,19 @@
     var lastUserId = null;
     msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
+      if (m.role === "system" && m.episode && m.episode.id) {  // 🎬 an episode played in person: its card
+        var ep = m.episode, pic = ep.cg_url || ep.backdrop || "";
+        out.push('<button type="button" class="tg-episode-card" id="msg-' + esc(m.id) + '" onclick="TG.openEpisode(\'' + esc(ep.id) + '\')">' +
+          (pic ? '<img src="' + esc(pic) + '" alt="">' : '<span class="tg-episode-mark">🎬</span>') +
+          '<span class="tg-episode-text"><small>In person · ' + esc(ep.location || "") + '</small><strong>' + esc(ep.title || "Episode") + '</strong>' +
+          '<span>' + esc(ep.summary || "") + '</span><em>Reread · ' + Number(ep.pages || 0) + ' pages</em></span></button>');
+        return;
+      }
       if (m.role === "system") {
+        var pulseLink = Number.isSafeInteger(Number(m.pulse_event_id)) && Number(m.pulse_event_id) > 0
+          ? '<button type="button" class="tg-fmt-btn" onclick="ScreenHome.openPulse(' + Number(m.pulse_event_id) + ',' + Number(t.id) + ')">View plan</button>' : '';
         out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) +
-          (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + "</div>");
+          (m.image_url ? '<img src="' + esc(m.image_url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + pulseLink + "</div>");
         return;
       }
       var isUser = m.role === "user";
@@ -1412,6 +1414,11 @@
 
   // Expose public handlers on window.TG
   window.TG = {
+    // Shared Screen apps use the same live state; generation and phone behaviour stay here.
+    state: STATE,
+    esc: esc,
+    formatText: formatMessageHtml,
+    renderMainChat: renderActiveThread,
     switchApp: function (appName) {
       document.querySelectorAll(".dock-app-btn[data-app]").forEach(function (b) {
         b.classList.toggle("active", b.getAttribute("data-app") === appName);
@@ -1441,13 +1448,20 @@
     },
     openFromGallery: function (threadId, msgId) {
       TG.switchApp("messenger");
-      Promise.resolve(TG.selectThread(threadId)).then(function () {
-        setTimeout(function () { var el = document.getElementById("msg-" + msgId); if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("show-actions"); } }, 600);
+      return TG.selectThread(threadId).then(function (selected) {
+        if (!selected || !document.getElementById("app-messenger").classList.contains("active")) return;
+        var el = document.getElementById("msg-" + msgId);
+        if (el) {
+          el.scrollIntoView({ block: "center" });
+          el.classList.add("show-actions");
+        }
       });
     },
 
     selectThread: function (threadId) {
+      var selection = ++threadSelectionRequest;
       return apiPost({ action: "load_thread", thread_id: threadId }).then(function (res) {
+        if (selection !== threadSelectionRequest) return false;
         STATE.active_thread = res.thread;
         STATE.threads = (STATE.threads || []).map(function (t) {
           return t.id === threadId ? Object.assign({}, t, { unread: 0 }) : t;
@@ -1460,7 +1474,19 @@
         document.getElementById("tgSidebar").classList.add("mobile-hidden");
         document.getElementById("tgMain").classList.remove("mobile-hidden");
         if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
-      });
+        return true;
+      }).catch(function (error) { if (selection === threadSelectionRequest) alert(error.message); return false; });
+    },
+
+    refreshVisibleThread: function () {
+      var id = STATE.active_thread && STATE.active_thread.id, selection = threadSelectionRequest;
+      if (!id) return Promise.resolve(false);
+      return apiPost({action: "load_thread", thread_id: id}).then(function (res) {
+        if (selection !== threadSelectionRequest || STATE.active_thread?.id !== id || !document.getElementById('app-messenger').classList.contains('active')) return false;
+        STATE.active_thread = res.thread;
+        STATE.threads = STATE.threads.map(function (t) { return t.id === id ? Object.assign({}, t, {unread: 0}) : t; });
+        renderSidebar(); renderActiveThread(); return true;
+      }).catch(function () { return false; });
     },
 
     showMobileSidebar: function () {
@@ -1731,6 +1757,14 @@
     },
 
     // 💬 Chat files: every chat with the same character(s), a new one, branches, rename, delete
+    openEpisode: function (id) {  // 🎬 a played episode from its card in the chat: reread it in Scenes
+      if (!window.VN_SCENES) return;
+      VN_SCENES.tab = "gallery";  // straight to the shelf, without drawing the open episode on the way
+      TG.switchApp("scenes");
+      VN_SCENES.switchTab("gallery");
+      VN_SCENES.viewGalleryTranscript(id);
+    },
+
     openChats: function () {
       var t = STATE.active_thread; if (!t) return;
       var key = (t.members || []).map(function (m) { return m.slug; }).sort().join("|");
