@@ -585,6 +585,7 @@
         paintCottage();
         paintKitchen();
         paintVillage();
+        paintCrafts();
         if (sel) paintTile();
     }
     // 🏡 The cottage: the stage being built, its builder's order, the last scene between Il Dattore and Pantaleone
@@ -695,7 +696,7 @@
         const out = [];
         Object.entries(st.shelf || {}).forEach(([k, n]) => out.push({ v: `crop:${k}`, t: `${k === 'seed_tomato' ? '🍅' : prizeOf(k).emoji} ${prizeOf(k).name.replace(/ seeds$/, '')} (shelf, ${n})` }));
         ((st.kitchen || {}).pantry || []).forEach(d => out.push({ v: `dish:${d.id}`, t: `${d.emoji} ${d.name} (pantry, ${d.n})` }));
-        if ((st.bouquets || []).length) out.push({ v: 'bouquet:bouquet', t: `💐 A bouquet (${st.bouquets.length})` });
+        if ((st.bouquets || []).length) out.push({ v: 'bouquet:bouquet', t: `💐 “${st.bouquets[0].name}” ${'★'.repeat(st.bouquets[0].charm || 1)} (vase, ${st.bouquets.length})` });
         (st.almanac || []).forEach(a => { const n = (st.basket || {})['seed_' + a.id]; if (n) out.push({ v: `mutation:${a.id}`, t: `${a.emoji} ${a.name} seed (${n})` }); });
         return out;
     }
@@ -744,6 +745,186 @@
             }
         } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
     });
+
+    // 💐 Bouquets (mainapp/tomato_crafts.py) and 📮 the garden postcard (made here, on the page)
+    const bunch = {};
+    let wrapPick = 'kraft';
+    const WRAP_LOOK = { kraft: ['#c79a66', '#a8794a'], newspaper: ['#ece7da', '#9a958a'], lace: ['#fbf8f2', '#d9cfc0'], ribbon: null };
+    function bouquetSvg(stems, wrap, size = 96) {
+        // stems drawn as a fan: greenery at the back, flowers in the middle, the odd accent in front
+        const order = ['seed_carrot', 'seed_tomato', 'seed_sunflower', 'seed_monster'];
+        const list = [];
+        order.forEach(k => { for (let i = 0; i < (stems[k] || 0); i++) list.push(k); });
+        const back = list.filter(k => k === 'seed_carrot'), front = list.filter(k => k !== 'seed_carrot');
+        const fan = (arr, r, spread) => arr.map((k, i) => {
+            const a = (arr.length === 1 ? 0 : (i / (arr.length - 1) - .5) * spread) * Math.PI / 180;
+            return { k, x: 50 + Math.sin(a) * r, y: 92 - Math.cos(a) * r };
+        });
+        const pts = fan(back, 50, 110).concat(fan(front, 40 + (front.length > 3 ? 4 : 0), front.length > 1 ? 80 : 0));
+        let s = '';
+        pts.forEach(p => { s += `<path d="M50 96 Q${(50 + p.x) / 2} ${(96 + p.y) / 2 + 6} ${p.x.toFixed(1)} ${p.y.toFixed(1)}" stroke="#4f8a3a" stroke-width="2" fill="none"/>`; });
+        pts.forEach((p, i) => {
+            const x = p.x.toFixed(1), y = p.y.toFixed(1);
+            if (p.k === 'seed_carrot') {
+                for (let j = -2; j <= 2; j++) s += `<path d="M${x} ${y} l${j * 4} -9" stroke="#6fbf4a" stroke-width="2.4" stroke-linecap="round"/>`;
+            } else if (p.k === 'seed_tomato') {
+                s += `<circle cx="${x}" cy="${y}" r="6" fill="#e0402f"/><circle cx="${p.x - 2}" cy="${p.y - 2}" r="1.6" fill="#ff9a86"/><path d="M${p.x - 3} ${p.y - 6} l3 2 l3 -2" stroke="#3f8f2f" stroke-width="1.6" fill="none"/>`;
+            } else if (p.k === 'seed_sunflower') {
+                for (let j = 0; j < 10; j++) { const a = j * 36 * Math.PI / 180; s += `<ellipse cx="${(p.x + Math.cos(a) * 7).toFixed(1)}" cy="${(p.y + Math.sin(a) * 7).toFixed(1)}" rx="4" ry="2.2" fill="#f6c62e" transform="rotate(${j * 36} ${(p.x + Math.cos(a) * 7).toFixed(1)} ${(p.y + Math.sin(a) * 7).toFixed(1)})"/>`; }
+                s += `<circle cx="${x}" cy="${y}" r="5" fill="#6b4022"/><circle cx="${x}" cy="${y}" r="2" fill="#8a5a33"/>`;
+            } else {  // a monstrous flower: spiky, purple, with a little mouth
+                let d = '';
+                for (let j = 0; j < 14; j++) { const a = j * Math.PI / 7, r = j % 2 ? 5 : 11; d += `${j ? 'L' : 'M'}${(p.x + Math.cos(a) * r).toFixed(1)} ${(p.y + Math.sin(a) * r).toFixed(1)}`; }
+                s += `<path d="${d}Z" fill="#a04fd0"/><circle cx="${x}" cy="${y}" r="4.5" fill="#e04f9a"/><path d="M${p.x - 2.5} ${p.y + .5} q2.5 2.5 5 0" stroke="#3a1440" stroke-width="1.2" fill="none"/>`;
+            }
+        });
+        const w = WRAP_LOOK[wrap];
+        if (w) {
+            s += `<path d="M26 70 L74 70 L54 118 L46 118 Z" fill="${w[0]}" stroke="${w[1]}" stroke-width="1.5"/>`;
+            if (wrap === 'newspaper') s += [78, 84, 90, 96].map(y => `<path d="M${32 + (y - 70) * .45} ${y} H${68 - (y - 70) * .45}" stroke="#b9b3a6" stroke-width="1"/>`).join('');
+            if (wrap === 'lace') s += [30, 38, 46, 54, 62, 70].map(x => `<circle cx="${x}" cy="71" r="3" fill="none" stroke="#d9cfc0"/>`).join('');
+            if (wrap === 'kraft') s += '<path d="M38 92 Q50 98 62 92" stroke="#7a5432" stroke-width="1.5" fill="none"/>';
+        }
+        s += '<path d="M44 96 q-8 -6 -10 2 q6 4 10 -2 M56 96 q8 -6 10 2 q-6 4 -10 -2" fill="#d6283a"/><circle cx="50" cy="96" r="2.5" fill="#b01e2e"/>';
+        return `<svg viewBox="0 0 100 122" width="${size}" height="${Math.round(size * 1.22)}" role="img" aria-label="A bouquet">${s}</svg>`;
+    }
+    function paintCrafts() {
+        const box = $('gCrafts'), c = st.crafts;
+        if (!box || !c) return;
+        const shelf = st.shelf || {};
+        Object.keys(bunch).forEach(k => { if (!shelf[k]) delete bunch[k]; });
+        const total = Object.values(bunch).reduce((a, b) => a + b, 0);
+        const flower = Object.keys(bunch).some(k => c.stems[k] === 'flower' && bunch[k] > 0);
+        const label = { seed_sunflower: ['🌻', 'Sunflower'], seed_monster: ['🌺', 'Monstrous flower'], seed_carrot: ['🌿', 'Carrot tops'], seed_tomato: ['🍅', 'Tomato sprig'] };
+        const have = Object.keys(c.stems).filter(k => shelf[k]);
+        let html = `<div class="g-craft-cols"><div class="g-arrange"><h3 class="g-sub">Arrange a bouquet</h3>`;
+        html += have.length ? `<p class="muted g-small">${c.min_stems} to ${c.max_stems} stems from the shelf, at least one flower. Variety makes it charming.</p>
+            <div class="g-potpick">${have.map(k => `<div class="g-potrow"><span class="e">${label[k][0]}</span><span>${label[k][1]} <small class="muted">(${shelf[k]})</small></span>
+                <button type="button" class="na-btn" data-stem="${k}" data-d="-1" ${bunch[k] ? '' : 'disabled'}>−</button><b>${bunch[k] || 0}</b>
+                <button type="button" class="na-btn" data-stem="${k}" data-d="1" ${(bunch[k] || 0) < shelf[k] && total < c.max_stems ? '' : 'disabled'}>+</button></div>`).join('')}</div>
+            <div class="g-wraps">${Object.entries(c.wraps).map(([k, t]) => `<label><input type="radio" name="gWrap" value="${k}" ${wrapPick === k ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
+            <div class="g-bq-preview">${total ? bouquetSvg(bunch, wrapPick, 90) : ''}</div>
+            <input type="text" id="gBqName" maxlength="${c.name_max}" placeholder="Name it (or not)" value="${esc(($('gBqName') || {}).value || '')}">
+            <button type="button" class="na-btn na-primary" data-craft="arrange" ${total >= c.min_stems && total <= c.max_stems && flower && c.vase.length < c.max ? '' : 'disabled'}>💐 Arrange (${total})</button>
+            ${c.vase.length >= c.max ? '<small class="muted">The vase is full: give one away first.</small>' : total && !flower ? '<small class="muted">It needs a flower.</small>' : ''}`
+            : '<p class="muted g-small">Nothing for a bouquet on the shelf yet: grow sunflowers or monstrous flowers (carrot tops and tomatoes can join them).</p>';
+        html += `</div><div class="g-vase"><h3 class="g-sub">The vase (${c.vase.length} of ${c.max})</h3>`;
+        html += c.vase.length ? `<div class="g-bqs">${c.vase.map((b, i) => `<figure class="g-bq">${bouquetSvg(b.stems, b.wrap, 72)}
+                <figcaption><b>${esc(b.name)}</b><small class="g-stars" title="${b.charm} of 5">${'★'.repeat(b.charm)}${'☆'.repeat(5 - b.charm)}</small>${i === 0 ? '<small class="muted">next to give</small>' : ''}</figcaption></figure>`).join('')}</div>
+            <p class="muted g-small">Give one through the neighbours above. Someone who likes bouquets counts a ${c.charming}★ one as an extra heart.</p>`
+            : '<p class="muted g-small">Empty for now.</p>';
+        html += `</div></div><div class="g-postcard-row"><button type="button" class="na-btn" data-craft="postcard">📮 Make a postcard of the garden</button></div>`;
+        box.innerHTML = html;
+    }
+    $('gCrafts')?.addEventListener('change', (e) => { if (e.target.name === 'gWrap') { wrapPick = e.target.value; paintCrafts(); } });
+    $('gCrafts')?.addEventListener('click', async (e) => {
+        const p = e.target.closest('[data-stem]');
+        if (p) { bunch[p.dataset.stem] = Math.max(0, (bunch[p.dataset.stem] || 0) + Number(p.dataset.d)); paintCrafts(); return; }
+        const b = e.target.closest('[data-craft]');
+        if (!b) return;
+        if (b.dataset.craft === 'postcard') { openPostcard(); return; }
+        b.disabled = true;
+        try {
+            take(await call({ action: 'arrange', stems: Object.fromEntries(Object.entries(bunch).filter(([, n]) => n > 0)), wrap: wrapPick, name: ($('gBqName') || {}).value || '' }));
+            Object.keys(bunch).forEach(k => delete bunch[k]);
+            if ($('gBqName')) $('gBqName').value = '';
+            paintCrafts();
+        } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
+
+    // 📮 A postcard: the garden as it is right now, framed, with a stamp, a postmark and a few words
+    function wrapText(ctx, text, maxW) {
+        const lines = [];
+        String(text).split('\n').forEach(par => {
+            let line = '';
+            par.split(/\s+/).forEach(w => {
+                const t = line ? line + ' ' + w : w;
+                if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+            });
+            lines.push(line);
+        });
+        return lines;
+    }
+    function drawPostcard(out, to, msg, bq) {
+        const ctx = out.getContext('2d'), Wc = out.width, Hc = out.height;
+        ctx.fillStyle = '#f7f0e1'; ctx.fillRect(0, 0, Wc, Hc);
+        ctx.strokeStyle = '#d8c9a8'; ctx.lineWidth = 2; ctx.strokeRect(14, 14, Wc - 28, Hc - 28);
+        // the photo, a little tilted, with a white border and a shadow
+        ctx.save(); ctx.translate(60, 70); ctx.rotate(-0.02);
+        ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 720, 425);
+        ctx.shadowColor = 'transparent';
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cv, 14, 14, 692, 389);
+        ctx.restore();
+        // the divider and the address side
+        ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(830, 60); ctx.lineTo(830, Hc - 60); ctx.stroke();
+        // the stamp: a tomato on a perforated square
+        const sx = Wc - 170, sy = 50;
+        ctx.fillStyle = '#fff'; ctx.fillRect(sx, sy, 120, 140);
+        ctx.fillStyle = '#f7f0e1';
+        for (let i = 0; i <= 12; i++) { [[sx + i * 10, sy], [sx + i * 10, sy + 140]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill(); }); }
+        for (let i = 0; i <= 14; i++) { [[sx, sy + i * 10], [sx + 120, sy + i * 10]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill(); }); }
+        ctx.fillStyle = '#e9f3df'; ctx.fillRect(sx + 10, sy + 10, 100, 120);
+        ctx.fillStyle = '#e0402f'; ctx.beginPath(); ctx.arc(sx + 60, sy + 72, 30, 0, 7); ctx.fill();
+        ctx.fillStyle = '#ff9a86'; ctx.beginPath(); ctx.arc(sx + 50, sy + 62, 7, 0, 7); ctx.fill();
+        ctx.fillStyle = '#3f8f2f'; ctx.beginPath(); ctx.moveTo(sx + 45, sy + 42); ctx.lineTo(sx + 60, sy + 50); ctx.lineTo(sx + 75, sy + 42); ctx.lineTo(sx + 60, sy + 38); ctx.fill();
+        ctx.fillStyle = '#3a5a2a'; ctx.font = 'bold 13px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('🍅 POSTA', sx + 60, sy + 124);
+        // the postmark over the stamp's corner
+        ctx.save(); ctx.strokeStyle = 'rgba(60,60,90,.55)'; ctx.fillStyle = 'rgba(60,60,90,.6)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(sx - 20, sy + 120, 44, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(sx - 20, sy + 120, 34, 0, 7); ctx.stroke();
+        ctx.font = 'bold 11px Georgia, serif';
+        ctx.fillText('THE GARDEN', sx - 20, sy + 114);
+        ctx.fillText(new Date().toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase(), sx - 20, sy + 130);
+        for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(sx - 170, sy + 102 + i * 12); for (let x = 0; x <= 100; x += 10) ctx.lineTo(sx - 170 + x, sy + 102 + i * 12 + (x % 20 ? 4 : -4)); ctx.stroke(); }
+        ctx.restore();
+        // the address lines
+        ctx.textAlign = 'left'; ctx.fillStyle = '#5b4a33';
+        ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 1;
+        [330, 380, 430].forEach(y => { ctx.beginPath(); ctx.moveTo(870, y); ctx.lineTo(Wc - 60, y); ctx.stroke(); });
+        ctx.font = 'italic 30px "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive';
+        ctx.fillText(to ? 'To ' + to : 'To whoever finds this', 875, 322);
+        ctx.font = '15px Georgia, serif'; ctx.fillStyle = '#8a7656';
+        ctx.fillText('The cottage by the tomato patch', 875, 372);
+        ctx.fillText('Somewhere past the fence', 875, 422);
+        // the bouquet in the corner, if there's one in the vase
+        if (bq) ctx.drawImage(bq, 880, Hc - 260, 150, 183);
+        // the greeting and the message under the photo
+        ctx.fillStyle = '#3a5a2a'; ctx.font = 'bold 34px Georgia, serif';
+        ctx.fillText('Greetings from the Garden', 70, 556);
+        ctx.fillStyle = '#4a3b28'; ctx.font = 'italic 24px "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive';
+        wrapText(ctx, msg || 'The tomatoes say hello. The scarecrow does not, but he means it.', 720).slice(0, 5).forEach((l, i) => ctx.fillText(l, 70, 600 + i * 34));
+    }
+    function openPostcard() {
+        let dlg = $('gPostcard');
+        if (!dlg) {
+            dlg = document.createElement('dialog');
+            dlg.id = 'gPostcard'; dlg.className = 'g-postcard';
+            dlg.innerHTML = `<form method="dialog" class="g-pc-form"><h2>📮 A postcard of the garden</h2>
+                <p class="muted g-small">The garden as it looks right now. Write something on the back, then save it as a picture.</p>
+                <canvas id="gPcCanvas" width="1400" height="800"></canvas>
+                <div class="g-pc-fields"><label>To <input type="text" id="gPcTo" maxlength="40" placeholder="Nonna Lyuba"></label>
+                <label>Message <textarea id="gPcMsg" rows="3" maxlength="240" placeholder="The tomatoes say hello…"></textarea></label></div>
+                <div class="g-pc-actions"><button type="button" class="na-btn" id="gPcFresh">📸 Take the picture again</button>
+                <a class="na-btn na-primary" id="gPcSave" download="garden-postcard.png">⬇ Save the postcard</a>
+                <button class="na-btn" value="close">Close</button></div></form>`;
+            document.body.appendChild(dlg);
+        }
+        const out = $('gPcCanvas');
+        let bq = null;
+        const redraw = () => { drawPostcard(out, $('gPcTo').value.trim(), $('gPcMsg').value.trim(), bq); $('gPcSave').href = out.toDataURL('image/png'); };
+        const vase = (st.crafts || {}).vase || [];
+        if (vase.length) {
+            const last = vase.reduce((a, b) => (b.charm > a.charm ? b : a)), img = new Image();  // the most charming one
+            img.onload = () => { bq = img; redraw(); };
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(bouquetSvg(last.stems, last.wrap, 150).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
+        }
+        $('gPcTo').oninput = $('gPcMsg').oninput = redraw;
+        $('gPcFresh').onclick = redraw;
+        redraw();
+        if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    }
 
     // 📋 The order board and 🧬 the almanac
     function paintBoard() {

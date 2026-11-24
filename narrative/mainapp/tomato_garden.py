@@ -444,6 +444,10 @@ def act(user, body):
         if action == "collect":
             return _locked(user, lambda g, m: K.collect(g, m))
         return _locked(user, lambda g, m: K.eat(g, m, str(body.get("id") or "")))
+    if action == "arrange":  # 💐 a bouquet from the shelf (mainapp/tomato_crafts.py)
+        from mainapp import tomato_crafts as C
+        return _locked(user, lambda g, m: C.arrange(g, m, body.get("stems") if isinstance(body.get("stems"), dict) else {},
+                                                    str(body.get("wrap") or ""), str(body.get("name") or "")))
     if action == "build":  # 🏡 pay the compost and let Il Dattore build the next stage of the cottage
         from mainapp import tomato_house as H
         return _locked(user, lambda g, m: H.build(g, m))
@@ -508,8 +512,9 @@ def public(score):
         tiles.append(item)
     basket = {pid: n for pid, n in m["items"].items() if pid in CROPS and n > 0}
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
-    from mainapp import tomato_house as H, tomato_kitchen as K, tomato_village as V
-    return {"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
+    from mainapp import tomato_house as H, tomato_kitchen as K, tomato_village as V, tomato_crafts as C
+    crafts = C.public(g)
+    return {"crafts": crafts, "bouquets": crafts["vase"],"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
             "kitchen": K.public(g), "village": V.public(g),
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()

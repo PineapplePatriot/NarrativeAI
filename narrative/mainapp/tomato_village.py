@@ -161,12 +161,9 @@ def _take(g, m, kind, item):
             raise ValueError("None of that in the pantry.")
         g["pantry"][item] -= 1
         g["pantry"] = {k: v for k, v in g["pantry"].items() if v > 0}
-    elif kind == "bouquet":
-        bouquets = list(g.get("bouquets") or [])
-        if not bouquets:
-            raise ValueError("No bouquet ready: arrange one first.")
-        bouquets.pop(0)
-        g["bouquets"] = bouquets
+    elif kind == "bouquet":  # the oldest in the vase (mainapp/tomato_crafts.py)
+        from mainapp import tomato_crafts as C
+        return C.take(g)
     elif kind == "mutation":  # a mutation's seed, from the basket (the crow likes those)
         if m["items"].get(f"seed_{item}", 0) < 1:
             raise ValueError("You have no seed of that mutation.")
@@ -182,7 +179,7 @@ def gift(g, m, who, kind, item):
         raise ValueError("No such neighbour.")
     if v["gifted"].get(who) == _today():
         raise ValueError(f"You've already given {NEIGHBOURS[who]['name']} something today.")
-    _take(g, m, kind, item)
+    took = _take(g, m, kind, item)
     n = NEIGHBOURS[who]
     tag = _tag(kind, item)
     verdict = "likes" if tag in n["likes"] else "dislikes" if tag in n["dislikes"] else ""
@@ -190,8 +187,11 @@ def gift(g, m, who, kind, item):
         v["learned"][who].append(tag)
     v["gifted"][who] = _today()
     line = n["thanks"] if verdict == "likes" else n["no"] if verdict == "dislikes" else n["meh"]
-    G._log(g, f"{n['emoji']} You gave {n['name']} {_label(kind, item)}. {line}")
-    _heart(g, m, who, {"likes": 2, "dislikes": -1}.get(verdict, 1))
+    from mainapp import tomato_crafts as C
+    charming = kind == "bouquet" and verdict == "likes" and (took or {}).get("charm", 0) >= C.CHARMING
+    what = f"“{took['name']}” ({'★' * took['charm']})" if kind == "bouquet" and took else _label(kind, item)
+    G._log(g, f"{n['emoji']} You gave {n['name']} {what}. {line}" + (" They put it in water straight away." if charming else ""))
+    _heart(g, m, who, {"likes": 2 + (1 if charming else 0), "dislikes": -1}.get(verdict, 1))
 
 
 def _requests(who):

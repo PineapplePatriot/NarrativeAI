@@ -139,3 +139,22 @@
 .g-letter small { color: #7a6a58; }
 .g-letter p { margin: 6px 0 0; font-family: Georgia, serif; line-height: 1.5; }
 .g-visitor button:disabled, .g-kitchen-box button:disabled, .g-village-box button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }
+/* 💐 Bouquets and the postcard */
+.g-craft-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 720px) { .g-craft-cols { grid-template-columns: 1fr; } }
+.g-wraps { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; font-size: .9em; }
+.g-bq-preview { min-height: 20px; display: flex; justify-content: center; }
+.g-arrange input[type=text] { width: 100%; margin: 6px 0; }
+.g-bqs { display: flex; flex-wrap: wrap; gap: 10px; }
+.g-bq { margin: 0; width: 104px; text-align: center; background: var(--na-surface-2, rgba(127,127,127,.08)); border-radius: 10px; padding: 6px 4px; }
+.g-bq figcaption { display: flex; flex-direction: column; font-size: .82em; line-height: 1.25; }
+.g-stars { color: #d9a400; letter-spacing: 1px; }
+.g-craft-box button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }
+.g-postcard-row { margin-top: 12px; }
+.g-postcard { max-width: min(980px, 96vw); border: none; border-radius: 14px; padding: 18px; background: var(--na-surface, #fff); color: inherit; }
+.g-postcard::backdrop { background: rgba(0,0,0,.55); }
+.g-postcard canvas { width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.2); }
+.g-pc-fields { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin: 10px 0; }
+.g-pc-fields label { display: flex; flex-direction: column; gap: 4px; font-size: .9em; }
+@media (max-width: 640px) { .g-pc-fields { grid-template-columns: 1fr; } }
+.g-pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
