@@ -727,7 +727,7 @@ def stats(request):
     lib = media_library.uploads()
     return render(request, "users/stats.html", {
         "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
-        "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
+        "summary": [(usage.label(k), v) for k, v in data["summary"].items()],
         "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS],
         # 🎵🖼️ what they uploaded for everyone (chat backgrounds, music, radio)
         "library": {k: [{**i, "url": default_storage.url(i["file"])} for i in v] for k, v in lib.items()},

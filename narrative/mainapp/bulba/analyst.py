@@ -98,3 +98,33 @@ def tool_defs(fn, STR):
 
 
 HANDLERS = {"look_up_texture": tool_look_up_texture}
+
+
+
+REWRITE = (
+    "You rewrite drafts of a roleplay character card (or a persona, a greeting, lore) that another assistant wrote. "
+    "Keep every fact, name, relationship, {{char}} and {{user}} exactly; keep each field's purpose and roughly its "
+    "length. Change only the writing, following these rules:\n\n" + RULES + "\n\n"
+    "A greeting stays a scene in the story's voice (not notes), but plain and specific, without these habits. "
+    "Answer with JSON only: the same keys, each with its rewritten text.")
+
+
+def rewrite(user, fields, what="character card"):
+    """{field: text} rewritten by their card-writing model (ai_client task "card_writing"), or None (not set up,
+    or the answer didn't hold: then the usual cleanup runs)."""
+    import json
+    from mainapp import ai_client
+    texts = {k: v for k, v in fields.items() if isinstance(v, str) and v.strip()}
+    if not texts or not ai_client.card_writer_set(user):
+        return None
+    try:
+        answer = ai_client.complete(user, "card_writing", [
+            {"role": "system", "content": REWRITE},
+            {"role": "user", "content": f"## The {what} draft (JSON)\n" + json.dumps(texts, ensure_ascii=False)}],
+            max_tokens=6000, temperature=0.4, response_format={"type": "json_object"})
+        data = json.loads(answer[answer.find("{"):answer.rfind("}") + 1])
+    except (ai_client.AIError, ValueError):
+        return None
+    if not isinstance(data, dict) or set(data) != set(texts) or not all(isinstance(v, str) and v.strip() for v in data.values()):
+        return None
+    return {**fields, **{k: v.strip() for k, v in data.items()}}

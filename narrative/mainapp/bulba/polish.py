@@ -534,6 +534,10 @@ def clean_written(user, fields, what="character card", force=False):
     """{field: text} with the known AI habits rewritten out (one pass for all of them). On any trouble, or with
     "Always fix the known AI habits" off (unless `force`: they asked for this cleanup), the fields come back as
     they were."""
+    from mainapp.bulba import analyst  # their card-writing model, if they chose one, rewrites it instead
+    better = analyst.rewrite(user, fields, what)
+    if better is not None:
+        return better
     mine = watch.user_data(user)
     if not mine.get("fix_known", True) and not force:
         return fields

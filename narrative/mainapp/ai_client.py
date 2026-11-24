@@ -94,6 +94,14 @@ TASKS = {
         "timeout": 90,
         "model_only": True,
     },
+    "card_writing": {
+        "label": "Card writing (Bulba)",
+        "help": "Optional: a model that rewrites Bulba's drafts of cards, personas, greetings and lore before you see "
+                "them, plainly and without the AI habits. Every reply copies the card's voice, and cards are written "
+                "rarely, so a stronger model here costs little. Empty: Bulba's own drafts, cleaned as now.",
+        "timeout": 120,
+        "model_only": True,
+    },
     "voice_split": {
         "label": "Voice splitting",
         "help": "Works out who says each line of a reply before ElevenLabs reads it aloud. "
@@ -208,9 +216,17 @@ def _blocked(text):
     return bool(MODERATION.search(str(text or "")))
 
 
+def card_writer_set(user):
+    """They chose a model for rewriting Bulba's card drafts (Connections page)."""
+    own = get_task_setting(user, "card_writing")
+    return own.profile_id is not None or bool(own.model)
+
+
 def resolve(user, task):
     """Returns (profile, model) for a task."""
-    if task in ("watch", "polish"):  # a model of its own, chosen on the Connections page, wins
+    if task == "card_writing" and not card_writer_set(user):
+        return resolve(user, "bulba")
+    if task in ("watch", "polish", "card_writing"):  # a model of its own, chosen on the Connections page, wins
         own = get_task_setting(user, task)
         if own.profile_id is not None or own.model:
             profile = own.profile or main_profile(user)
