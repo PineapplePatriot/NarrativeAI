@@ -366,6 +366,8 @@ class EpisodeLook(models.Model):
     key_colour = models.CharField(max_length=10, default="green")
     moods = models.JSONField(default=dict, blank=True)
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="variants")
+    identity = models.JSONField(default=dict, blank=True)  # what Bulba saw in the reference picture
+    review = models.JSONField(default=dict, blank=True)    # Bulba's check of the drawn neutral picture
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

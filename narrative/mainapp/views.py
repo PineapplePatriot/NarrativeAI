@@ -6110,7 +6110,12 @@ def vn_scenes_api(request):
             return JsonResponse({"error": "Attach the cut-out picture."}, status=400)
         try:
             look = episode_looks.owned(request.user, request.POST.get("look_id"))
-            episode_looks.save_cut(look, request.POST.get("mood") or "", upload.read())
+            try:
+                changed = float(request.POST.get("body_changed"))
+                changed = changed if 0 <= changed <= 1 else None
+            except (TypeError, ValueError):
+                changed = None
+            episode_looks.save_cut(look, request.POST.get("mood") or "", upload.read(), body_changed=changed)
         except ValueError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
         return JsonResponse({"look": episode_looks.pack(look)})
@@ -6239,6 +6244,12 @@ def vn_scenes_api(request):
             if action == "episode_look_restyle":
                 new, cost, errors = episode_looks.restyle(request.user, look, body.get("name"), body.get("outfit"))
                 return JsonResponse({"look": episode_looks.pack(new), "cost": cost, "errors": errors})
+            if action == "episode_look_redraw":  # one mood again, or the whole look when mood is "all"
+                if body.get("mood") == "all":
+                    cost, errors = episode_looks.redraw_look(request.user, look)
+                else:
+                    cost, errors = episode_looks.redraw_mood(request.user, look, str(body.get("mood") or "")), []
+                return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             if action == "episode_look_delete":
                 episode_looks.delete(look)
                 return JsonResponse({"ok": True})

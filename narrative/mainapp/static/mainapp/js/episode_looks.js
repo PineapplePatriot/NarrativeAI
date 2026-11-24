@@ -36,12 +36,13 @@
 
   /* Remove the flat background around the character. `loose` widens how far from the key colour still counts
      as background (for a picture whose background came out uneven); `tight` keeps more of the edges. */
-  function cutCanvas(img, strength = "normal") {
-    const w = img.naturalWidth, h = img.naturalHeight;
+  function cutCanvas(img, strength = "normal", size = null) {
+    // Every mood is cut at the neutral picture's size, so a character never changes size between moods.
+    const w = size ? size.w : img.naturalWidth, h = size ? size.h : img.naturalHeight;
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d", {willReadFrequently: true});
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, w, h);
     const data = ctx.getImageData(0, 0, w, h);
     const p = data.data;
     // The real key colour, read off the picture's border rather than trusted from the prompt.
@@ -110,10 +111,52 @@
     return canvas;
   }
 
+  /* The character's outline on a small grid: which cells are mostly opaque. */
+  function outline(canvas) {
+    const gw = 64, gh = Math.max(8, Math.round(64 * canvas.height / canvas.width));
+    const small = document.createElement("canvas");
+    small.width = gw; small.height = gh;
+    const sctx = small.getContext("2d", {willReadFrequently: true});
+    sctx.drawImage(canvas, 0, 0, gw, gh);
+    const px = sctx.getImageData(0, 0, gw, gh).data;
+    const cells = new Uint8Array(gw * gh);
+    for (let i = 0; i < cells.length; i++) cells[i] = px[i * 4 + 3] > 128 ? 1 : 0;
+    return cells;
+  }
+
+  /* How much of the outline differs between two cut-outs (0 = the same shape). A face-only edit changes almost
+     nothing; an extra arm or a new pose changes a lot. */
+  function outlineChange(a, b) {
+    let differ = 0, either = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] || b[i]) either++;
+      if (a[i] !== b[i]) differ++;
+    }
+    return either ? differ / either : 0;
+  }
+
+  const neutralCache = {};
+
+  async function neutralOf(look) {
+    const key = `${look.id}:${look.moods.neutral?.raw_url}`;
+    if (neutralCache[key]) return neutralCache[key];
+    const n = look.moods.neutral;
+    if (!n) return null;
+    const img = await loadImage(n.cut ? n.url : n.raw_url);
+    const canvas = n.cut ? (() => {
+      const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext("2d").drawImage(img, 0, 0); return c;
+    })() : cutCanvas(img);
+    neutralCache[key] = {size: {w: canvas.width, h: canvas.height}, outline: outline(canvas)};
+    return neutralCache[key];
+  }
+
   async function cutOne(look, mood, strength) {
     const entry = look.moods[mood];
     const img = await loadImage(entry.raw_url);
-    const canvas = cutCanvas(img, strength);
+    const base = mood === "neutral" ? null : await neutralOf(look);
+    const canvas = cutCanvas(img, strength, base ? base.size : null);
+    const changed = base ? outlineChange(base.outline, outline(canvas)) : null;
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) throw new Error("The browser couldn't make the cut-out.");
     const form = new FormData();
@@ -121,6 +164,7 @@
     form.append("look_id", look.id);
     form.append("mood", mood);
     form.append("file", blob, `${mood}.png`);
+    if (changed !== null) form.append("body_changed", changed.toFixed(4));
     const resp = await fetch(api(), {method: "POST", headers: {"X-CSRFToken": csrf()}, body: form});
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || data.error) throw new Error(data.error || `HTTP ${resp.status}`);
@@ -144,7 +188,8 @@
     /* Cut out every mood of a look that is still on its key colour (or all of them, at a new strength). */
     async cutLook(look, strength = "normal", all = false) {
       if (!look) return look;
-      const moods = all ? Object.keys(look.moods) : (look.needs_cut || []);
+      const order = (list) => [...list].sort((a, b) => (a === "neutral" ? -1 : b === "neutral" ? 1 : 0));
+      const moods = order(all ? Object.keys(look.moods) : (look.needs_cut || []));
       let latest = look;
       for (const mood of moods) latest = await cutOne(latest, mood, strength);
       return latest;
@@ -180,9 +225,20 @@
         const you = m.key === "user";
         const options = m.looks.map((l) => `<option value="${l.id}" ${look && l.id === look.id ? "selected" : ""}>${esc(l.name)}</option>`).join("");
         const thumbs = look ? Object.entries(look.moods).map(([mood, e]) => `
-          <figure class="ep-thumb ${e.cut ? "" : "ep-uncut"}" title="${esc(mood)}${e.cut ? "" : " (not cut out yet)"}">
-            <img src="${esc(e.url)}" alt="${esc(mood)}" loading="lazy"><figcaption>${esc(mood)}</figcaption>
+          <figure class="ep-thumb ${e.cut ? "" : "ep-uncut"} ${e.flag ? "ep-flagged" : ""}" title="${esc(mood)}${e.cut ? "" : " (not cut out yet)"}${e.flag ? ": " + esc(e.flag) : ""}">
+            <img src="${esc(e.url)}" alt="${esc(mood)}" loading="lazy"><figcaption>${e.flag ? "⚠ " : ""}${esc(mood)}</figcaption>
           </figure>`).join("") : "";
+        const flagged = look ? Object.entries(look.moods).filter(([, e]) => e.flag) : [];
+        const review = look?.review || {};
+        const checks = look ? `
+          ${review.ok === false ? `<div class="ep-check is-bad"><strong>Bulba checked the neutral picture</strong>
+              <ul>${(review.issues || []).map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
+              <button type="button" class="ep-btn" onclick="EPISODE_LOOKS.redraw(${look.id}, 'all', this)">Redraw the look · ${Object.keys(look.moods).length} pictures</button></div>`
+            : review.ok === true ? `<p class="ep-check is-good">Bulba checked the neutral picture: two arms, same person, outfit there.</p>`
+            : review.issues?.length ? `<p class="ep-check">${esc(review.issues[0])}</p>` : ""}
+          ${flagged.map(([mood, e]) => `<div class="ep-check is-bad"><strong>“${esc(mood)}”</strong> ${esc(e.flag)}
+              <button type="button" class="ep-btn" onclick="EPISODE_LOOKS.redraw(${look.id}, '${esc(mood)}', this)">Redraw “${esc(mood)}” · 1 picture</button></div>`).join("")}
+          ${look.identity ? `<details class="ep-seen"><summary>What Bulba saw in the reference</summary><p>${esc(look.identity)}</p></details>` : ""}` : "";
         return `
           <div class="ep-look-row" data-key="${esc(m.key)}">
             <div class="ep-look-head">
@@ -198,6 +254,7 @@
               ${look ? `
                 <p class="ep-outfit">${esc(look.outfit || "Outfit as in their references")}</p>
                 <div class="ep-thumbs">${thumbs}</div>
+                ${checks}
                 <div class="ep-actions">
                   ${look.needs_cut.length ? `<button type="button" class="tg-fmt-btn" onclick="EPISODE_LOOKS.recut(${look.id}, 'normal', false, this)">Cut out ${look.needs_cut.length} left</button>` : ""}
                   <select class="tg-select ep-small" onchange="EPISODE_LOOKS.recut(${look.id}, this.value, true, this); this.value=''" title="If edges look wrong, cut every mood again">
@@ -300,6 +357,14 @@
       });
     },
 
+    redraw(id, mood, btn) {
+      return this.run(btn, "Redrawing…", async () => {
+        const data = await post({action: "episode_look_redraw", look_id: id, mood});
+        this.replace(await this.cutLook(data.look));
+        window.VN_SCENES?.notify(data.errors?.length ? data.errors.join("; ") : "Redrawn.", !!data.errors?.length);
+      });
+    },
+
     remove(id, btn) {
       if (!window.confirm("Delete this look and all its pictures? Episodes already saved keep their text.")) return;
       return this.run(btn, "Deleting…", async () => {
@@ -313,5 +378,5 @@
   };
 
   window.EPISODE_LOOKS = LOOKS;
-  window.EpisodeCutout = {cutCanvas};
+  window.EpisodeCutout = {cutCanvas, outline, outlineChange};
 })();

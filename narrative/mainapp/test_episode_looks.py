@@ -231,3 +231,93 @@ class FaceTests(LooksSetup):
         with patch.object(vn_scenes, "_call_vn_json", return_value=follow):
             scene, new = vn_scenes.step_scene(self.user, "I hand her a towel.")
         self.assertEqual(new[0]["emotion"], "sad")  # carried over from the last turn's stage
+
+
+class LookCheckTests(LooksSetup):
+    SEEN = '{"hair": "silver, shoulder length, straight fringe", "eyes": "green", "skin": "pale", "face": "narrow", ' \
+           '"build": "slim", "marks": "", "art_style": "anime cel shading"}'
+
+    def test_bulba_describes_the_picture_and_the_card_prose_is_left_out(self):
+        self.char.description = "A brooding archivist haunted by her past, with eyes like storm clouds."
+        self.char.save()
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch("mainapp.bulba.vision.prepare", return_value=("data:x", None)), \
+             patch("mainapp.bulba.vision.describe", return_value=(self.SEEN, "test")), \
+             patch.object(episode_looks, "review", return_value={"ok": True, "issues": []}), \
+             patch.object(messenger, "make_picture", return_value=(b"img", 0)) as image:
+            look, _, _ = episode_looks.create(self.user, self.char, "canon", "Day", "black coat", moods=["happy"])
+        base, mood = image.call_args_list[0].args[1], image.call_args_list[1].args[1]
+        self.assertIn("hair: silver, shoulder length", base)
+        self.assertIn("the pictures win", base)
+        self.assertIn("Exactly two arms and two hands", base)
+        self.assertNotIn("storm clouds", base)
+        self.assertIn("Change only the face", mood)
+        self.assertIn("Do not move, add, remove or redraw arms, hands", mood)
+        self.assertEqual(look.identity["eyes"], "green")
+        self.assertIn("green", episode_looks.pack(look)["identity"])
+
+    def test_bulbas_review_turns_counts_into_plain_issues(self):
+        look, _, _ = self.make()
+        answer = json.dumps({"arms": 3, "hands": 2, "extra_or_merged_limbs": True, "fingers_ok": True, "same_person": True,
+                             "outfit_missing": ["grey scarf"], "background_plain": True, "notes": "The third arm is behind her."})
+        with patch("mainapp.bulba.vision.looker", return_value=("vision/model", "x")), \
+             patch("mainapp.bulba.vision.prepare", return_value=("data:x", None)), \
+             patch("mainapp.ai_client.complete", return_value=answer) as call:
+            result = episode_looks.review(self.user, look, [(b"ref", "image/png")], (b"drawn", "image/png"))
+        self.assertFalse(result["ok"])
+        self.assertIn("3 arms.", result["issues"])
+        self.assertIn("Missing from the outfit: grey scarf.", result["issues"])
+        self.assertEqual(len([c for c in call.call_args.args[2][0]["content"] if c["type"] == "image_url"]), 2)
+        good = json.dumps({"arms": 2, "hands": 2, "extra_or_merged_limbs": False, "fingers_ok": True, "same_person": True,
+                           "outfit_missing": [], "background_plain": True, "notes": ""})
+        with patch("mainapp.bulba.vision.looker", return_value=("vision/model", "x")), \
+             patch("mainapp.bulba.vision.prepare", return_value=("data:x", None)), \
+             patch("mainapp.ai_client.complete", return_value=good):
+            self.assertEqual(episode_looks.review(self.user, look, [], (b"drawn", "image/png")), {"ok": True, "issues": []})
+
+    def test_a_mood_whose_outline_changed_is_flagged_and_can_be_redrawn(self):
+        look, _, _ = self.make()
+        episode_looks.save_cut(look, "happy", png(), body_changed=0.02)
+        self.assertNotIn("flag", look.moods["happy"])
+        episode_looks.save_cut(look, "happy", png(), body_changed=0.19)
+        self.assertIn("19%", look.moods["happy"]["flag"])
+        self.assertIn("arm", episode_looks.pack(look)["moods"]["happy"]["flag"])
+        old = look.moods["happy"]["raw"]
+        with patch.object(messenger, "make_picture", return_value=(b"again", 0.01)) as image:
+            cost = episode_looks.redraw_mood(self.user, look, "happy")
+        self.assertIn("Change only the face", image.call_args.args[1])
+        self.assertEqual(cost, 0.01)
+        self.assertNotEqual(look.moods["happy"]["raw"], old)
+        self.assertEqual(look.moods["happy"]["cut"], "")
+        self.assertNotIn("flag", look.moods["happy"])
+        with self.assertRaises(ValueError):
+            episode_looks.redraw_mood(self.user, look, "neutral")
+
+    def test_redrawing_the_whole_look_redraws_every_mood_from_the_new_neutral(self):
+        look, _, _ = self.make(moods=("happy", "sad"))
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(episode_looks, "review", return_value={"ok": True, "issues": []}), \
+             patch.object(messenger, "make_picture", side_effect=[(b"n2", 0), (b"h2", 0), (b"s2", 0)]) as image:
+            cost, errors = episode_looks.redraw_look(self.user, look)
+        self.assertEqual(errors, [])
+        self.assertEqual(sorted(look.moods), ["happy", "neutral", "sad"])
+        self.assertEqual(image.call_args_list[1].kwargs["references"], [(b"n2", "image/png")])
+        self.assertEqual(look.review, {"ok": True, "issues": []})
+
+    def test_the_browser_sends_the_outline_change_with_the_cut(self):
+        look, _, _ = self.make()
+        response = self.client.post(reverse("vn_scenes_api"), data={
+            "kind": "episode_cut", "look_id": look.pk, "mood": "happy", "body_changed": "0.0562",
+            "file": SimpleUploadedFile("happy.png", png(), content_type="image/png")})
+        self.assertIn("6%", response.json()["look"]["moods"]["happy"]["flag"])
+        response = self.client.post(reverse("vn_scenes_api"), data={
+            "kind": "episode_cut", "look_id": look.pk, "mood": "happy", "body_changed": "0.0004",
+            "file": SimpleUploadedFile("happy.png", png(), content_type="image/png")})
+        self.assertEqual(response.json()["look"]["moods"]["happy"]["flag"], "")
+
+    def test_a_flagged_mood_stays_off_the_stage_until_redrawn(self):
+        look, _, _ = self.make(moods=("happy",))
+        episode_looks.save_cut(look, "happy", png(), body_changed=0.2)
+        self.assertEqual(episode_looks.url(look, "happy")[1], "neutral")
+        episode_looks.save_cut(look, "happy", png(), body_changed=0.001)
+        self.assertEqual(episode_looks.url(look, "happy")[1], "happy")
