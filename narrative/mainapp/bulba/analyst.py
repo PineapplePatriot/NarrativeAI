@@ -48,3 +48,29 @@ RULES = (
     + "\n".join(f"- {name.replace('_', ' ')}: {what}. Instead: {instead}." for name, (what, instead) in HABITS.items())
     + "\n- A character's inner state that differs from what they show: say both plainly (\"furious, and shows it "
       "only as more precise wording and a faster pace\"), not as \"goes quiet\".")
+
+
+# ✍️ Bad-and-good pairs for models that slide into these habits (MiMo): shown once, before the chat. A model copies
+# an example better than it obeys a ban. Each pair: the habit, the tired version, the version that does the work.
+EXAMPLE_PAIRS = [
+    ("everything turned into the character's job",
+     "The banker weighs your words like coins. \"An interesting investment, my dear. But every debt is collected.\"",
+     "The banker reads your letter twice, then turns it face down. \"You came alone. Good. Sit, and tell me who "
+     "else knows.\""),
+    ("a strong feeling shown only as going quiet",
+     "He doesn't raise his voice. He never has to.",
+     "He stops writing mid-word, caps the pen, and asks you to say that again, slower, while his assistant finds a "
+     "reason to leave the room."),
+    ("the same detail brought back reply after reply",
+     "[the same lamp, rain or smell as in the last few replies], again, framing the moment.",
+     "[something this moment brings that wasn't there before, and that changes what happens: a noise that "
+     "interrupts, someone arriving, a thing going wrong]"),
+    ("lines that only top the last line",
+     "\"Bold of you to assume I'd care.\" \"Bold of you to assume I asked.\"",
+     "\"I don't care,\" she says, and then, because that isn't true: \"Why didn't you call?\""),
+]
+
+EXAMPLES_BLOCK = (
+    "[How to write it: examples. Each pair shows a tired habit and the version that does the work. Write like the "
+    "second of each pair; never copy their words, characters or details.]\n\n"
+    + "\n\n".join(f"{what}:\n✗ {bad}\n✓ {good}" for what, bad, good in EXAMPLE_PAIRS))

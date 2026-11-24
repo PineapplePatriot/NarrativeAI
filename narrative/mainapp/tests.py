@@ -4824,6 +4824,47 @@ class PenMenuTests(ChatPromptTests):
         self.assertFalse(empty["success"])
 
 
+class LateInstructionTests(TestCase):
+    """MiMo follows late instructions only inside the user's turn: system messages after the chat move there."""
+    def test_late_system_blocks_go_into_the_users_turn_for_mimo(self):
+        from mainapp import presets as P
+        preset = P.normalize({"blocks": [
+            {"name": "Main", "role": "system", "content": "You are the narrator."},
+            {"kind": "marker", "marker": "chat_history"},
+            {"name": "Reminder", "role": "system", "content": "Keep it short.", "position": "in_chat", "depth": 0},
+            {"name": "Tail", "role": "system", "content": "[Stay in character.]"}]})
+        history = [{"role": "assistant", "content": "Hello."}, {"role": "user", "content": "Hi."}]
+        names = {"char": "R", "user": "U"}
+        mimo = P.assemble(preset, {}, history, names, model="xiaomi/mimo-v2.6-pro")
+        roles = [(m["role"], m["content"]) for m in mimo["messages"]]
+        self.assertEqual(roles[0], ("system", "You are the narrator."))  # before the chat: stays a system message
+        first_chat = next(i for i, (r, c) in enumerate(roles) if c == "Hello.")
+        self.assertNotIn("system", [r for r, c in roles[first_chat:]])  # nothing as a system message after the chat
+        joined = json.dumps(roles)
+        self.assertIn("[Keep it short.]", joined)
+        self.assertIn("[Stay in character.]", joined)
+        self.assertTrue(any("inside the user's turn" in n for n in mimo["notes"]))
+        other = P.assemble(preset, {}, history, names, model="google/gemini-flash")
+        self.assertIn(("system", "Keep it short."), [(m["role"], m["content"]) for m in other["messages"]])
+
+    def test_mimo_gets_the_writing_examples_once_before_the_chat(self):
+        from mainapp import presets as P
+        preset = P.normalize({"blocks": [{"name": "Main", "role": "system", "content": "Narrate."},
+                                         {"kind": "marker", "marker": "chat_history"}]})
+        history = [{"role": "user", "content": "Hi."}]
+        msgs = P.assemble(preset, {}, history, {"char": "R", "user": "U"}, model="xiaomi/mimo-v2.6-pro")["messages"]
+        at = next(i for i, m in enumerate(msgs) if "How to write it: examples" in m["content"])
+        self.assertEqual(msgs[at]["role"], "system")
+        self.assertEqual(msgs[at + 1]["content"], "Hi.")  # right before the chat
+        self.assertEqual(json.dumps(msgs).count("How to write it: examples"), 1)
+        self.assertNotIn("Pantalone", json.dumps(msgs))  # no names to copy into other stories
+        other = P.assemble(preset, {}, history, {"char": "R", "user": "U"}, model="google/gemini-flash")["messages"]
+        self.assertNotIn("How to write it", json.dumps(other))
+        off = P.normalize({**preset, "options": {**preset["options"], "example_pairs": False}})
+        self.assertNotIn("How to write it", json.dumps(P.assemble(off, {}, history, {"char": "R", "user": "U"},
+                                                                  model="xiaomi/mimo-v2.6-pro")["messages"]))
+
+
 class ImpersonateAndTriggerTests(ChatPromptTests):
     def test_their_message_keeps_their_own_point_of_view_and_intent(self):
         from mainapp.bulba import control

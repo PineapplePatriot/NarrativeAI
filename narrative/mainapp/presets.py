@@ -248,7 +248,9 @@ def normalize(raw):
         "samplers": sampler_mod.normalize(raw.get("samplers")),
         "utility": utility,
         "options": {"post_processing": pp if pp in POST_PROCESSING else "none",
-                    "streaming": bool(options_raw.get("streaming", True))},
+                    "streaming": bool(options_raw.get("streaming", True)),
+                    # ✍️ the bad-and-good writing pairs for models that need them (EXAMPLES_FOR)
+                    "example_pairs": options_raw.get("example_pairs", True) is not False},
         **_rules_and_extras(raw),
     }
 
@@ -660,6 +662,32 @@ def fires_on(block, generation):
 NOTE_LAST = 10 ** 9  # in-chat order that puts the director's note after everything else at depth 0
 
 
+# Models that follow an instruction late in the conversation only when it's in the user's turn (MiMo): system
+# messages there are skipped, or moved to the top by the provider
+LATE_SYSTEM_AS_USER = re.compile(r"mimo", re.I)
+# Models that get the bad-and-good writing pairs (bulba/analyst.py EXAMPLE_PAIRS); a preset can turn them off with
+# options.example_pairs = false
+EXAMPLES_FOR = re.compile(r"mimo", re.I)
+
+
+def late_system_to_user(messages):
+    """System messages after the chat has started, as user-turn notes (in brackets), in the same place.
+    Returns (messages, how many moved)."""
+    first_chat = next((i for i, m in enumerate(messages) if "Chat history" in (m.get("sources") or [])), None)
+    if first_chat is None:
+        return messages, 0
+    out, moved = [], 0
+    for i, m in enumerate(messages):
+        if i > first_chat and m["role"] == "system":
+            text = m["content"].strip()
+            text = text if text.startswith("[") and text.endswith("]") else f"[{text}]"
+            out.append({**m, "role": "user", "content": text})
+            moved += 1
+        else:
+            out.append(m)
+    return out, moved
+
+
 def assemble(preset, slots, history, names, model="", rng=None, generation="normal"):
     """
     generation: "normal", "regenerate", "continue", "impersonate" (blocks limited to other kinds are left out)
@@ -750,6 +778,17 @@ def assemble(preset, slots, history, names, model="", rng=None, generation="norm
     if prefill:
         messages.append({"role": "assistant", "content": prefill, "sources": ["Assistant prefill"]})
 
+    if model and EXAMPLES_FOR.search(model) and preset["options"].get("example_pairs", True) \
+            and generation != "impersonate":
+        from mainapp.bulba import analyst  # ✍️ bad-and-good pairs, once, just before the chat
+        at = next((i for i, m in enumerate(messages) if "Chat history" in (m.get("sources") or [])), len(messages))
+        messages = messages[:at] + [{"role": "system", "content": analyst.EXAMPLES_BLOCK,
+                                     "sources": ["Writing examples (for this model)"]}] + messages[at:]
+    if model and LATE_SYSTEM_AS_USER.search(model):
+        messages, moved = late_system_to_user(messages)
+        if moved:
+            notes.append(f"{moved} instruction(s) after the chat sent inside the user's turn: {model} listens to "
+                         "those, not to system messages late in the conversation.")
     messages = _post_process(messages, preset["options"]["post_processing"], names,
                              expand(preset["utility"]["new_chat"], ctx))
 

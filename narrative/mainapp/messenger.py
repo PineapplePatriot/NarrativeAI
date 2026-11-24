@@ -1649,6 +1649,14 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     from mainapp.bulba import polish  # 🛡 the habits to keep out, before they write
     avoid = polish.avoid_line(user)
     messages.append({"role": "user", "content": reminder + ("\n" + avoid if avoid else "")})
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except Exception:
+        model = ""
+    from mainapp import presets
+    if model and presets.LATE_SYSTEM_AS_USER.search(model):  # MiMo: notices inside the chat as user-turn notes
+        messages = [m if i == 0 or m["role"] != "system" else {"role": "user", "content": m["content"]}
+                    for i, m in enumerate(messages)]
     return messages
 
 
