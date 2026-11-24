@@ -470,6 +470,11 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
                                    tail=[{"role": "user", "content": ask + (
                                        "\n\n" + english["content"] if english else "")}])
         message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
+        thought, written = thinking.split(message.get("content") or "")
+        if not written.strip() and (thought or message.get("reasoning")):  # all thinking: once more without it
+            _, model = ai_client.resolve(request.user, "chat")
+            message, _ = ai_client.complete_message(request.user, "chat", built["messages"],
+                                                    **thinking.without_thinking(model, built["params"]))
     except ai_client.AIError as e:
         return {"success": False, "error": str(e)}
     thought, written = thinking.split(message.get("content") or "")

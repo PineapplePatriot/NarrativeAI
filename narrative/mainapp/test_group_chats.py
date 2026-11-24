@@ -113,3 +113,12 @@ class GroupTextingTests(TestCase):
         parsed = messenger.parse_ai_reply("Pantalone: there. [GROUP_AVATAR: the two of us at a casino table]",
                                           [self.pan, self.dot], is_group=True)
         self.assertEqual([u["kind"] for u in parsed["profile_updates"]], ["group_avatar"])
+
+    def test_a_reply_that_was_all_thinking_is_tried_again_without_thinking(self):
+        answers = ["<think>Pantalone wants... wait, let me reconsider...</think>", "Pantalone: Fine. Ten minutes."]
+        with mock.patch("mainapp.ai_client.resolve", return_value=(None, "xiaomi/mimo-v2.6-pro")), \
+             mock.patch("mainapp.ai_client.complete", side_effect=answers) as complete:
+            out = messenger.generate_turn(self.user, self.thread)
+        self.assertEqual(complete.call_count, 2)
+        self.assertEqual(complete.call_args_list[1].kwargs.get("reasoning"), {"enabled": False})
+        self.assertIn("Ten minutes", json.dumps(out.get("bubbles") or [], ensure_ascii=False))
