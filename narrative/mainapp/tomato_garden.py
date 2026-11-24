@@ -374,6 +374,8 @@ def _locked(user, fn):
         m, g = M._state(score), _state(score)
         from mainapp import tomato_house as H
         H.tick(g, m)
+        from mainapp import tomato_village as V
+        V.tick(g, m)
         fn(g, m)
         H.tick(g, m)
         _orders(g, m)
@@ -427,6 +429,14 @@ def act(user, body):
         return _locked(user, shift)
     if action == "give":  # 🧺 crops from the shelf to an order or to the cottage
         return _locked(user, lambda g, m: give(g, m, body.get("to")))
+    if action in ("gift", "help_visitor", "read_letters"):  # 🏘️ the neighbours (mainapp/tomato_village.py)
+        from mainapp import tomato_village as V
+        if action == "gift":
+            return _locked(user, lambda g, m: V.gift(g, m, str(body.get("to") or ""), str(body.get("kind") or ""),
+                                                     str(body.get("item") or "")))
+        if action == "help_visitor":
+            return _locked(user, lambda g, m: V.help_visitor(g, m))
+        return _locked(user, lambda g, m: V.read_letters(g))
     if action in ("cook", "collect", "eat"):  # 🍲 the kitchen (mainapp/tomato_kitchen.py)
         from mainapp import tomato_kitchen as K
         if action == "cook":
@@ -498,9 +508,9 @@ def public(score):
         tiles.append(item)
     basket = {pid: n for pid, n in m["items"].items() if pid in CROPS and n > 0}
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
-    from mainapp import tomato_house as H, tomato_kitchen as K
+    from mainapp import tomato_house as H, tomato_kitchen as K, tomato_village as V
     return {"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
-            "kitchen": K.public(g),
+            "kitchen": K.public(g), "village": V.public(g),
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,

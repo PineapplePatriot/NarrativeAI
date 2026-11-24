@@ -584,6 +584,7 @@
         paintBoard();
         paintCottage();
         paintKitchen();
+        paintVillage();
         if (sel) paintTile();
     }
     // 🏡 The cottage: the stage being built, its builder's order, the last scene between Il Dattore and Pantaleone
@@ -686,6 +687,61 @@
         try {
             take(await call(body));
             if (body.action === 'cook') Object.keys(potPick).forEach(s => delete potPick[s]);
+        } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
+
+    // 🏘️ The neighbours (mainapp/tomato_village.py): today's visitor, friendship, gifts, letters
+    function giftOptions() {
+        const out = [];
+        Object.entries(st.shelf || {}).forEach(([k, n]) => out.push({ v: `crop:${k}`, t: `${k === 'seed_tomato' ? '🍅' : prizeOf(k).emoji} ${prizeOf(k).name.replace(/ seeds$/, '')} (shelf, ${n})` }));
+        ((st.kitchen || {}).pantry || []).forEach(d => out.push({ v: `dish:${d.id}`, t: `${d.emoji} ${d.name} (pantry, ${d.n})` }));
+        if ((st.bouquets || []).length) out.push({ v: 'bouquet:bouquet', t: `💐 A bouquet (${st.bouquets.length})` });
+        (st.almanac || []).forEach(a => { const n = (st.basket || {})['seed_' + a.id]; if (n) out.push({ v: `mutation:${a.id}`, t: `${a.emoji} ${a.name} seed (${n})` }); });
+        return out;
+    }
+    function canGive(vis) {
+        if (!vis || vis.done) return false;
+        if (vis.kind === 'crop') return ((st.shelf || {})[vis.id] || 0) >= vis.n;
+        if (vis.kind === 'dish') return ((st.kitchen || {}).pantry || []).some(d => d.id === vis.id && d.n >= vis.n);
+        if (vis.kind === 'bouquet') return (st.bouquets || []).length >= vis.n;
+        return false;
+    }
+    function paintVillage() {
+        const box = $('gVillage'), v = st.village;
+        if (!box || !v) return;
+        $('gLetterCount').textContent = v.unread ? `💌 ${v.unread} new letter${v.unread > 1 ? 's' : ''}` : '';
+        const hearts = (p) => '❤️'.repeat(Math.ceil(p.hearts / 2)) + '🤍'.repeat(Math.max(0, Math.ceil(p.max / 2) - Math.ceil(p.hearts / 2)));
+        const vis = v.visitor, gifts = giftOptions();
+        let html = vis ? `<div class="g-visitor${vis.done ? ' done' : ''}"><span class="e">${vis.emoji}</span><div><b>${esc(vis.name)} is here.</b>
+                <small>${esc(vis.hello)}</small><small class="muted">${vis.done ? 'You helped today. ❤️' : `Asks for: ${esc(vis.wants)}.`}</small></div>
+                ${!vis.done ? `<button type="button" class="na-btn na-primary" data-village="help" ${canGive(vis) ? '' : 'disabled title="You don\'t have it yet"'}>Give it</button>` : ''}</div>`
+            : '<p class="muted g-small">Nobody has dropped by yet today.</p>';
+        html += `<div class="g-people">${v.people.map(p => `<div class="g-person"><span class="e">${p.emoji}</span><div class="g-person-main">
+                <b>${esc(p.name)}</b> <span class="g-hearts" title="${p.hearts} of ${p.max}">${hearts(p)}</span>
+                <small class="muted">${esc(p.about)}</small>
+                ${p.likes.length ? `<small>Likes: ${esc(p.likes.join(', '))}</small>` : ''}${p.dislikes.length ? `<small>Not keen on: ${esc(p.dislikes.join(', '))}</small>` : ''}
+                ${p.gifted_today ? '<small class="muted">Gift given today.</small>'
+                    : gifts.length ? `<div class="g-giftrow"><select data-gift-for="${p.id}">${gifts.map(o => `<option value="${o.v}">${esc(o.t)}</option>`).join('')}</select>
+                        <button type="button" class="na-btn" data-village="gift" data-to="${p.id}">🎁 Give</button></div>`
+                    : '<small class="muted">Nothing to give yet: harvest, cook or arrange something.</small>'}
+                ${p.next_letter ? `<small class="muted">A letter at ${p.next_letter} hearts.</small>` : ''}</div></div>`).join('')}</div>`;
+        if ((v.letters || []).length) html += `<details class="g-letters"${v.unread ? ' open' : ''} data-letters><summary>💌 Letters (${v.letters.length})</summary>
+            ${v.letters.map(l => `<div class="g-letter"><b>${l.emoji} ${esc(l.title)}</b> <small class="muted">from ${esc(l.name)}</small><p>${esc(l.text)}</p></div>`).join('')}</details>`;
+        box.innerHTML = html;
+        const letters = box.querySelector('[data-letters]');
+        if (letters && v.unread) letters.addEventListener('toggle', () => { if (letters.open) call({ action: 'read_letters' }).then(take).catch(() => {}); }, { once: true });
+        if (letters && v.unread && letters.open) call({ action: 'read_letters' }).then(s => { st.village = s.village; $('gLetterCount').textContent = ''; }).catch(() => {});
+    }
+    $('gVillage')?.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-village]');
+        if (!b) return;
+        b.disabled = true;
+        try {
+            if (b.dataset.village === 'help') take(await call({ action: 'help_visitor' }));
+            else {
+                const [kind, item] = (b.parentElement.querySelector('select').value || ':').split(':');
+                take(await call({ action: 'gift', to: b.dataset.to, kind, item }));
+            }
         } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
     });
 

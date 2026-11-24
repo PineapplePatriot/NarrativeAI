@@ -119,3 +119,23 @@
 .g-book { margin-top: 10px; }
 .g-book summary { cursor: pointer; font-weight: 600; margin-bottom: 6px; }
 .g-recipe.unknown { opacity: .6; }
+
+/* 🏘️ the neighbours */
+.g-visitor { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; margin-bottom: 10px;
+    background: rgba(250, 204, 21, .08); border: 1px solid rgba(250, 204, 21, .35); }
+.g-visitor.done { opacity: .75; border-color: rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .03); }
+.g-visitor .e, .g-person .e { font-size: 1.7rem; width: 34px; text-align: center; flex: 0 0 auto; }
+.g-visitor small { display: block; }
+.g-visitor button { margin-left: auto; }
+.g-people { display: grid; gap: 10px; }
+.g-person { display: flex; gap: 10px; align-items: flex-start; }
+.g-person-main { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.g-hearts { font-size: .75rem; letter-spacing: -1px; }
+.g-giftrow { display: flex; gap: 6px; margin-top: 4px; }
+.g-giftrow select { flex: 1; min-width: 0; }
+.g-letters { margin-top: 12px; }
+.g-letters summary { cursor: pointer; font-weight: 600; }
+.g-letter { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #f6efe2; color: #3a2e22; }
+.g-letter small { color: #7a6a58; }
+.g-letter p { margin: 6px 0 0; font-family: Georgia, serif; line-height: 1.5; }
+.g-visitor button:disabled, .g-kitchen-box button:disabled, .g-village-box button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }

@@ -80,3 +80,62 @@ class KitchenTests(TestCase):
         self.assertEqual(state["orders"], [])
         self.assertEqual(state["kitchen"]["pantry"], [])
         self.assertEqual(state["shelf"]["seed_tomato"], 6)  # the shelf untouched
+
+
+class NeighbourTests(KitchenTests):
+    """🏘️ The neighbours (mainapp/tomato_village.py): a daily visitor, gifts, friendship, letters."""
+    test_cook_a_known_dish_and_eat_it = test_a_secret_recipe_is_found_and_a_failure_is_compost = None
+    test_luck_and_compost_boosts_reach_the_harvest = test_a_dish_order_takes_the_cooked_dish = None
+
+    def setUp(self):
+        super().setUp()
+        from mainapp import tomato_village as V
+        on = mock.patch.object(V, "ENABLED", True)
+        on.start()
+        self.addCleanup(on.stop)
+
+    def test_gifts_teach_what_they_like_and_hearts_bring_letters(self):
+        state = self.do(action="gift", to="rosa", kind="crop", item="seed_sunflower").json()
+        rosa = next(p for p in state["village"]["people"] if p["id"] == "rosa")
+        self.assertEqual((rosa["hearts"], rosa["likes"], rosa["gifted_today"]), (2, ["Sunflower"], True))
+        self.assertEqual(self.do(action="gift", to="rosa", kind="crop", item="seed_tomato").status_code, 400)  # one a day
+        state = self.do(action="gift", to="pepper", kind="crop", item="seed_carrot").json()  # neither liked nor not
+        self.assertEqual(next(p for p in state["village"]["people"] if p["id"] == "pepper")["hearts"], 1)
+        self.assertEqual(self.do(action="gift", to="nobody", kind="crop", item="seed_carrot").status_code, 400)
+        # friendship to 3 hearts: a letter, with seeds
+        self.score.refresh_from_db()
+        g = self.score.garden
+        g["village"]["gifted"] = {}
+        self.score.garden = g
+        self.score.save()
+        state = self.do(action="gift", to="rosa", kind="crop", item="seed_sunflower").json()
+        self.assertEqual(state["village"]["unread"], 1)
+        self.assertEqual(state["village"]["letters"][0]["title"], "A note on lilac paper")
+        self.assertEqual(state["basket"]["seed_sunflower"], 3)
+        self.assertEqual(self.do(action="read_letters").json()["village"]["unread"], 0)
+
+    def test_the_daily_visitor_and_helping(self):
+        from mainapp import tomato_village as V
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        vis = state["village"]["visitor"]
+        self.assertIsNotNone(vis)
+        self.assertEqual(self.client.get(reverse("tomato_garden_state")).json()["village"]["visitor"]["who"], vis["who"])  # one a day
+        self.score.refresh_from_db()  # make it a request they can meet
+        g = self.score.garden
+        g["village"]["visitor"].update({"who": "mirela", "kind": "crop", "id": "seed_carrot", "n": 2})
+        self.score.garden = g
+        self.score.save()
+        state = self.do(action="help_visitor").json()
+        self.assertTrue(state["village"]["visitor"]["done"])
+        self.assertEqual(next(p for p in state["village"]["people"] if p["id"] == "mirela")["hearts"], 2)
+        self.assertEqual(state["shelf"]["seed_carrot"], 1)
+        self.assertEqual(self.do(action="help_visitor").status_code, 400)  # already helped
+        self.assertIn("lyuba", V.NEIGHBOURS)
+
+    def test_a_letter_can_tell_a_secret_recipe(self):
+        from mainapp import tomato_village as V
+        g = {"shelf": {}, "log": [], "village": {"hearts": {"lyuba": 2}}}
+        m = {"items": {}, "earned": 0}
+        V._heart(g, m, "lyuba", 1)
+        self.assertIn("ketchup", g["book"])  # in the book as known
+        self.assertEqual(m["earned"], 100)
