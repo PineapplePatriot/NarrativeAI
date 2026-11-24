@@ -267,6 +267,7 @@ VISUAL NOVEL ENGINE RULES:
      * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
      * A **Character Dialogue block** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
    - Return 6–10 complete beats per request, ending at a natural input point. Continue in the next request.
+1a. CAMERA: for a charged moment (a quiet threat, a confession, leaning in), add `"camera": "close"` to that block's `stage`: the view moves in on the speaker's face for that block only. Rarely; never for narration.
 1b. WHO IS PRESENT:
    - Only people who are present speak, act or are seen. When someone arrives, add to THAT block's `stage`: `"enter": ["<slug>"]`; when someone goes, `"leave": ["<slug>"]` on the block where they go.
    - Someone who left is gone until an "enter" brings them back; don't write them as present.
@@ -419,11 +420,13 @@ def _look_lines(look, worn=""):
     if not look:
         return ("  Moods: neutral (no episode look yet: the stage shows only their name)\n"
                 f"  Outfit: {worn or 'as in their description'}\n")
+    moods = sorted(m for m, e in (look.moods or {"neutral": {}}).items() if not e.get("pose")) or ["neutral"]
+    poses = sorted(m for m, e in (look.moods or {}).items() if e.get("pose") and not e.get("flag"))
+    lines = f"  Moods: {', '.join(moods)}\n" + (
+        f"  Poses (use one as the emotion now and then, when the gesture fits; sparingly): {', '.join(poses)}\n" if poses else "")
     if worn and worn != look.outfit:
-        return (f"  Moods: {', '.join(sorted(look.moods or {'neutral': {}}))}\n"
-                f"  Outfit now: {worn}\n")
-    return (f"  Moods: {', '.join(sorted(look.moods or {'neutral': {}}))}\n"
-            f"  Outfit ({look.name}): {look.outfit or 'as in their description'}\n")
+        return lines + f"  Outfit now: {worn}\n"
+    return lines + f"  Outfit ({look.name}): {look.outfit or 'as in their description'}\n"
 
 
 def _build_char_roster(chars, user=None, context=None, looks=None, worn=None):
@@ -467,6 +470,18 @@ def _match_bg(bgs, name):
     return {"id": "none", "name": "No backdrop", "url": ""}
 
 
+def _without_name(text, chars, user_participant=None):
+    """A line that starts with a speaker's name ("Il Dottore: You want me...") loses it: the name tab says who speaks."""
+    names = {c.name for c in chars} | {messenger.char_profile(c)["display_name"] for c in chars} | {c.slug for c in chars}
+    if user_participant and user_participant.get("name"):
+        names.add(user_participant["name"])
+    for name in sorted((n for n in names if n), key=len, reverse=True):
+        found = re.match(rf"\s*\**\s*{re.escape(name)}\s*(?:\**\s*[:：]|[:：]\s*\**)\s*\**\s*", text, re.I)
+        if found and len(text) > found.end():
+            return text[found.end():].lstrip()
+    return text
+
+
 def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_stage=None, authoring_mode="roleplay",
                   user_participant=None):
     """Blocks from the storyteller as stage beats. Pictures come only from the episode's looks: a mood a look
@@ -482,6 +497,7 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
         if not isinstance(rb, dict) or not str(rb.get("text") or "").strip():
             continue
         txt = str(rb["text"]).strip()
+        txt = _without_name(txt, chars, user_participant)
         before = copy.deepcopy(current)
         change = rb.get("stage") if isinstance(rb.get("stage"), dict) else {}
         outfit_changes = []
@@ -556,6 +572,7 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
                           "text": part, "block_text": txt if i == 0 else "",
                           **({"outfit_change": outfit_changes} if outfit_changes and i == 0 else {}),
                           **({"auto_entered": True} if auto_entered and i == 0 else {}),
+                          **({"camera": "close"} if str(change.get("camera") or "").lower() == "close" and not narrator else {}),
                           "original_text": (rb.get("original_text") or "") if i == 0 else "",
                           "stage": copy.deepcopy(current), "stage_before": before})
         if leaving:  # they say their piece on this block, and are gone from the next one
@@ -567,7 +584,7 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
 
 def start_scene(user, thread=None, characters=None, location_hint="", looks=None,
                 direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False,
-                casting=None):
+                casting=None, style=None):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
@@ -613,6 +630,9 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
             "interaction_mode": interaction_mode if interaction_mode in vn_story.INTERACTIONS else "mixed",
             "authoring_mode": authoring_mode if authoring_mode in vn_story.AUTHORING else "roleplay",
             "user_participant": vn_story.user_participant(user, context),
+            "balance": (style or {}).get("balance") if (style or {}).get("balance") in vn_story.BALANCES else "balanced",
+            "length": (style or {}).get("length") if (style or {}).get("length") in vn_story.LENGTHS else "medium",
+            "write_out": bool((style or {}).get("write_out", True)),
             "phone_snapshot": copy.deepcopy(thread.data or {}) if thread else {}}
     if pulse_event:
         seed["pulse_event"] = copy.deepcopy(pulse_event)
@@ -742,6 +762,11 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
     clock_str = (scene.get("continuity") or {}).get("time") or context["clock"]
 
     history = list(scene.get("beats") or scene.get("history") or [])
+    note = ""
+    if user_input and user_input.strip() and scene.get("write_out", True) and scene.get("authoring_mode") != "director":
+        written = write_out(user, scene, history, user_input.strip())
+        if written and written != user_input.strip():
+            note, user_input = user_input.strip(), written
     if user_input and user_input.strip():
         directing = scene.get("authoring_mode") == "director"
         c0 = chars[0]
@@ -757,6 +782,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
             "emotion": last_beat.get("emotion") or "neutral",
             "sprite_url": last_beat.get("sprite_url") or "",
             "text": user_input.strip(),
+            **({"note": note} if note else {}),
             "generated": False, "stage": vn_story.stage_of(scene), "stage_before": vn_story.stage_of(scene),
         }
         history.append(user_beat)
@@ -824,6 +850,36 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
     scene["choices_shown"], scene["translation_error"] = vn_support.translate_turn(user, new_beats, scene["choices"])
     save_vn_state(user, {**(save_updates or {}), "active_scene": scene}, expected=expected)
     return scene, new_beats
+
+
+WRITE_OUT_PROMPT = """You turn a player's note into their character's actual response in a visual novel.
+The character: {name}. Who they are: {persona}
+{casting}
+The last moments:
+{recent}
+
+The player's note: "{note}"
+
+Write what {name} does and says right now, as the note asks: a short action and their spoken words in quotes, in their
+own voice, 1-3 sentences, in the story's tense. Don't decide anything the note doesn't (no extra choices, feelings or
+promises), don't speak or act for anyone else, don't continue the scene. If the note already is their exact words,
+return it unchanged. Return ONLY JSON: {{"text": "..."}}"""
+
+
+def write_out(user, scene, history, note):
+    """The player's note ("step closer and tell him the counter-offer") as their character's actual response.
+    "" when Bulba can't (the note is then used as it is)."""
+    from mainapp import vn_casting
+    player = scene.get("user_participant") or {}
+    recent = "\n".join(f"- {b.get('speaker_name') or b.get('speaker')}: {b.get('text')}" for b in history[-8:])
+    try:
+        out = messenger.ask_json(user, WRITE_OUT_PROMPT.format(
+            name=player.get("name") or "the player's character", persona=str(player.get("persona") or "")[:800],
+            casting=vn_casting.brief(scene.get("casting")), recent=recent or "(the scene is starting)", note=note[:800]),
+            need=("text",), max_tokens=700)
+    except ai_client.AIError:
+        return ""
+    return " ".join(str(out.get("text") or "").split())[:1200]
 
 
 def suggest_choices(user):

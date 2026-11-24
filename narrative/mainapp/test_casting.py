@@ -127,3 +127,32 @@ class CastingTests(TestCase):
         self.assertIn("brass map cabinet", image.call_args.args[1])
         kept = EpisodePlace.objects.get()
         self.assertEqual(scene["beats"][0]["stage"]["background"]["id"], f"place_{kept.pk}")
+
+    def test_bulba_says_which_moods_the_episode_needs_and_how_each_person_shows_them(self):
+        answer = self.answer()
+        answer["outfits"][0].update(moods=["smug", "Guarded", "neutral", "smug", "x" * 3],
+                                    mood_notes={"smug": "a thin one-sided smile", "ghost": "nope"})
+        with patch.object(messenger, "ask_json", return_value=answer) as bulba:
+            sheet = vn_casting.propose(self.user, self.thread, [self.mira, self.ivo])
+        self.assertIn("Moods fit the person and this episode", bulba.call_args.args[1])
+        mira = sheet["outfits"][0]
+        self.assertEqual(mira["moods"], ["smug", "guarded", "xxx"])
+        self.assertEqual(mira["mood_notes"], {"smug": "a thin one-sided smile"})
+
+    def test_casting_notes_reach_the_look_and_bulba_writes_only_the_rest(self):
+        from mainapp import episode_looks
+        with patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(messenger, "ask_json", return_value={"notes": {"tired": "heavy eyelids"}}) as bulba, \
+             patch.object(messenger, "make_picture", return_value=(b"img", 0)) as image:
+            look, _, _ = episode_looks.create(self.user, self.mira, "canon", "Night", "coat", moods=["neutral", "smug", "tired"],
+                                              mood_notes={"smug": "a thin one-sided smile"})
+        self.assertEqual(sorted(look.moods), ["neutral", "smug", "tired"])
+        self.assertIn("Moods: tired", bulba.call_args.args[1])  # smug was already described
+        self.assertIn("a thin one-sided smile", image.call_args_list[1].args[1])
+        with patch.object(messenger, "make_picture", return_value=(b"img", 0)), \
+             patch.object(messenger, "ask_json", return_value={"notes": {}}):
+            r = self.client.post(reverse("vn_scenes_api"), data=json.dumps({
+                "action": "episode_look_moods", "look_id": look.pk, "moods": ["guarded"],
+                "mood_notes": {"guarded": "chin up, eyes steady"}}), content_type="application/json")
+        self.assertEqual(r.json()["look"]["mood_notes"]["guarded"], "chin up, eyes steady")
+        self.assertIn("guarded", r.json()["look"]["moods"])

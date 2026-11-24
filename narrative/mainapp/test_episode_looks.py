@@ -386,3 +386,62 @@ class LookModelAndMoodTests(LooksSetup):
         listing = self.client.post(url, data=json.dumps({"action": "episode_looks", "thread_id": self.thread.pk}),
                                    content_type="application/json").json()
         self.assertIn("microsoft/mai-image-2.7", [m[0] for m in listing["picture_models"]])
+
+
+class PoseTests(LooksSetup):
+    def test_poses_are_checked_by_bulba_not_by_the_outline_and_listed_apart(self):
+        look, _, _ = self.make(moods=("happy",))
+        from mainapp import picture_checks
+        with patch.object(messenger, "make_picture", side_effect=[(b"three-arms", 0), (b"crossed", 0)]) as image, \
+             patch.object(episode_looks, "review", side_effect=[{"ok": False, "issues": ["3 arms."]}, {"ok": True, "issues": []}]), \
+             override_settings(PICTURE_CHECKS=True):
+            cost, errors = episode_looks.add_poses(self.user, look, ["arms crossed"])
+        self.assertEqual(errors, [])
+        self.assertIn("Change only the pose, to: arms crossed", image.call_args_list[0].args[1])
+        self.assertEqual(image.call_count, 2)  # wrong once, drawn again
+        self.assertTrue(look.moods["arms crossed"]["pose"])
+        self.assertNotIn("flag", look.moods["arms crossed"])
+        episode_looks.save_cut(look, "arms crossed", png(), body_changed=0.4)  # a pose may change the outline
+        self.assertNotIn("flag", look.moods["arms crossed"])
+        lines = vn_scenes._look_lines(look)
+        self.assertIn("Moods: happy, neutral", lines)
+        self.assertIn("Poses (use one as the emotion now and then", lines)
+        self.assertIn("arms crossed", lines)
+
+
+class ModelTrialTests(LooksSetup):
+    MODELS = [{"id": "microsoft/mai-image-2.7", "name": "MAI", "takes_pictures": True, "text_out": False},
+              {"id": "black-forest-labs/flux-3-klein", "name": "FLUX 3 Klein", "takes_pictures": True, "text_out": False},
+              {"id": "some/text-to-image-only", "name": "No refs", "takes_pictures": False, "text_out": False}]
+
+    def test_any_openrouter_model_that_takes_pictures_can_draw_a_look(self):
+        from mainapp import ai_client
+        with patch.object(ai_client, "image_models", return_value=self.MODELS):
+            self.assertEqual(episode_looks.picture_model(self.user, "black-forest-labs/flux-3-klein"), "black-forest-labs/flux-3-klein")
+            self.assertEqual(episode_looks.picture_model(self.user, "some/text-to-image-only"), "")  # can't keep a face
+            self.assertEqual(episode_looks.picture_model(self.user, "made/up"), "")
+            self.assertEqual(episode_looks.model_name("black-forest-labs/flux-3-klein"), "FLUX 3 Klein")
+
+    def test_a_trial_counts_its_cost_stays_out_of_episodes_and_can_be_kept(self):
+        from mainapp import ai_client
+        with patch.object(ai_client, "image_models", return_value=self.MODELS), \
+             patch.object(episode_looks, "references", return_value=[(b"ref", "image/png")]), \
+             patch.object(messenger, "make_picture", return_value=(b"img", 0.009)) as draw:
+            r = self.client.post(reverse("vn_scenes_api"), data=json.dumps({
+                "action": "episode_look_create", "key": self.char.slug, "name": "Trial · FLUX 3 Klein", "outfit": "coat",
+                "model": "black-forest-labs/flux-3-klein", "moods": ["neutral", "happy", "angry"], "trial": True}),
+                content_type="application/json")
+            trials = self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": "episode_look_trials", "key": self.char.slug}),
+                                      content_type="application/json").json()
+        look = r.json()["look"]
+        self.assertTrue(look["trial"])
+        self.assertAlmostEqual(look["cost"], 0.027)  # three pictures
+        self.assertTrue(all(c.kwargs["model"] == "black-forest-labs/flux-3-klein" for c in draw.call_args_list))
+        self.assertEqual([t["id"] for t in trials["trials"]], [look["id"]])
+        self.assertEqual([m["id"] for m in trials["models"]], ["microsoft/mai-image-2.7", "black-forest-labs/flux-3-klein"])
+        self.assertEqual(episode_looks.looks_for(self.user, self.char, "canon"), [])  # not offered for episodes
+        self.assertIsNone(episode_looks.default_look(self.user, self.char, "canon"))
+        kept = self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": "episode_look_keep", "look_id": look["id"],
+                                                                           "name": "Day (FLUX)"}), content_type="application/json").json()["look"]
+        self.assertEqual((kept["trial"], kept["name"]), (False, "Day (FLUX)"))
+        self.assertEqual(episode_looks.default_look(self.user, self.char, "canon").pk, look["id"])

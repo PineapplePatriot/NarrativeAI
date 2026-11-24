@@ -7,6 +7,13 @@ from mainapp import ai_client, messenger, presets, screen_lore, sprites, vn_supp
 
 INTERACTIONS = ("choices", "write", "mixed")
 AUTHORING = ("roleplay", "director")
+BALANCES = {"dialogue": "MORE DIALOGUE: let the characters talk; keep narration to short beats of action and setting between lines.",
+            "balanced": "",
+            "narration": "MORE NARRATION: give room to exposition: the place, what people do, what they notice and hold back; "
+                         "dialogue where it matters."}
+LENGTHS = {"short": "TURN LENGTH: short; a few blocks, then hand over to the user.",
+           "medium": "",
+           "long": "TURN LENGTH: long; let the scene unfold over many blocks before handing over."}
 
 
 def user_participant(user, context):
@@ -30,7 +37,8 @@ def mode_rules(scene):
     interaction = {"choices": "CLASSIC CHOICES: offer meaningful choices at input points. The user selects an option.",
                    "write": "FREE WRITING: do not suggest replies or choices. Return choices: []; the user writes their response.",
                    "mixed": "MIXED: offer choices as suggestions while allowing the user to write their own response."}[mode]
-    return authoring + "\n" + interaction
+    style = "\n".join(x for x in (BALANCES.get(scene.get("balance") or "balanced"), LENGTHS.get(scene.get("length") or "medium")) if x)
+    return authoring + "\n" + interaction + ("\n" + style if style else "")
 
 
 def prepare(user, scene, prompt, generation="normal"):

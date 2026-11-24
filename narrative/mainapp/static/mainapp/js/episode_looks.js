@@ -228,6 +228,7 @@
         this.cast = data.cast || [];
         this.coreMoods = data.core_moods || [];
         this.models = data.picture_models || [["", "Nano Banana (Google): the app's default"]];
+        this.poses = data.poses || [];
         this.defaultModel = data.default_model || "";
         this.cast.forEach((m) => {
           if (!(m.key in this.picks) || !m.looks.some((l) => l.id === this.picks[m.key])) this.picks[m.key] = m.chosen;
@@ -292,6 +293,7 @@
                 </div>` : ""}
             ` : `<p class="ep-looks-note">${you ? "No look for you yet." : "No episode look yet: the stage will show only their name."}</p>`}
             ${m.has_reference ? `
+              <button type="button" class="tg-fmt-btn ep-compare-btn" onclick="EPISODE_LOOKS.compareModels('${esc(m.key)}')">🧪 Compare picture models</button>
               <details class="ep-new" ${m.looks.length ? "" : "open"}>
                 <summary>New look</summary>
                 <label>Name <input class="tg-input" maxlength="60" data-new-name placeholder="Everyday, Gala night, Rainy walk…"></label>
@@ -336,7 +338,8 @@
       const row = btn.closest(".ep-look-row");
       const name = row.querySelector("[data-new-name]").value.trim();
       const outfit = row.querySelector("[data-new-outfit]").value.trim();
-      return this.createFrom(key, name, outfit, btn);
+      const carried = (this.pendingMoods || {})[key];  // the episode's moods, when this came from Bulba's casting
+      return this.createFrom(key, name, outfit, btn, carried?.moods, carried?.notes);
     },
 
     /* Put an outfit into a person's "New look" form, for the user to change before drawing it. */
@@ -351,19 +354,20 @@
       form.querySelector("[data-new-outfit]").focus();
     },
 
-    async createFrom(key, name, outfit, btn) {
+    async createFrom(key, name, outfit, btn, moods = null, moodNotes = null) {
       if (!outfit) {window.VN_SCENES?.notify("Write the outfit item by item first: that's what keeps it the same in every picture.", true); return false;}
       let made = false;
       await this.run(btn, "Drawing the look…", async () => {
         const model = this.root?.querySelector(`.ep-look-row[data-key="${CSS.escape(key)}"] [data-new-model]`)?.value ?? this.defaultModel;
-        const data = await post({action: "episode_look_create", key, name, outfit, model});
+        const data = await post({action: "episode_look_create", key, name, outfit, model,
+          ...(moods && moods.length ? {moods: ["neutral", ...moods], mood_notes: moodNotes || {}} : {})});
         this.replace(data.look);
         this.picks[key] = data.look.id;
         this.render();
         window.VN_SCENES?.notify("Look drawn. Cutting it out in your browser…");
         this.replace(await this.cutLook(data.look));
         window.VN_SCENES?.notify(data.errors?.length ? `Look ready, but some moods failed: ${data.errors.join("; ")}` : "Look ready.", !!data.errors?.length);
-        made = true;
+        made = data.look.id;
       });
       return made;
     },
@@ -372,6 +376,142 @@
       if (!strength) return;
       const look = this.cast.flatMap((m) => m.looks).find((l) => l.id === id);
       return this.run(btn, "Cutting out…", async () => {this.replace(await this.cutLook(look, strength, all));});
+    },
+
+    /* Draw these moods for a look (with Bulba's notes on how this person shows them), then cut them out. */
+    drawMoods(id, moods, notes, btn) {
+      return this.run(btn, "Drawing moods…", async () => {
+        const data = await post({action: "episode_look_moods", look_id: id, moods, mood_notes: notes || {}});
+        this.replace(await this.cutLook(data.look));
+        if (data.errors?.length) window.VN_SCENES?.notify(data.errors.join(" "), true);
+        else window.VN_SCENES?.notify(`Drawn: ${moods.join(", ")}.`);
+      });
+    },
+
+    /* The picture-model comparison: the same outfit and moods drawn by several OpenRouter models, side by side with
+       what each cost, how long it took and what Bulba's check found. Trials stay out of episodes until kept. */
+    compareModels(key) {
+      const self = this;
+      const member = this.member(key);
+      if (!member) return;
+      const SUGGEST = [/mai-image-2\.7$/, /flux.*klein/i, /muse/i, /gpt-image-2/i, /seedream/i];
+      let state = {models: [], featured: [], trials: [], running: false, progress: [], error: ""};
+      const short = (name) => String(name || "").replace(/\s*\(.*\)$/, "").split(":")[0];
+      const money = (v) => "$" + (v >= 1 ? v.toFixed(2) : v.toFixed(3));
+      const load = async () => {
+        const data = await post({action: "episode_look_trials", key});
+        state = {...state, models: data.models || [], featured: data.featured || [], trials: data.trials || []};
+      };
+      const render = (body, close) => {
+        const looks = member.looks;
+        const picked = state.models.filter((m) => SUGGEST.some((r) => r.test(m.id))).slice(0, 5).map((m) => m.id);
+        const results = state.trials.map((l) => {
+          const timing = (state.progress.find((p) => p.id === l.id) || {}).seconds;
+          const review = l.review || {};
+          return `<div class="ep-trial">
+              <strong>${esc(l.model_name || short(l.model))}</strong>
+              <span class="ep-card-meta">${money(l.cost || 0)}${timing ? ` · ${timing}s` : ""}</span>
+              <div class="ep-trial-pics">${Object.entries(l.moods).map(([mood, e]) => `<figure class="ep-thumb ${e.flag ? "ep-flagged" : ""}" title="${esc(e.flag || mood)}">
+                  <img src="${esc(e.url)}" alt="${esc(mood)}"><figcaption>${e.flag ? "⚠ " : ""}${esc(mood)}</figcaption></figure>`).join("")}</div>
+              <p class="ep-check ${review.ok === false ? "is-bad" : review.ok ? "is-good" : ""}">${review.ok === true ? "Bulba's check: fine"
+                : review.ok === false ? esc((review.issues || []).join(" ")) : "Not checked"}</p>
+              <div class="ep-note-actions">
+                <button type="button" class="ep-btn ep-btn-primary" data-keep="${l.id}">Keep this one</button>
+                <button type="button" class="ep-btn ep-btn-quiet" data-drop="${l.id}">Delete</button>
+              </div>
+            </div>`;
+        }).join("");
+        body.innerHTML = `
+          <p class="ep-dialog-p">The same outfit and moods, drawn by several picture models from your OpenRouter credits. Each
+            trial is a full look (neutral + the moods) with Bulba's check. Keep the one you like; it becomes an ordinary look.</p>
+          ${state.error ? `<p class="ep-check is-bad">${esc(state.error)}</p>` : ""}
+          ${state.trials.length ? `<div class="ep-trials">${results}</div>
+            <div class="ep-dialog-actions"><button type="button" class="ep-btn ep-btn-quiet" data-drop-all>Delete all trials</button></div>` : ""}
+          <div class="ep-add-moods">
+            <label class="ep-dialog-text">Outfit
+              <select class="tg-select" data-from><option value="">Type it below</option>${looks.map((l) => `<option value="${l.id}">${esc(l.name)}: ${esc((l.outfit || "").slice(0, 60))}</option>`).join("")}</select>
+              <textarea class="ep-input" data-outfit rows="2" placeholder="black wool coat, knee length; grey scarf">${esc(looks[0]?.outfit || "")}</textarea></label>
+            <label class="ep-dialog-text">Two moods to draw with each
+              <input class="ep-input" data-moods value="happy, angry"></label>
+            <div class="ep-dialog-text">Picture models (up to 5)
+              ${state.models.length ? `<div class="ep-model-list">${state.models.map((m) => `<label class="ep-toggle">
+                  <input type="checkbox" value="${esc(m.id)}" ${picked.includes(m.id) ? "checked" : ""}> ${esc(m.name)}</label>`).join("")}</div>`
+                : `<p class="ep-check">OpenRouter's model list couldn't be loaded right now.</p>`}</div>
+            ${state.running ? `<ol class="ep-wait-steps">${state.progress.map((p) => `<li class="${p.done ? "is-done" : p.failed ? "" : "is-now"}">${esc(p.name)}${p.failed ? `: ${esc(p.failed)}` : ""}</li>`).join("")}</ol>`
+              : `<button type="button" class="ep-btn ep-btn-primary" data-run>Draw the comparison</button>`}
+            <p class="cast-muted" data-estimate></p>
+          </div>`;
+        const estimate = () => {
+          const n = body.querySelectorAll(".ep-model-list input:checked").length;
+          const moods = body.querySelector("[data-moods]").value.split(",").filter((x) => x.trim()).length;
+          const el = body.querySelector("[data-estimate]");
+          if (el) el.textContent = n ? `${n} models × ${1 + moods} pictures = ${n * (1 + moods)} pictures, drawn one model after another.` : "";
+        };
+        body.querySelectorAll(".ep-model-list input, [data-moods]").forEach((el) => el.addEventListener("input", estimate));
+        estimate();
+        body.querySelector("[data-from]")?.addEventListener("change", (event) => {
+          const look = looks.find((l) => String(l.id) === event.target.value);
+          if (look) body.querySelector("[data-outfit]").value = look.outfit || "";
+        });
+        body.querySelectorAll("[data-keep]").forEach((btn) => btn.addEventListener("click", async () => {
+          const trial = state.trials.find((l) => String(l.id) === btn.dataset.keep);
+          const name = await EpDialog.prompt("A name for this look", (trial?.name || "").replace("Trial · ", ""), {ok: "Keep it"});
+          if (name === null) return;
+          try {
+            const data = await post({action: "episode_look_keep", look_id: Number(btn.dataset.keep), name});
+            member.looks.unshift(data.look);
+            self.picks[key] = data.look.id;
+            state.trials = state.trials.filter((l) => l.id !== data.look.id);
+            self.render();
+            window.VN_SCENES?.notify(`Kept: ${data.look.name}. It's now one of ${member.name}'s looks.`);
+            render(body, close);
+          } catch (e) {window.VN_SCENES?.notify(e.message, true);}
+        }));
+        const drop = async (ids) => {
+          for (const id of ids) {
+            try {await post({action: "episode_look_delete", look_id: id});} catch (e) {window.VN_SCENES?.notify(e.message, true);}
+          }
+          state.trials = state.trials.filter((l) => !ids.includes(l.id));
+          render(body, close);
+        };
+        body.querySelectorAll("[data-drop]").forEach((btn) => btn.addEventListener("click", () => drop([Number(btn.dataset.drop)])));
+        body.querySelector("[data-drop-all]")?.addEventListener("click", async () => {
+          if (await EpDialog.confirm("Delete every trial look of this person?", {ok: "Delete the trials", danger: true}))
+            drop(state.trials.map((l) => l.id));
+        });
+        body.querySelector("[data-run]")?.addEventListener("click", async () => {
+          const outfit = body.querySelector("[data-outfit]").value.trim();
+          const moods = body.querySelector("[data-moods]").value.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean).slice(0, 3);
+          const chosen = [...body.querySelectorAll(".ep-model-list input:checked")].map((i) => i.value).slice(0, 5);
+          if (!outfit) {state.error = "Write the outfit, item by item, or pick a look to copy it from."; render(body, close); return;}
+          if (!chosen.length) {state.error = "Tick at least one picture model."; render(body, close); return;}
+          state.error = "";
+          state.running = true;
+          state.progress = chosen.map((id) => ({id: null, model: id, name: (state.models.find((m) => m.id === id) || {}).name || id}));
+          render(body, close);
+          for (const step of state.progress) {
+            const started = Date.now();
+            try {
+              const data = await post({action: "episode_look_create", key, name: `Trial · ${short(step.name)}`, outfit,
+                model: step.model, moods: ["neutral", ...moods], trial: true});
+              const look = await self.cutLook(data.look).catch(() => data.look);
+              step.id = look.id; step.done = true; step.seconds = Math.round((Date.now() - started) / 1000);
+              state.trials.unshift(look);
+            } catch (e) {
+              step.failed = e.message;
+            }
+            if (body.isConnected) render(body, close);
+          }
+          state.running = false;
+          window.CASTING?.refreshCost();
+          if (body.isConnected) render(body, close);
+        });
+      };
+      return EpDialog.open({title: `Compare picture models · ${member.name}`, wide: true, onMount: async (body, close) => {
+        body.innerHTML = `<p class="ep-dialog-p">Loading OpenRouter's picture models…</p>`;
+        try {await load();} catch (e) {state.error = e.message;}
+        render(body, close);
+      }});
     },
 
     modelOptions(chosen) {
@@ -408,8 +548,9 @@
               <div class="ep-mood ${mood === focus ? "is-focus" : ""}" data-mood="${esc(mood)}">
                 <img src="${esc(e.url)}" alt="${esc(mood)}">
                 <div class="ep-mood-body">
-                  <strong>${esc(mood)}${e.flag ? ` <span class="ep-mood-flag">⚠ ${esc(e.flag)}</span>` : ""}</strong>
+                  <strong>${esc(mood)}${e.pose ? ` <span class="ep-badge">pose</span>` : ""}${e.flag ? ` <span class="ep-mood-flag">⚠ ${esc(e.flag)}</span>` : ""}</strong>
                   ${mood === "neutral" ? `<span class="cast-muted">The base of every mood. Redrawing it redraws the whole look.</span>`
+                    : e.pose ? `<span class="cast-muted">A pose: the arms may move, so Bulba checks it for extra limbs.</span>`
                     : `<textarea class="ep-input" data-note rows="2" placeholder="How this person shows it, e.g. a thin one-sided smile, eyes barely narrowed">${esc(notes[mood] || "")}</textarea>`}
                   <input class="ep-input" data-redo-note placeholder="Note for a redraw (optional): what was wrong, what to change">
                   <div class="ep-note-actions">
@@ -426,6 +567,12 @@
               <input class="ep-input" data-add placeholder="${esc(missing.slice(0, 3).join(", "))}"></label>
             ${missing.length ? `<div class="cast-chips">${missing.slice(0, 10).map((m) => `<button type="button" class="cast-chip" data-suggest="${esc(m)}">${esc(m)}</button>`).join("")}</div>` : ""}
             <button type="button" class="ep-btn ep-btn-primary" data-act="add">Draw the new moods</button>
+          </div>
+          <div class="ep-add-moods">
+            <label class="ep-dialog-text">Add poses, for a little movement on stage (one picture each, checked by Bulba)
+              <input class="ep-input" data-add-pose placeholder="arms crossed, hand to chin"></label>
+            <div class="cast-chips">${(self.poses || []).filter((p) => !(p in look.moods)).map((p) => `<button type="button" class="cast-chip" data-suggest-pose="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+            <button type="button" class="ep-btn" data-act="add-pose">Draw the poses</button>
           </div>`;
         const busy = (btn, label) => {
           body.querySelectorAll("button").forEach((b) => {b.disabled = true;});
@@ -448,6 +595,19 @@
           if (!have.includes(chip.dataset.suggest)) have.push(chip.dataset.suggest);
           input.value = have.join(", ");
         }));
+        body.querySelectorAll("[data-suggest-pose]").forEach((chip) => chip.addEventListener("click", () => {
+          const input = body.querySelector("[data-add-pose]");
+          const have = input.value.split(",").map((x) => x.trim()).filter(Boolean);
+          if (!have.includes(chip.dataset.suggestPose)) have.push(chip.dataset.suggestPose);
+          input.value = have.join(", ");
+        }));
+        body.querySelector('[data-act="add-pose"]').addEventListener("click", async (event) => {
+          const poses = body.querySelector("[data-add-pose]").value.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean);
+          if (!poses.length) {window.VN_SCENES?.notify("Write the poses to add, or tap the suggestions.", true); return;}
+          busy(event.target, "Drawing poses…");
+          try {await done(await post({action: "episode_look_moods", look_id: id, moods: poses, kind: "pose"}), "Poses drawn.");}
+          catch (e) {fail(e);}
+        });
         body.querySelectorAll(".ep-mood").forEach((row) => {
           const mood = row.dataset.mood;
           const noteBox = row.querySelector("[data-note]");

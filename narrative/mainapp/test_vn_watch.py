@@ -224,3 +224,59 @@ class VoiceTests(EpisodeWatchTests):
         from mainapp import ai_client
         with self.assertRaises(ai_client.AIError):
             vn_scenes.voice_line(self.user, new[0]["id"])
+
+
+class StagecraftTests(EpisodeWatchTests):
+    def test_a_line_that_starts_with_the_speakers_name_loses_it(self):
+        turn = {"handoff": "user_turn", "beats": [
+            {"speaker_slug": self.mira.slug, "text": "Mira: You want me to sign this?"},
+            {"speaker_slug": self.mira.slug, "text": "**Mira:** Fine."},
+            {"speaker_slug": "narrator", "text": "Mira: the name on the door."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn), \
+             patch.object(messenger, "ask_json", side_effect=ai_client_error()):
+            _, new = vn_scenes.step_scene(self.user, "")
+        self.assertEqual([b["text"] for b in new][:2], ["You want me to sign this?", "Fine."])
+
+    def test_a_note_becomes_the_characters_actual_response_and_is_kept(self):
+        turn = {"handoff": "user_turn", "beats": [{"speaker_slug": self.mira.slug, "text": "Go on."}]}
+        written = {"text": 'Rowan steps closer. "My counter-offer: half now, half when the map is back."'}
+        with patch.object(messenger, "ask_json", return_value=written) as bulba, \
+             patch.object(vn_scenes, "_call_vn_json", return_value=turn) as model:
+            scene, _ = vn_scenes.step_scene(self.user, "step close again and tell him the counter-offer")
+        mine = next(b for b in scene["beats"] if b.get("speaker") == "user")
+        self.assertEqual(mine["text"], written["text"])
+        self.assertEqual(mine["note"], "step close again and tell him the counter-offer")
+        self.assertIn("Don't decide anything the note doesn't", bulba.call_args.args[1])
+        self.assertIn("half now, half when the map is back", model.call_args.args[1])
+        vn_scenes.save_vn_state(self.user, {"active_scene": {**scene, "write_out": False}})
+        with patch.object(messenger, "ask_json") as bulba, patch.object(vn_scenes, "_call_vn_json", return_value=turn):
+            scene, _ = vn_scenes.step_scene(self.user, "I nod.")
+        bulba.assert_not_called()
+
+    def test_dialogue_or_narration_and_turn_length_reach_the_storyteller(self):
+        from mainapp import vn_story
+        scene = vn_scenes.get_vn_state(self.user)["active_scene"]
+        self.assertEqual((scene["balance"], scene["length"], scene["write_out"]), ("balanced", "medium", True))
+        rules = vn_story.mode_rules({**scene, "balance": "dialogue", "length": "long"})
+        self.assertIn("MORE DIALOGUE", rules)
+        self.assertIn("TURN LENGTH: long", rules)
+        r = self.client.post(reverse("vn_scenes_api"), data=json.dumps({"action": "episode_preferences", "balance": "narration",
+                                                                        "length": "short", "write_out": False}),
+                             content_type="application/json")
+        s = r.json()["scene"]
+        self.assertEqual((s["balance"], s["length"], s["write_out"]), ("narration", "short", False))
+
+    def test_a_charged_line_can_move_the_camera_close(self):
+        turn = {"handoff": "user_turn", "beats": [
+            {"speaker_slug": self.mira.slug, "text": "Say that again.", "stage": {"camera": "close"}},
+            {"speaker_slug": "narrator", "text": "Rain.", "stage": {"camera": "close"}}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=turn), \
+             patch.object(messenger, "ask_json", side_effect=ai_client_error()):
+            _, new = vn_scenes.step_scene(self.user, "")
+        self.assertEqual(new[0].get("camera"), "close")
+        self.assertNotIn("camera", new[1])  # never for narration
+
+
+def ai_client_error():
+    from mainapp import ai_client
+    return ai_client.AIError("no Bulba in tests")

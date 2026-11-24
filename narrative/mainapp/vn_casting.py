@@ -87,13 +87,17 @@ Return ONLY this JSON:
             "details": ["3 to 6 concrete things in this place that stay put: furniture, objects, layout"]}},
   "outfits": [{{"key": "person key", "look_id": "id of their existing look if it fits time, place and plan, else null",
                "name": "2-3 word name for the outfit", "items": "item by item: garment, colour, material; shoes; accessories",
-               "why": "one short reason"}}],
+               "why": "one short reason",
+               "moods": ["4 to 7 moods this person will likely show in THIS episode, one or two words each, beyond neutral"],
+               "mood_notes": {{"<mood>": "how THIS person shows it, face only: eyebrows, eyes, mouth"}}}}],
   "facts": ["4 to 8 short facts this episode must keep true: where things stand between them, promises and plans,
             who knows what and who doesn't, injuries or moods that carry over"],
   "opening": "one or two sentences: where they are and what is happening when the episode starts",
   "nudge": "one concrete detail grounded in the chat that would make this episode unlike the recent ones, or ''"
 }}
-Rules: an outfit for every person in the cast{me_rule}. Base outfits on what the phone says they wear when it fits.
+Rules: an outfit for every person in the cast{me_rule}. Moods fit the person and this episode's plan, not a stock
+list: a proud, arrogant or manipulative person barely moves their face (a thin one-sided smile, a slow blink), so their
+moods are quiet ones and their notes say so; an open, warm person shows more. Never theatrical. Base outfits on what the phone says they wear when it fits.
 Don't invent events the chat doesn't support. A kept place is reused when the episode happens there."""
 
 
@@ -149,9 +153,19 @@ def clean(raw, ctx):
         own = {l["id"] for l in keys[o["key"]]["looks"]}
         look_id = int(o["look_id"]) if str(o.get("look_id") or "").isdigit() and int(o["look_id"]) in own else None
         items = text(o.get("items"), 900)
+        from mainapp import sprites
+        moods = list(dict.fromkeys(m for m in (sprites.clean_name(x) for x in (o.get("moods") or [])
+                                                if isinstance(x, str)) if m and m != "neutral"))[:8] \
+            if isinstance(o.get("moods"), list) else []
+        raw_notes = o.get("mood_notes") if isinstance(o.get("mood_notes"), dict) else {}
+        notes = {}
+        for k, v in raw_notes.items():
+            mood = sprites.clean_name(k)
+            if mood in moods and text(v, 240):
+                notes[mood] = text(v, 240)
         if look_id or items:
             outfits.append({"key": o["key"], "look_id": look_id, "name": text(o.get("name"), 60) or "Episode outfit",
-                            "items": items, "why": text(o.get("why"), 200)})
+                            "items": items, "why": text(o.get("why"), 200), "moods": moods, "mood_notes": notes})
     facts = [text(f, 240) for f in (raw.get("facts") or []) if text(f, 240)][:MAX_FACTS] if isinstance(raw.get("facts"), list) else []
     return {"cast": cast, "place": place, "outfits": outfits, "facts": facts,
             "opening": text(raw.get("opening"), 500), "nudge": text(raw.get("nudge"), 300)}

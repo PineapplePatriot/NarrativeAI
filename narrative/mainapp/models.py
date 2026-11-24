@@ -370,6 +370,8 @@ class EpisodeLook(models.Model):
     review = models.JSONField(default=dict, blank=True)    # Bulba's check of the drawn neutral picture
     model = models.CharField(max_length=80, blank=True)    # the picture model that draws this look ("" = the app's default)
     mood_notes = models.JSONField(default=dict, blank=True)  # {mood: how THIS person shows it}, from Bulba, editable
+    cost = models.FloatField(default=0)                    # what drawing this look has cost so far, as reported
+    trial = models.BooleanField(default=False)             # drawn to compare picture models; kept out of episodes until kept
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
