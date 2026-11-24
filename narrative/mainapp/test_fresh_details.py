@@ -72,5 +72,6 @@ class TextureTests(SimpleTestCase):
 
     def test_every_entry_is_complete(self):
         from mainapp import texture as T
+        self.assertGreaterEqual(len(T.entries()), 30)  # (an empty library, e.g. a data file not committed, fails here)
         for e in T.entries():
             self.assertTrue(e["keys"] and e["gist"] and e["avoid"] and len(e["pool"]) >= 6, e["id"])
