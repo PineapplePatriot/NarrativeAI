@@ -6289,7 +6289,9 @@ def vn_scenes_api(request):
                                 "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
                 return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS, "poses": episode_looks.POSES,
                                      "picture_models": [["", "Nano Banana (Google): the app's default"],
-                                                        *[[k, v] for k, v in messenger.PICTURE_MODELS.items()]],
+                                                        *[[k, v] for k, v in messenger.PICTURE_MODELS.items()],
+                                                        *[[m["id"], m["name"]] for m in episode_looks.editing_models()
+                                                          if m["id"] not in messenger.PICTURE_MODELS]],
                                      "default_model": episode_looks.picture_model(request.user)})
             if action in ("episode_look_create", "episode_look_moods", "episode_look_redraw") and \
                     not vn_scenes.get_vn_state(request.user).get("active_scene"):
@@ -6303,9 +6305,23 @@ def vn_scenes_api(request):
                 look, cost, errors = episode_looks.create(request.user, character, setting, body.get("name"),
                                                           body.get("outfit"), moods=moods,
                                                           model=body.get("model") if isinstance(body.get("model"), str) else None,
-                                                          mood_notes=body.get("mood_notes"))
+                                                          mood_notes=body.get("mood_notes"), trial=bool(body.get("trial")))
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            if action == "episode_look_trials":  # the picture-model comparison: OpenRouter's models and their trial looks
+                key = str(body.get("key") or "")
+                character = member(key)
+                setting = episode_looks.setting_for(character) if character else \
+                    ("modern" if body.get("setting") == "modern" else "canon")
+                return JsonResponse({"models": episode_looks.editing_models(),
+                                     "featured": list(messenger.PICTURE_MODELS),
+                                     "trials": [episode_looks.pack(l) for l in episode_looks.looks_for(
+                                         request.user, character, setting, trials=True)]})
             look = episode_looks.owned(request.user, body.get("look_id"))
+            if action == "episode_look_keep":  # the winner of a comparison becomes an ordinary look
+                look.trial = False
+                look.name = " ".join(str(body.get("name") or "").split())[:60] or look.name.replace("Trial · ", "")
+                look.save(update_fields=["trial", "name", "updated"])
+                return JsonResponse({"look": episode_looks.pack(look)})
             if action == "episode_look_moods":
                 moods = [m for m in (body.get("moods") or []) if isinstance(m, str)][:episode_looks.MAX_MOODS]
                 episode_looks.add_notes(look, body.get("mood_notes"))

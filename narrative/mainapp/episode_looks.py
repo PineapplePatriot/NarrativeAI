@@ -18,6 +18,8 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 from mainapp import ai_client, messenger, sprites
+from django.db import models
+
 from mainapp.models import EpisodeLook
 
 CORE_MOODS = ["neutral", "happy", "sad", "angry", "surprised", "flustered"]
@@ -153,21 +155,39 @@ def _mood_prompt(look, mood, note=""):
 
 # ---------- the picture model, and how this person shows each mood ----------
 
+def editing_models():
+    """OpenRouter's picture models that take reference pictures (needed to keep a face): [{"id", "name"}].
+    [] when the list can't be fetched."""
+    return [{"id": m["id"], "name": m["name"]} for m in ai_client.image_models() if m.get("takes_pictures")]
+
+
 def picture_model(user, chosen=None):
-    """The model a look is drawn with: the one chosen for it, else the phone profile's picture model; "" = default."""
+    """The model a look is drawn with: the one chosen for it (the featured ones, or any OpenRouter picture model that
+    takes reference pictures), else the phone profile's picture model; "" = the app's default."""
     if chosen is not None:
-        return chosen if chosen in messenger.PICTURE_MODELS else ""
+        if chosen in messenger.PICTURE_MODELS:
+            return chosen
+        return chosen if chosen and chosen in {m["id"] for m in editing_models()} else ""
     return messenger.user_profile(user).get("image_model") or ""
 
 
 def model_name(model):
-    return messenger.PICTURE_MODELS.get(model, "Nano Banana (Google): the app's default").split(":")[0]
+    if model in messenger.PICTURE_MODELS:
+        return messenger.PICTURE_MODELS[model].split(":")[0]
+    if model:
+        return next((m["name"] for m in ai_client.image_models() if m["id"] == model), model)
+    return "Nano Banana (Google): the app's default".split(":")[0]
 
 
 def _draw(user, look, prompt, refs):
-    """One picture on the look's own model (an error if it isn't available, never another model)."""
+    """One picture on the look's own model (an error if it isn't available, never another model); its cost is
+    added to the look's."""
     data, cost = messenger.make_picture(user, prompt, references=refs, model=look.model or "")
-    return data, float(cost or 0.0)
+    cost = float(cost or 0.0)
+    if look.pk and cost:
+        EpisodeLook.objects.filter(pk=look.pk).update(cost=models.F("cost") + cost)
+        look.cost = (look.cost or 0) + cost
+    return data, cost
 
 
 MOOD_NOTES_PROMPT = (
@@ -395,7 +415,7 @@ def clean_mood(mood):
     return sprites.clean_name(mood) or "neutral"
 
 
-def create(user, character, setting, name, outfit, moods=None, model=None, mood_notes=None):
+def create(user, character, setting, name, outfit, moods=None, model=None, mood_notes=None, trial=False):
     """A new look: the neutral picture from references, then each mood as an edit of it.
 
     Returns (look, cost, errors). A failed neutral picture raises AIError and leaves nothing behind; a failed
@@ -411,7 +431,7 @@ def create(user, character, setting, name, outfit, moods=None, model=None, mood_
     seen = identity(user, refs)
     look = EpisodeLook.objects.create(author=user, character=character, setting=setting, name=name, outfit=outfit,
                                       identity=seen, key_colour=pick_key(identity_line(seen) + " " + outfit),
-                                      model=picture_model(user, model))
+                                      model=picture_model(user, model), trial=bool(trial))
     try:
         data, cost, checked = _checked(user, look, _base_prompt(user, character, look), refs)
     except Exception:
@@ -614,7 +634,7 @@ def pack(look):
             "key_colour": look.key_colour, "key_hex": KEYS.get(look.key_colour, KEYS["green"])[0],
             "parent_id": look.parent_id, "moods": moods, "identity": identity_line(look.identity),
             "review": look.review or {}, "model": look.model, "model_name": model_name(look.model),
-            "mood_notes": look.mood_notes or {},
+            "mood_notes": look.mood_notes or {}, "cost": round(look.cost or 0, 4), "trial": look.trial,
             "needs_cut": sorted(m for m, e in (look.moods or {}).items() if not e.get("cut"))}
 
 
@@ -625,11 +645,12 @@ def owned(user, look_id):
         raise ValueError("That look isn't yours or no longer exists.")
 
 
-def looks_for(user, character, setting):
-    return list(EpisodeLook.objects.filter(author=user, character=character, setting=setting)
+def looks_for(user, character, setting, trials=False):
+    """Their looks in this setting; trials (drawn to compare picture models) only when asked for."""
+    return list(EpisodeLook.objects.filter(author=user, character=character, setting=setting, trial=trials)
                 .select_related("character"))
 
 
 def default_look(user, character, setting):
-    """The look an episode starts with when none is picked: the most recently used one."""
-    return EpisodeLook.objects.filter(author=user, character=character, setting=setting).first()
+    """The look an episode starts with when none is picked: the most recently used one (never a trial)."""
+    return EpisodeLook.objects.filter(author=user, character=character, setting=setting, trial=False).first()
