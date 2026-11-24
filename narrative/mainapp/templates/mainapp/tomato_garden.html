@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=8">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="garden" %}
@@ -50,6 +50,10 @@
       <div class="pit-box-head"><h2>🏡 The cottage</h2><span class="muted">built by Il Dattore, paid for by Pantaleone</span></div>
       <div id="gCottage"></div>
     </section>
+    <section class="pit-box g-kitchen-box" aria-label="Kitchen">
+      <div class="pit-box-head"><h2>🍲 The kitchen</h2><span class="muted" id="gBoosts"></span></div>
+      <div id="gKitchen"></div>
+    </section>
     <section class="pit-box" aria-label="Shelf">
       <div class="pit-box-head"><h2>🧺 The shelf</h2></div>
       <div id="gShelf"></div>
@@ -64,6 +68,6 @@
     </section>
   </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=14"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=15"></script>
 </body>
 </html>

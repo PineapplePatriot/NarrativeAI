@@ -178,7 +178,8 @@ def _mutate(g, m, seed, rng=None):
         mid = planted
     else:
         variants = MUTATIONS.get(base(seed))
-        if not variants or rng.random() >= 1 / MUTATION_ODDS:
+        from mainapp import tomato_kitchen as K  # 🍰 a dish eaten for luck makes them likelier
+        if not variants or rng.random() >= max(1, K.boost(g, "luck")) / MUTATION_ODDS:
             return None
         common = [v for v in variants if not v[3]]
         rare = [v for v in variants if v[3]]
@@ -225,6 +226,18 @@ def give(g, m, target):
         order = next((o for o in g["orders"] if str(o["id"]) == str(target)), None)
         if order is None:
             raise ValueError("That order is gone.")
+        from mainapp import tomato_kitchen as K
+        rid = K.for_order(g, order)
+        if rid:  # 🍲 a dish order takes the cooked dish whole
+            g["pantry"][rid] -= 1
+            g["pantry"] = {k: v for k, v in g["pantry"].items() if v > 0}
+            order["have"] = dict(order["needs"])
+            g["orders"].remove(order)
+            m["earned"] = int(m.get("earned") or 0) + order["reward"]
+            g["filled"] += 1
+            _log(g, f"📋 You brought {order['from']} the {order['dish'].lower()} straight from the pantry. "
+                    f"🍅 +{order['reward']} tomatoes toward your next spin.")
+            return 1
         for seed in list(order["needs"]):
             while g["shelf"].get(seed, 0) > 0 and order in g["orders"] and order["have"].get(seed, 0) < order["needs"][seed]:
                 g["shelf"][seed] -= 1
@@ -257,7 +270,8 @@ def _deliver(g, m, seed, by="", order=None):
 def _harvest(g, m, key, by="", rng=None):
     tile = g["tiles"].pop(key)
     crop = CROPS[tile["seed"]]
-    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0)
+    from mainapp import tomato_kitchen as K
+    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0) + K.boost(g, "compost")  # 🍞 a dish eaten for compost
     odd = _mutate(g, m, tile["seed"], rng)
     if odd and not odd["rare"]:
         got *= 3
@@ -379,7 +393,8 @@ def water(score, n):
     if not plants:
         return
     from mainapp import tomato_house as H
-    each = WATER * (1.25 if H.has(g, "barrel") else 1)  # 🛢️ the cottage's rain barrel
+    from mainapp import tomato_kitchen as K
+    each = WATER * (1.25 if H.has(g, "barrel") else 1) * max(1, K.boost(g, "water"))  # 🛢️ the rain barrel, 🥫 ketchup
     for t in plants:
         t["boost"] = t.get("boost", 0) + n * each
     g["watered"] += n
@@ -412,6 +427,13 @@ def act(user, body):
         return _locked(user, shift)
     if action == "give":  # 🧺 crops from the shelf to an order or to the cottage
         return _locked(user, lambda g, m: give(g, m, body.get("to")))
+    if action in ("cook", "collect", "eat"):  # 🍲 the kitchen (mainapp/tomato_kitchen.py)
+        from mainapp import tomato_kitchen as K
+        if action == "cook":
+            return _locked(user, lambda g, m: K.cook(g, m, body.get("needs") if isinstance(body.get("needs"), dict) else {}))
+        if action == "collect":
+            return _locked(user, lambda g, m: K.collect(g, m))
+        return _locked(user, lambda g, m: K.eat(g, m, str(body.get("id") or "")))
     if action == "build":  # 🏡 pay the compost and let Il Dattore build the next stage of the cottage
         from mainapp import tomato_house as H
         return _locked(user, lambda g, m: H.build(g, m))
@@ -476,8 +498,9 @@ def public(score):
         tiles.append(item)
     basket = {pid: n for pid, n in m["items"].items() if pid in CROPS and n > 0}
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
-    from mainapp import tomato_house as H
+    from mainapp import tomato_house as H, tomato_kitchen as K
     return {"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
+            "kitchen": K.public(g),
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,

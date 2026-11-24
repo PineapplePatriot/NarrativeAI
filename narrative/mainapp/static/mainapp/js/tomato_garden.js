@@ -583,6 +583,7 @@
             : '<li class="muted">Nothing yet.</li>';
         paintBoard();
         paintCottage();
+        paintKitchen();
         if (sel) paintTile();
     }
     // 🏡 The cottage: the stage being built, its builder's order, the last scene between Il Dattore and Pantaleone
@@ -636,6 +637,58 @@
         b.disabled = true;
         try { take(await call({ action: 'build' })); } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
     });
+    // 🍲 The kitchen (mainapp/tomato_kitchen.py): crops from the shelf into the pot, the pantry, the recipe book
+    const potPick = {};
+    function paintKitchen() {
+        const box = $('gKitchen'), k = st.kitchen;
+        if (!box || !k) return;
+        const cropIcon = (seed) => seed === 'seed_tomato' ? '🍅' : prizeOf(seed).emoji;
+        $('gBoosts').textContent = (k.boosts || []).map(b => ({ compost: `🍞 +${b.n} compost a harvest`, luck: `🍰 mutations ×${b.n}`,
+            water: `🥫 watering ×${b.n}` })[b.kind] + ` · ${dur(b.left)}`).join(' · ');
+        if (!k.open) {
+            box.innerHTML = '<p class="muted g-small">Opens when the cottage gets its chimney and kitchen (stage 4). Then: two to four crops in the pot, and a dish comes out. Some recipes are secret.</p>';
+            return;
+        }
+        let html = '';
+        if (k.pot) {
+            html += k.pot.left > 0
+                ? `<div class="g-pot cooking"><span class="e">🍲</span><div><b>Cooking:</b> ${esc(k.pot.what)}<small class="muted">Ready in ${dur(k.pot.left)}.</small></div></div>`
+                : `<div class="g-pot ready"><span class="e">🍲</span><div><b>Ready!</b> ${esc(k.pot.what)}</div><button type="button" class="na-btn na-primary" data-kitchen="collect">Take it out</button></div>`;
+        } else {
+            const shelf = Object.entries(st.shelf || {});
+            Object.keys(potPick).forEach(s => { if (!(st.shelf || {})[s]) delete potPick[s]; });
+            const total = Object.values(potPick).reduce((a, b) => a + b, 0);
+            html += shelf.length ? `<p class="muted g-small">Put ${k.min} to ${k.max} crops from the shelf in the pot (${k.minutes} minutes each). Known recipes are in the book; others are for finding.</p>
+                <div class="g-potpick">${shelf.map(([s, n]) => `<div class="g-potrow"><span class="e">${cropIcon(s)}</span><span>${esc(prizeOf(s).name.replace(/ seeds$/, ''))} <small class="muted">(${n})</small></span>
+                    <button type="button" class="na-btn" data-pot="${s}" data-d="-1" ${potPick[s] ? '' : 'disabled'}>−</button><b>${potPick[s] || 0}</b>
+                    <button type="button" class="na-btn" data-pot="${s}" data-d="1" ${(potPick[s] || 0) < n && total < k.max ? '' : 'disabled'}>+</button></div>`).join('')}</div>
+                <button type="button" class="na-btn na-primary" data-kitchen="cook" ${total >= k.min && total <= k.max ? '' : 'disabled'}>🍲 Cook (${total})</button>`
+                : '<p class="muted g-small">The shelf is empty: harvest something first.</p>';
+        }
+        html += (k.pantry || []).length ? `<h3 class="g-sub">Pantry</h3><div class="g-pantry">${k.pantry.map(d => `<div class="g-dish"><span class="e">${d.emoji}</span>
+                <div><b>${esc(d.name)}</b> ×${d.n}<small class="muted">Eat: ${esc(d.boost)}. Or give it to a dish order.</small></div>
+                <button type="button" class="na-btn" data-kitchen="eat" data-id="${d.id}">Eat</button></div>`).join('')}</div>` : '';
+        const found = (k.book || []).filter(r => r.known).length;
+        html += `<details class="g-book"><summary>📖 Recipe book (${found} of ${(k.book || []).length})</summary>
+            ${(k.book || []).map(r => `<div class="g-recipe${r.known ? '' : ' unknown'}"><span class="e">${r.emoji}</span><div><b>${esc(r.name)}</b>
+                <small class="muted">${esc(r.needs)}${r.boost ? ' · ' + esc(r.boost) : ''}${r.cooked ? ` · cooked ${r.cooked}×` : ''}</small></div></div>`).join('')}</details>`;
+        box.innerHTML = html;
+    }
+    $('gKitchen')?.addEventListener('click', async (e) => {
+        const p = e.target.closest('[data-pot]');
+        if (p) { potPick[p.dataset.pot] = Math.max(0, (potPick[p.dataset.pot] || 0) + Number(p.dataset.d)); paintKitchen(); return; }
+        const b = e.target.closest('[data-kitchen]');
+        if (!b) return;
+        b.disabled = true;
+        const body = { action: b.dataset.kitchen };
+        if (body.action === 'cook') body.needs = Object.fromEntries(Object.entries(potPick).filter(([, n]) => n > 0));
+        if (body.action === 'eat') body.id = b.dataset.id;
+        try {
+            take(await call(body));
+            if (body.action === 'cook') Object.keys(potPick).forEach(s => delete potPick[s]);
+        } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
+
     // 📋 The order board and 🧬 the almanac
     function paintBoard() {
         const orders = st.orders || [], days = (s) => s >= 86400 ? `${Math.ceil(s / 86400)} days left` : `${Math.max(1, Math.round(s / 3600))} h left`;
@@ -648,7 +701,8 @@
                 ${o.dish || Object.keys(o.needs).length > 1 ? `<small class="g-parts">${Object.entries(o.needs).map(([k, n]) => `${icon(k)} ${o.have[k] || 0}/${n}`).join(' · ')}</small>` : ''}</div>
                 <span class="pay">🍅 ${o.reward}</span>
                 ${Object.keys(o.needs).some(k => (o.have[k] || 0) < o.needs[k] && (st.shelf || {})[k])
-                    ? `<button type="button" class="na-btn na-primary g-give" data-give="${o.id}">🧺 Give</button>` : ''}
+                    || (o.dish && ((st.kitchen || {}).pantry || []).some(d => d.name === o.dish))
+                    ? `<button type="button" class="na-btn na-primary g-give" data-give="${o.id}">${o.dish && ((st.kitchen || {}).pantry || []).some(d => d.name === o.dish) ? '🍲 Give the dish' : '🧺 Give'}</button>` : ''}
                 <div class="g-bar"><i style="width:${Math.round(have(o) / total(o) * 100)}%"></i></div></div>`).join('')}</div>`
             : '<p class="muted g-small">No orders right now. A new one goes up each day.</p>')
             + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Give them crops from your shelf (🧺); tomatoes from orders count toward your next spin.</p>`;

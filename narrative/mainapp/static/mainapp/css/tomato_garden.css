@@ -97,3 +97,25 @@
 .g-gard > div { min-width: 0; flex: 1; }
 .g-gard .g-crew { max-width: 100%; white-space: normal; text-align: left; }
 .g-gard .g-crew-why { display: block; margin-top: 4px; font-size: .75rem; }
+
+/* 🍲 the kitchen */
+.g-pot { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.g-pot .e { font-size: 1.8rem; }
+.g-pot.cooking .e { animation: g-bubble 1.4s ease-in-out infinite; }
+.g-pot.ready { border: 1px solid rgba(250, 204, 21, .5); }
+.g-pot small { display: block; }
+.g-pot button { margin-left: auto; }
+@keyframes g-bubble { 50% { transform: translateY(-2px) rotate(-4deg); } }
+.g-potpick { display: grid; gap: 4px; margin: 6px 0 8px; }
+.g-potrow { display: grid; grid-template-columns: 26px 1fr 32px 22px 32px; align-items: center; gap: 6px; }
+.g-potrow .na-btn { padding: 2px 0; min-width: 0; }
+.g-potrow b { text-align: center; }
+.g-sub { font-size: .9rem; margin: 12px 0 6px; }
+.g-pantry, .g-book { display: grid; gap: 6px; }
+.g-dish, .g-recipe { display: flex; gap: 8px; align-items: center; }
+.g-dish .e, .g-recipe .e { font-size: 1.3rem; width: 28px; text-align: center; }
+.g-dish small, .g-recipe small { display: block; }
+.g-dish button { margin-left: auto; }
+.g-book { margin-top: 10px; }
+.g-book summary { cursor: pointer; font-weight: 600; margin-bottom: 6px; }
+.g-recipe.unknown { opacity: .6; }
