@@ -105,6 +105,25 @@
         visitor_pantaleone: [['..kk..kk..', '..PP..PP..'], ['...kk.kk..', '...PP.PP..']],
     };
     const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm' };
+    // 🧬 A mutation looks like one from the sprout on: its leaves tinted (leaf), its ripe crop recoloured (ripe), its
+    // flower (flower), a little effect (fx: glow, sparkle, stripes, legs, wink, face, zz, hat, twin) and a size (scale)
+    const VARIANT = {
+        heart_tomato: { leaf: { g: 'G' }, flower: 'm', ripe: { r: 'm', R: 'r' }, fx: 'hearts' },
+        stripy_tomato: { leaf: { l: 'h' }, flower: 'y', ripe: { R: 'y' }, fx: 'stripes' },
+        golden_tomato: { leaf: { l: 'y', g: 'Y' }, flower: 'y', ripe: { r: 'y', R: 'Y' }, fx: 'glow', glow: '255,214,90' },
+        twin_carrot: { leaf: { l: 'g' }, flower: 'w', ripe: {}, fx: 'twin' },
+        purple_carrot: { leaf: { l: 'm' }, flower: 'p', ripe: { o: 'p', O: 'P' } },
+        legs_carrot: { leaf: { g: 'G' }, flower: 'w', ripe: {}, fx: 'legs' },
+        giant_sunflower: { leaf: {}, flower: 'y', ripe: {}, scale: 1.35 },
+        night_sunflower: { leaf: { l: 'q', g: 'Q' }, flower: 'q', ripe: { y: 'q', Y: 'Q', B: 'U' }, fx: 'glow', glow: '143,227,220', night: true },
+        winking_sunflower: { leaf: {}, flower: 'y', ripe: {}, fx: 'wink' },
+        giant_pumpkin: { leaf: {}, flower: 'y', ripe: {}, scale: 1.4 },
+        smiling_pumpkin: { leaf: {}, flower: 'o', ripe: {}, fx: 'face' },
+        glass_pumpkin: { leaf: { l: 'q', g: 'Q' }, flower: 'q', ripe: { o: 'q', O: 'Q' }, fx: 'sparkle', alpha: .75 },
+        glowing_monster: { leaf: { l: 'q' }, flower: 'm', ripe: {}, fx: 'glow', glow: '255,122,168' },
+        sleepy_monster: { leaf: { l: 'n', g: 'N' }, flower: 'p', ripe: { m: 'n' }, fx: 'zz' },
+        polite_monster: { leaf: {}, flower: 'm', ripe: {}, fx: 'hat' },
+    };
     const HATS = { '👑': 'hat_crown', '👒': 'hat_straw', '🎩': 'hat_top' };
     const LINES = {
         gardener_farmer: ['Back in my day, tomatoes were thrown uphill.', 'Needs more water. Everything needs more water.', 'Good soil, this.'],
@@ -238,10 +257,36 @@
     const put = (img, x, y) => g.drawImage(img, Math.round(x), Math.round(y));
     function plantSprite(t, p) {
         const stg = stageOf(p);
-        const kind = t.look || t.seed;  // a mutation's seed grows like its crop
-        if (stg === 'ripe') return sprite('ripe_' + kind, ART['ripe_' + kind]);
-        if (stg === 'bloom') return sprite('bloom', ART.bloom, { F: FLOWER[kind] || 'y' });
-        return sprite(stg, ART[stg]);
+        const kind = t.look || t.seed;  // a mutation's seed grows like its crop, but looks like the mutation (VARIANT)
+        const v = VARIANT[t.variant] || null;
+        if (stg === 'ripe') return sprite('ripe_' + kind + (v ? '_' + t.variant : ''), ART['ripe_' + kind], v ? v.ripe : {});
+        if (stg === 'bloom') return sprite('bloom' + (v ? '_' + t.variant : ''), ART.bloom, { ...(v ? v.leaf : {}), F: (v && v.flower) || FLOWER[kind] || 'y' });
+        return sprite(stg + (v && stg !== 'seed' ? '_' + t.variant : ''), ART[stg], v && stg !== 'seed' ? v.leaf : {});
+    }
+    // 🧬 The mutation's little effect, drawn over (or around) its plant
+    function variantFx(v, img, x, y, p, sec, moving, night) {
+        if (!v) return;
+        const stg = stageOf(p), w = img.width, h = img.height, cx = x + w / 2;
+        if (v.glow && stg !== 'seed' && (!v.night || night > .3 || stg === 'ripe')) {
+            const a = .18 + (moving ? .1 * Math.sin(sec * 2 + x) : 0);
+            const grd = g.createRadialGradient(cx, y + h / 2, 1, cx, y + h / 2, Math.max(w, h) * .7);
+            grd.addColorStop(0, `rgba(${v.glow},${a + .15})`); grd.addColorStop(1, `rgba(${v.glow},0)`);
+            g.fillStyle = grd; g.fillRect(x - 6, y - 6, w + 12, h + 12);
+        }
+        if (stg !== 'ripe') {  // while growing: a hint (a sparkle now and then) that it isn't an ordinary plant
+            if (moving && Math.sin(sec * 2.3 + x) > .8) { g.fillStyle = '#fff6b0'; g.fillRect(x + (x * 7) % w, y + 1, 1, 1); }
+            return;
+        }
+        const P = (c, px, py, pw = 1, ph = 1) => { g.fillStyle = PAL[c] || c; g.fillRect(x + px, y + py, pw, ph); };
+        if (v.fx === 'hearts' && moving) { const k = (sec * .8 + x) % 3; P('m', 3, -k * 2, 1, 1); P('m', 5, -k * 2, 1, 1); P('m', 4, -k * 2 + 1, 1, 1); }
+        if (v.fx === 'stripes') for (let i = 1; i < w - 1; i += 3) P('y', i, Math.floor(h / 2), 1, 2);
+        if (v.fx === 'sparkle' && moving && Math.sin(sec * 4 + x) > .6) P('w', (Math.floor(sec * 3) * 5) % w, 2 + (Math.floor(sec * 3) * 3) % (h - 4));
+        if (v.fx === 'legs') { P('o', w / 2 - 2, h, 1, 3); P('o', w / 2 + 1, h, 1, 3); if (moving && Math.floor(sec * 2) % 2) P('o', w / 2 + 2, h + 2); }
+        if (v.fx === 'wink') { P('k', 6, 2, 1, 1); P('k', 8, 2, 2, 1); P('k', 6, 4, 4, 1); }
+        if (v.fx === 'face') { P('k', 5, 3, 1, 1); P('k', 9, 3, 1, 1); P('k', 5, 5, 6, 1); P('k', 6, 6, 4, 1); }
+        if (v.fx === 'zz' && moving) { const k = (sec * .7) % 3; P('w', w - 3, -k * 2, 2, 1); P('w', w - 2, -k * 2 + 1); P('w', w - 3, -k * 2 + 2, 2, 1); }
+        if (v.fx === 'hat') { P('k', 2, -3, 5, 3); P('k', 1, 0, 7, 1); P('r', 2, -1, 5, 1); }
+        if (v.fx === 'twin') put(img, x + 4, y + 1);
     }
     // 🏡 The cottage, drawn in the stages built so far (mainapp/tomato_house.py); scaffolding while one is being built
     function cottage(sec, h, moving, night) {
@@ -310,10 +355,16 @@
         st.tiles.forEach(t => {
             const px = GX + t.x * T, py = GY + t.y * T;
             if (t.kind === 'plant') {
-                const p = grown(t), img = plantSprite(t, p);
+                const p = grown(t), img = plantSprite(t, p), v = VARIANT[t.variant] || null;
                 const sway = moving && stageOf(p) !== 'seed' && Math.sin(sec * 1.7 + t.x * .9 + t.y) > .55 ? 1 : 0;
+                const big = v && v.scale && stageOf(p) !== 'seed' ? 1 + (v.scale - 1) * Math.min(1, p) : 1;
                 things.push({ y: py + 16, f: () => {
-                    put(img, px + (16 - img.width) / 2 + sway, py + 16 - img.height);
+                    const w = Math.round(img.width * big), hh = Math.round(img.height * big);
+                    const ix = px + (16 - w) / 2 + sway, iy = py + 16 - hh;
+                    if (v && v.alpha && stageOf(p) === 'ripe') g.globalAlpha = v.alpha;
+                    if (big !== 1) g.drawImage(img, Math.round(ix), Math.round(iy), w, hh); else put(img, ix, iy);
+                    g.globalAlpha = 1;
+                    variantFx(v, img, Math.round(ix), Math.round(iy), p, sec, moving, night);
                     if (stageOf(p) === 'ripe' && moving && Math.sin(sec * 3 + t.x * 2) > .92) { g.fillStyle = '#fff'; g.fillRect(px + 4 + (t.x * 5) % 8, py + 4, 1, 1); }
                 } });
             } else {
