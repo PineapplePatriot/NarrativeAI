@@ -211,7 +211,8 @@
         this.notify("Select a TeleChat conversation first.");
         return;
       }
-      if (window.CASTING?.pending() && !window.confirm("Some of Bulba's suggestions aren't applied yet, so they won't be used. Start anyway?")) return;
+      if (window.CASTING?.pending() && !(await EpDialog.confirm("Some of Bulba's suggestions aren't applied yet, so they won't be used.",
+          {ok: "Start anyway", cancel: "Go back to casting"}))) return;
       const casting = window.CASTING?.payload() || null;
       const hintEl = document.getElementById("vnLocationHintInput");
       const hint = hintEl ? hintEl.value.trim() : "";
@@ -400,11 +401,11 @@
       }
     },
 
-    promptLookMood(btnEl) {
+    async promptLookMood(btnEl) {
       const spBeat = this.activeSpriteBeat();
       if (!spBeat || !spBeat.look_id) return;
-      const mood = window.prompt(`Which mood should ${spBeat.speaker_name}'s current look get? (one picture, edited from their neutral one)`,
-        spBeat.asked_emotion || "thoughtful");
+      const mood = await EpDialog.prompt(`Which mood should ${spBeat.speaker_name}'s look get? One picture, edited from their neutral one.`,
+        spBeat.asked_emotion || "thoughtful", {ok: "Draw it · 1 picture"});
       if (!mood || !mood.trim()) return;
       this.drawLookMood(mood.trim().toLowerCase(), btnEl);
     },
@@ -445,8 +446,9 @@
       }
     },
 
-    editOutfitThenDraw(beatId, key, outfit, el) {
-      const edited = window.prompt("The new outfit, item by item. This is what every picture of the new look will show.", outfit);
+    async editOutfitThenDraw(beatId, key, outfit, el) {
+      const edited = await EpDialog.prompt("The new outfit, item by item. This is what every picture of the new look will show.",
+        outfit, {ok: "Draw the new look", multiline: true});
       if (!edited || !edited.trim()) return;
       this.changeLook(beatId, key, {outfit: edited.trim()}, el);
     },

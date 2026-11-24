@@ -368,6 +368,8 @@ class EpisodeLook(models.Model):
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="variants")
     identity = models.JSONField(default=dict, blank=True)  # what Bulba saw in the reference picture
     review = models.JSONField(default=dict, blank=True)    # Bulba's check of the drawn neutral picture
+    model = models.CharField(max_length=80, blank=True)    # the picture model that draws this look ("" = the app's default)
+    mood_notes = models.JSONField(default=dict, blank=True)  # {mood: how THIS person shows it}, from Bulba, editable
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

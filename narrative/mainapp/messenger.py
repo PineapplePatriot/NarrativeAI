@@ -54,13 +54,21 @@ PICTURE_MODELS = {
 }
 
 
-def make_picture(user, prompt, references=None):
-    """One picture for the messenger, on the user's chosen picture model (their profile tab)."""
-    model = user_profile(user).get("image_model") or None
+def make_picture(user, prompt, references=None, model=None):
+    """One picture for the messenger, on the user's chosen picture model (their profile tab).
+
+    `model` given ("" = the app's default) is used as it is: when OpenRouter doesn't offer it, that's an error, never
+    a quiet switch to another model (episode looks pick their own model and must be drawn with it)."""
+    strict = model is not None
+    model = (model if strict else user_profile(user).get("image_model")) or None
     profile = ai_client.main_profile(user)
     if model and profile is not None and profile.provider == ai_client.ConnectionProfile.PROVIDER_OPENROUTER:
         listed = [m["id"] for m in ai_client.image_models()]
         if listed and model not in listed:
+            if strict:
+                name = PICTURE_MODELS.get(model, model).split(":")[0]
+                raise ai_client.AIError(f"{name} isn't available on OpenRouter right now. Pick another picture model, "
+                                        "or try again later.")
             log.warning("messenger: picture model %s isn't on OpenRouter's list; using the default", model)
             model = None
     return ai_client.generate_image(user, prompt, references=references, model=model)

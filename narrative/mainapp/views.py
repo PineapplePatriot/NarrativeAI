@@ -6271,7 +6271,10 @@ def vn_scenes_api(request):
                     out.append({"key": key, "name": name, "setting": setting, "looks": [episode_looks.pack(l) for l in looks],
                                 "chosen": looks[0].pk if looks else None,
                                 "has_reference": bool(episode_looks.references(request.user, character, setting)[:1])})
-                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS})
+                return JsonResponse({"cast": out, "core_moods": episode_looks.CORE_MOODS,
+                                     "picture_models": [["", "Nano Banana (Google): the app's default"],
+                                                        *[[k, v] for k, v in messenger.PICTURE_MODELS.items()]],
+                                     "default_model": episode_looks.picture_model(request.user)})
             if action in ("episode_look_create", "episode_look_moods", "episode_look_redraw") and \
                     not vn_scenes.get_vn_state(request.user).get("active_scene"):
                 vn_scenes.mark_prep(request.user)  # looks made while casting count toward the coming episode
@@ -6282,7 +6285,8 @@ def vn_scenes_api(request):
                            ("modern" if body.get("setting") == "modern" else "canon"))
                 moods = body.get("moods") if isinstance(body.get("moods"), list) else None
                 look, cost, errors = episode_looks.create(request.user, character, setting, body.get("name"),
-                                                          body.get("outfit"), moods=moods)
+                                                          body.get("outfit"), moods=moods,
+                                                          model=body.get("model") if isinstance(body.get("model"), str) else None)
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             look = episode_looks.owned(request.user, body.get("look_id"))
             if action == "episode_look_moods":
@@ -6300,12 +6304,20 @@ def vn_scenes_api(request):
                 new, cost, errors = episode_looks.restyle(request.user, look, body.get("name"), body.get("outfit"))
                 return JsonResponse({"look": episode_looks.pack(new), "cost": cost, "errors": errors})
             if action == "episode_look_redraw":  # one mood again, or the whole look when mood is "all"
+                note = " ".join(str(body.get("note") or "").split())[:500]
                 if body.get("mood") == "all":
-                    cost, errors = episode_looks.redraw_look(request.user, look)
+                    cost, errors = episode_looks.redraw_look(request.user, look, note=note)
                 else:
                     cost, errors = episode_looks.redraw_mood(request.user, look, str(body.get("mood") or ""),
-                                                             auto=bool(body.get("auto"))), []
+                                                             auto=bool(body.get("auto")), note=note), []
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
+            if action == "episode_look_note":  # how this person shows a mood (used the next time it's drawn)
+                episode_looks.set_mood_note(look, str(body.get("mood") or ""), str(body.get("note") or ""))
+                return JsonResponse({"look": episode_looks.pack(look)})
+            if action == "episode_look_model":  # the picture model for this look's next drawings
+                look.model = episode_looks.picture_model(request.user, str(body.get("model") or ""))
+                look.save(update_fields=["model", "updated"])
+                return JsonResponse({"look": episode_looks.pack(look)})
             if action == "episode_look_delete":
                 episode_looks.delete(look)
                 return JsonResponse({"ok": True})
