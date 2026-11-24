@@ -455,6 +455,11 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
     yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
     if yours:  # story colours: their lines in their own colour
         ask += "\n\n" + yours
+    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
+    ask += "\n\n" + control.pov_note(control.pov_of(theirs, names["user"]), names["user"])  # their own point of view
+    avoid = polish.avoid_line(request.user)  # 🛡 the same habits kept out of their message
+    if avoid:
+        ask += "\n" + avoid
     reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
     english = translation.english_note(request.user)
     try:

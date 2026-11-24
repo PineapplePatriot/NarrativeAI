@@ -2982,9 +2982,14 @@ def suggest(user, thread, what, hint=""):
     hint = str(hint or "").strip()[:300]
     if what == "reply":
         task = (f"{me} is stuck on what to text back. Write 3 different texts {me} could send next, in {me}'s own "
-                "voice (short, like real texting; match how they've been writing, their language included): one that "
-                "answers warmly or directly, one playful or teasing, one that moves things somewhere new (a question, "
-                "a plan, something about their day). Never write for the other characters.")
+                "voice (short, like real texting; match how they've been writing, their language included), each "
+                "doing a different thing: one answers what was just said, plainly and honestly; one shares something "
+                f"concrete from {me}'s side (what they're doing, a feeling said simply, a small detail of their day); "
+                "one moves things somewhere (a real question, a plan, an invitation). Write them the way people "
+                "actually text, not like dialogue in a book: no clever comebacks or lines that top the other "
+                "person's, no aphorisms, no \"it's not X, it's Y\", no rules or principles announced. Keep "
+                f"{me}'s mood and boldness from their recent texts (if they've been flirting, keep flirting, "
+                "openly). Never write for the other characters.")
     elif what == "reminders":
         task = ("Find plans and promises in the chat that deserve a reminder (a meeting, a call, a deadline, "
                 "something one of them said they'd do at a time). For each, one line: the day and time first, then "

@@ -4825,6 +4825,21 @@ class PenMenuTests(ChatPromptTests):
 
 
 class ImpersonateAndTriggerTests(ChatPromptTests):
+    def test_their_message_keeps_their_own_point_of_view_and_intent(self):
+        from mainapp.bulba import control
+        from mainapp.bulba.agent import BASICS
+        second = BASICS["pov"][1]["second"]
+        p = control.for_impersonation({"blocks": [{"name": "Basics", "kind": "prompt", "content": second + "\nWrite in past tense."}]})
+        self.assertNotIn(second, json.dumps(p))  # the narration's point of view is for the character's replies
+        self.assertIn("Write in past tense.", json.dumps(p))
+        self.assertIn("keeps the intent, boldness and mood", p["blocks"][0]["content"])
+        for i in range(2):
+            self.post({"action": "chat", "message": f"I lean on the counter and smile. ({i})"})
+        self.post({"action": "expand"})
+        sent = json.dumps(self.all_calls[-1]["messages"] if hasattr(self, "all_calls") else self.sent[-1]["messages"])
+        self.assertIn("Point of view: first person", sent)
+        self.assertIn("Keep out of this reply", sent)
+
     def test_blocks_fire_only_on_their_kind_of_generation(self):
         from mainapp import presets as presets_mod
         p = presets_mod.normalize({"blocks": [
