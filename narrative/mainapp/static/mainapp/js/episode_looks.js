@@ -336,7 +336,8 @@
       const row = btn.closest(".ep-look-row");
       const name = row.querySelector("[data-new-name]").value.trim();
       const outfit = row.querySelector("[data-new-outfit]").value.trim();
-      return this.createFrom(key, name, outfit, btn);
+      const carried = (this.pendingMoods || {})[key];  // the episode's moods, when this came from Bulba's casting
+      return this.createFrom(key, name, outfit, btn, carried?.moods, carried?.notes);
     },
 
     /* Put an outfit into a person's "New look" form, for the user to change before drawing it. */
@@ -351,19 +352,20 @@
       form.querySelector("[data-new-outfit]").focus();
     },
 
-    async createFrom(key, name, outfit, btn) {
+    async createFrom(key, name, outfit, btn, moods = null, moodNotes = null) {
       if (!outfit) {window.VN_SCENES?.notify("Write the outfit item by item first: that's what keeps it the same in every picture.", true); return false;}
       let made = false;
       await this.run(btn, "Drawing the look…", async () => {
         const model = this.root?.querySelector(`.ep-look-row[data-key="${CSS.escape(key)}"] [data-new-model]`)?.value ?? this.defaultModel;
-        const data = await post({action: "episode_look_create", key, name, outfit, model});
+        const data = await post({action: "episode_look_create", key, name, outfit, model,
+          ...(moods && moods.length ? {moods: ["neutral", ...moods], mood_notes: moodNotes || {}} : {})});
         this.replace(data.look);
         this.picks[key] = data.look.id;
         this.render();
         window.VN_SCENES?.notify("Look drawn. Cutting it out in your browser…");
         this.replace(await this.cutLook(data.look));
         window.VN_SCENES?.notify(data.errors?.length ? `Look ready, but some moods failed: ${data.errors.join("; ")}` : "Look ready.", !!data.errors?.length);
-        made = true;
+        made = data.look.id;
       });
       return made;
     },
@@ -372,6 +374,16 @@
       if (!strength) return;
       const look = this.cast.flatMap((m) => m.looks).find((l) => l.id === id);
       return this.run(btn, "Cutting out…", async () => {this.replace(await this.cutLook(look, strength, all));});
+    },
+
+    /* Draw these moods for a look (with Bulba's notes on how this person shows them), then cut them out. */
+    drawMoods(id, moods, notes, btn) {
+      return this.run(btn, "Drawing moods…", async () => {
+        const data = await post({action: "episode_look_moods", look_id: id, moods, mood_notes: notes || {}});
+        this.replace(await this.cutLook(data.look));
+        if (data.errors?.length) window.VN_SCENES?.notify(data.errors.join(" "), true);
+        else window.VN_SCENES?.notify(`Drawn: ${moods.join(", ")}.`);
+      });
     },
 
     modelOptions(chosen) {

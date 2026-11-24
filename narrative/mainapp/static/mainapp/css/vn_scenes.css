@@ -833,3 +833,8 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
 .ep-thumb { cursor: pointer; }
 .ep-model { font-size: 12.5px; }
 .ep-dialog-p { margin: 0; line-height: 1.5; }
+.cast-moods { display: flex; flex-wrap: wrap; gap: 5px; }
+.cast-mood { font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px dashed rgba(250, 204, 21, 0.45); color: #fde68a; }
+.cast-mood.is-there { border-style: solid; border-color: rgba(52, 211, 153, 0.45); color: #a7f3d0; }
+.cast-mood-notes summary { cursor: pointer; font-size: 12.5px; color: var(--ep-muted); }
+.cast-mood-notes ul { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; }

@@ -203,6 +203,17 @@ def write_mood_notes(user, look, moods):
     look.save(update_fields=["mood_notes"])
 
 
+def add_notes(look, notes):
+    """Mood descriptions given with a request (from casting), kept where the look has none yet."""
+    if not isinstance(notes, dict):
+        return
+    fresh = {clean_mood(k): " ".join(str(v or "").split())[:240] for k, v in notes.items() if str(v or "").strip()}
+    fresh = {k: v for k, v in fresh.items() if k and k != "neutral" and not (look.mood_notes or {}).get(k)}
+    if fresh:
+        look.mood_notes = {**(look.mood_notes or {}), **fresh}
+        look.save(update_fields=["mood_notes"])
+
+
 def set_mood_note(look, mood, note):
     mood = clean_mood(mood)
     look.mood_notes = {**(look.mood_notes or {}), mood: " ".join(str(note or "").split())[:240]}
@@ -340,7 +351,7 @@ def clean_mood(mood):
     return sprites.clean_name(mood) or "neutral"
 
 
-def create(user, character, setting, name, outfit, moods=None, model=None):
+def create(user, character, setting, name, outfit, moods=None, model=None, mood_notes=None):
     """A new look: the neutral picture from references, then each mood as an edit of it.
 
     Returns (look, cost, errors). A failed neutral picture raises AIError and leaves nothing behind; a failed
@@ -366,6 +377,7 @@ def create(user, character, setting, name, outfit, moods=None, model=None):
     look.review = checked
     look.save(update_fields=["moods", "review"])
     wanted = [m for m in (moods or CORE_MOODS) if clean_mood(m) != "neutral"]
+    add_notes(look, mood_notes)  # Bulba's casting notes first; he writes the rest
     write_mood_notes(user, look, wanted)
     more, errors = add_moods(user, look, wanted)
     return look, cost + more, errors

@@ -6296,11 +6296,13 @@ def vn_scenes_api(request):
                 moods = body.get("moods") if isinstance(body.get("moods"), list) else None
                 look, cost, errors = episode_looks.create(request.user, character, setting, body.get("name"),
                                                           body.get("outfit"), moods=moods,
-                                                          model=body.get("model") if isinstance(body.get("model"), str) else None)
+                                                          model=body.get("model") if isinstance(body.get("model"), str) else None,
+                                                          mood_notes=body.get("mood_notes"))
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             look = episode_looks.owned(request.user, body.get("look_id"))
             if action == "episode_look_moods":
                 moods = [m for m in (body.get("moods") or []) if isinstance(m, str)][:episode_looks.MAX_MOODS]
+                episode_looks.add_notes(look, body.get("mood_notes"))
                 cost, errors = episode_looks.add_moods(request.user, look, moods)
                 return JsonResponse({"look": episode_looks.pack(look), "cost": cost, "errors": errors})
             if action == "episode_look_remove_mood":

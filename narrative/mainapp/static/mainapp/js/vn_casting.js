@@ -222,19 +222,45 @@
     },
 
     /* Bulba's outfit card for one person, shown in their row of the looks panel. */
+    /* Bulba's outfit card for one person, shown in their row of the looks panel: the outfit, and the moods this
+       episode needs (ticked where the look has them). After the look is applied, the missing moods stay on offer. */
     outfitCard(key) {
       const o = this.sheet().outfits[key];
-      if (!o || o.state === "done") return "";
+      if (!o) return "";
       const member = window.EPISODE_LOOKS?.member(key);
-      const look = o.look_id && member ? member.looks.find((l) => l.id === o.look_id) : null;
+      const lookId = o.look_id || o.made_id || (o.state === "done" ? window.EPISODE_LOOKS?.picks[key] : null);
+      const look = lookId && member ? member.looks.find((l) => l.id === lookId) : null;
+      const moods = o.moods || [];
+      const missing = look ? moods.filter((m) => !(m in (look.moods || {}))) : moods;
+      const chips = moods.length ? `<div class="cast-moods">${moods.map((m) => `<span class="cast-mood ${look && !missing.includes(m) ? "is-there" : ""}"
+          title="${esc((o.mood_notes || {})[m] || "")}">${look && !missing.includes(m) ? "✓ " : ""}${esc(m)}</span>`).join("")}</div>` : "";
+      const notes = moods.filter((m) => (o.mood_notes || {})[m]).length
+        ? `<details class="cast-mood-notes"><summary>How ${esc(member?.name || "they")} shows them</summary><ul>${moods.filter((m) => (o.mood_notes || {})[m])
+            .map((m) => `<li><strong>${esc(m)}</strong>: ${esc(o.mood_notes[m])}</li>`).join("")}</ul></details>` : "";
+      if (o.state === "done") {
+        if (!look || !missing.length || o.moodsDone) return "";
+        return `<div class="cast-outfit">
+            <span class="cast-badge is-bulba">This episode needs</span>
+            ${chips}${notes}
+            <div class="cast-actions">
+              <button type="button" class="ep-btn ep-btn-primary" onclick="CASTING.drawMissing('${esc(key)}', this)">Draw the missing ${missing.length} · ${missing.length} ${missing.length === 1 ? "picture" : "pictures"}</button>
+              <button type="button" class="ep-btn ep-btn-quiet" onclick="CASTING.skipMoods('${esc(key)}')">Not now</button>
+            </div>
+          </div>`;
+      }
+      const count = 1 + (moods.length || (window.EPISODE_LOOKS?.coreMoods || []).length - 1 || 5);
       return `<div class="cast-outfit">
           <span class="cast-badge is-bulba">Bulba suggests</span>
           <strong>${esc(look ? look.name : o.name)}</strong>
           <p>${esc(look ? (look.outfit || "") : o.items)}</p>
           ${o.why ? `<p class="cast-muted">${esc(o.why)}</p>` : ""}
+          ${moods.length ? `<span class="cast-muted">Moods for this episode${look && missing.length ? ` (${missing.length} not drawn yet)` : ""}:</span>` : ""}
+          ${chips}${notes}
           <div class="cast-actions">
-            <button type="button" class="ep-btn ep-btn-primary" onclick="CASTING.applyOutfit('${esc(key)}', this)">${look ? "Use this look" : `Make this look · ${(window.EPISODE_LOOKS?.coreMoods || []).length || 6} pictures`}</button>
-            ${look ? "" : `<button type="button" class="ep-btn" onclick="CASTING.editOutfit('${esc(key)}')">Edit</button>`}
+            ${look ? `<button type="button" class="ep-btn ep-btn-primary" onclick="CASTING.applyOutfit('${esc(key)}', this)">Use this look</button>
+                ${missing.length ? `<button type="button" class="ep-btn" onclick="CASTING.applyOutfit('${esc(key)}', this, true)">Use it and draw the missing · ${missing.length} ${missing.length === 1 ? "picture" : "pictures"}</button>` : ""}`
+              : `<button type="button" class="ep-btn ep-btn-primary" onclick="CASTING.applyOutfit('${esc(key)}', this)">Make this look · ${count} pictures</button>
+                 <button type="button" class="ep-btn" onclick="CASTING.editOutfit('${esc(key)}')">Edit</button>`}
             <button type="button" class="ep-btn ep-btn-quiet" onclick="CASTING.rejectOutfit('${esc(key)}')">Not this</button>
           </div>
         </div>`;
@@ -301,7 +327,7 @@
       const s = this.sheet();
       ["place", "facts", "opening", "nudge"].forEach((part) => {if (s[part].state === "proposed") s[part].state = "applied";});
       Object.entries(s.outfits).forEach(([key, o]) => {
-        if (o.state === "proposed" && o.look_id) {window.EPISODE_LOOKS?.pick(key, o.look_id); o.state = "done";}
+        if (o.state === "proposed" && o.look_id) {window.EPISODE_LOOKS?.pick(key, o.look_id); o.state = "done";}  // missing moods stay on offer
       });
       this.save();
       this.rerender();
@@ -378,21 +404,42 @@
       }
     },
 
-    async applyOutfit(key, btn) {
+    async applyOutfit(key, btn, drawMissing = false) {
       const o = this.sheet().outfits[key];
       if (!o) return;
       if (o.look_id) {
         window.EPISODE_LOOKS?.pick(key, o.look_id);
         o.state = "done"; this.save(); window.EPISODE_LOOKS?.render();
+        if (drawMissing) await this.drawMissing(key, null);
         return;
       }
-      const made = await window.EPISODE_LOOKS?.createFrom(key, o.name, o.items, btn);
-      if (made) {o.state = "done"; this.save(); window.EPISODE_LOOKS?.render();}
+      const made = await window.EPISODE_LOOKS?.createFrom(key, o.name, o.items, btn, o.moods, o.mood_notes);
+      if (made) {o.state = "done"; o.made_id = made; this.save(); window.EPISODE_LOOKS?.render();}
+    },
+
+    /* The moods this episode needs that the chosen look doesn't have yet, drawn as edits of its neutral picture. */
+    async drawMissing(key, btn) {
+      const o = this.sheet().outfits[key];
+      const id = o?.look_id || o?.made_id || window.EPISODE_LOOKS?.picks[key];
+      const look = id ? window.EPISODE_LOOKS?.lookById(id) : null;
+      if (!o || !look) return;
+      const missing = (o.moods || []).filter((m) => !(m in (look.moods || {})));
+      if (!missing.length) return;
+      await window.EPISODE_LOOKS?.drawMoods(id, missing, o.mood_notes, btn);
+      o.moodsDone = true;
+      this.save();
+      window.EPISODE_LOOKS?.render();
+    },
+
+    skipMoods(key) {
+      const o = this.sheet().outfits[key];
+      if (o) {o.moodsDone = true; this.save(); window.EPISODE_LOOKS?.render();}
     },
 
     editOutfit(key) {
       const o = this.sheet().outfits[key];
       if (!o) return;
+      if (window.EPISODE_LOOKS) EPISODE_LOOKS.pendingMoods = {...(EPISODE_LOOKS.pendingMoods || {}), [key]: {moods: o.moods, notes: o.mood_notes}};
       window.EPISODE_LOOKS?.prefill(key, o.name, o.items);
       o.state = "done"; this.save();
     },
