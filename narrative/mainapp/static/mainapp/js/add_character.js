@@ -107,12 +107,86 @@ if (location.hash === '#spritesSection') {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
             body: JSON.stringify({ emotion: mood, second, note: document.getElementById('spriteNote')?.value || '',
-                                   model: document.getElementById('spriteModel').value || null }),
+                                   model: document.getElementById('spriteModel').value || null,
+                                   plain: !!document.getElementById('spritePlain')?.checked }),
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
+        let url = data.url;
+        if (data.cut && window.Cutout) {  // ✂️ drawn on a plain colour: cut it out here, keep the transparent one
+            try { url = await uploadCut(data.name, await Cutout.cutUrl(data.url)); }
+            catch (err) { status.textContent = `Saved, but the cut-out failed: ${err.message}`; }
+        }
         const preview = group(data.field)?.querySelector('.file-preview');
-        if (preview) preview.innerHTML = `<img src="${data.url}?v=${Date.now()}" alt="${mood}">`;
+        if (preview) preview.innerHTML = `<img src="${url}?v=${Date.now()}" alt="${mood}">`;
+        refreshCuts();
+    }
+
+    // ✂️ cut-outs: send the browser's transparent copy; the original is kept so it can be undone
+    let cutNames = [];
+    async function uploadCut(name, blob) {
+        const form = new FormData();
+        form.append('target', 'character'); form.append('slug', box.dataset.slug); form.append('name', name);
+        form.append('file', blob, 'cut.png');
+        const resp = await fetch(box.dataset.cut, { method: 'POST', body: form,
+            headers: { 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') } });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'Could not save the cut-out.');
+        cutNames = data.cut || cutNames;
+        return data.url;
+    }
+    async function undoCut(name) {
+        const resp = await fetch(box.dataset.cut, { method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
+            body: JSON.stringify({ target: 'character', slug: box.dataset.slug, name, undo: true }) });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'Could not undo it.');
+        cutNames = data.cut || [];
+        return data.url;
+    }
+    function refreshCuts() {
+        document.querySelectorAll('[data-field-name^="photo"]').forEach(addCut);
+        document.querySelectorAll('.sprite-cut-undo').forEach(b => { b.hidden = !cutNames.includes(b.dataset.name); });
+    }
+    function addCut(groupEl) {
+        const name = groupEl.dataset.fieldName || '';
+        if (!/^(photo|photo_second)_\w+$/.test(name) || groupEl.querySelector('.sprite-cut')) return;
+        const cut = document.createElement('button');
+        cut.type = 'button'; cut.className = 'sprite-cut'; cut.textContent = '✂️ Cut out';
+        cut.title = 'Take the background away (here, in your browser; free)';
+        const undo = document.createElement('button');
+        undo.type = 'button'; undo.className = 'sprite-cut-undo'; undo.dataset.name = name; undo.textContent = '↺ Undo cut-out';
+        undo.hidden = !cutNames.includes(name);
+        cut.onclick = async () => {
+            const img = groupEl.querySelector('.file-preview img');
+            if (!img) { status.textContent = 'There is no saved picture there to cut out yet.'; return; }
+            if (unsaved(name)) { status.textContent = 'Press Save first, then cut it out.'; return; }
+            const blob = await Cutout.review(img.src.split('?')[0], { title: `Cut out “${name.replace(/^photo_(second_)?/, '')}”` });
+            if (!blob) return;
+            try {
+                const url = await uploadCut(name, blob);
+                img.src = `${url}?v=${Date.now()}`;
+                status.textContent = 'Cut out and saved. ↺ Undo cut-out brings the original back.';
+            } catch (err) { status.textContent = err.message; }
+            refreshCuts();
+        };
+        undo.onclick = async () => {
+            try {
+                const url = await undoCut(name);
+                const img = groupEl.querySelector('.file-preview img');
+                if (img) img.src = `${url}?v=${Date.now()}`;
+                status.textContent = 'The original is back.';
+            } catch (err) { status.textContent = err.message; }
+            refreshCuts();
+        };
+        const row = document.createElement('div');
+        row.className = 'sprite-cut-row';
+        row.append(cut, undo);
+        (groupEl.querySelector('.sprite-redo') || groupEl.querySelector('.file-preview') || groupEl).after(row);
+    }
+    if (window.Cutout) {
+        fetch(`${box.dataset.cut}?target=character&slug=${encodeURIComponent(box.dataset.slug)}`)
+            .then(r => r.json()).then(d => { cutNames = d.cut || []; refreshCuts(); }).catch(() => refreshCuts());
     }
     const busy = on => ['makeNeutral', 'makeSprites'].forEach(id => { document.getElementById(id).disabled = on; });
 

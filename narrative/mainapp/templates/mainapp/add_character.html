@@ -8,6 +8,7 @@
     <title>{% if object %}Edit {{ object.name }}{% else %}New character{% endif %} - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}?v={% now 'U' %}">
+    <link rel="stylesheet" href="{% static 'mainapp/css/cutout.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -78,7 +79,7 @@
             <summary><span>🖼️ Sprites</span> <small id="spriteCount"></small></summary>
             <p class="section-help">A picture for each emotion. The chat shows the one that matches the reply; neutral is used when one is missing.</p>
             {% if object %}
-            <div class="sprite-maker" id="spriteMaker" data-url="{% url 'character_sprite' object.slug %}" data-models="{% url 'image_models' %}">
+            <div class="sprite-maker" id="spriteMaker" data-url="{% url 'character_sprite' object.slug %}" data-models="{% url 'image_models' %}" data-cut="{% url 'sprite_cut' %}" data-slug="{{ object.slug }}">
                 <ol class="sprite-steps">
                     <li><b>The neutral picture.</b> Upload one below (<i>Neutral emotion</i>) and press <b>Save</b>, or
                         have one drawn from the description:
@@ -89,6 +90,7 @@
                 <label class="small-check" id="spriteForWrap" hidden>For <select id="spriteFor"><option value="">{{ object.name }}</option><option value="1">{{ object.second_name|default:"The second character" }}</option></select></label>
                 <label class="small-check">Image model <select id="spriteModel"><option value="">Default (Nano Banana 2)</option></select></label>
                 <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo pictures that already exist</label>
+                <label class="small-check"><input type="checkbox" id="spritePlain" checked> ✂️ Draw on a plain background and cut it out (transparent sprites over the chat's background)</label>
                 <label class="sprite-note-label">What to change (optional, used for every picture made from here):
                     <input type="text" id="spriteNote" class="form-input" maxlength="500" placeholder="e.g. her eyes are green, not blue; no hat; less smile in neutral"></label>
                 <p class="section-help">Through your OpenRouter or NanoGPT key: a few cents per picture, counted in your monthly spending.</p>
@@ -187,6 +189,7 @@
 </div>
 </div>
 
+<script src="{% static 'mainapp/js/cutout.js' %}?v=1"></script>
 <script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
 {% if object %}<script src="{% static 'mainapp/js/card_sections.js' %}?v={% now 'U' %}"></script>
 <script src="{% static 'mainapp/js/character_moods.js' %}?v={% now 'U' %}"></script>{% endif %}

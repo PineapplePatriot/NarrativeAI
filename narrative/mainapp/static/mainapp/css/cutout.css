@@ -1,0 +1,21 @@
+/* ✂️ The cut-out review (shared by the character page, the persona page and the Screen) */
+.cutout-back { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px; background: rgba(4, 6, 14, 0.72); }
+.cutout-box { width: min(100%, 560px); max-height: 92vh; overflow-y: auto; box-sizing: border-box; padding: 18px; border-radius: 18px;
+  background: #0e1222; color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; gap: 10px;
+  font-size: 14px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6); }
+.cutout-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cutout-pair figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cutout-pair img, .cutout-pair canvas { width: 100%; max-height: 46vh; object-fit: contain; border-radius: 10px; }
+.cutout-pair figcaption, .cutout-note { font-size: 12px; color: #a5b4cc; margin: 0; }
+.cutout-checker canvas { background: repeating-conic-gradient(#334155 0 25%, #1e293b 0 50%) 0 0 / 14px 14px; }
+.cutout-strength, .cutout-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cutout-actions { justify-content: flex-end; }
+.cutout-box button { padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9; font: inherit; font-size: 13px; cursor: pointer; }
+.cutout-box button.is-on { border-color: #c084fc; color: #e9d5ff; }
+.cutout-box button.is-primary { border: 0; color: #1a1033; font-weight: 700; background: linear-gradient(135deg, #c084fc, #f472b6); }
+.sprite-cut-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.sprite-cut, .sprite-cut-undo, .mm-cut, .persona-cut, .persona-uncut { cursor: pointer; }
+.mm-item { position: relative; }
+.mm-cut { position: absolute; left: 4px; top: 4px; border: 0; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; padding: 2px 6px; }
+.file-preview img, .mm-item img, .persona-pics img { background: repeating-conic-gradient(#e2e8f0 0 25%, #f8fafc 0 50%) 0 0 / 12px 12px; }

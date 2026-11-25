@@ -19,6 +19,7 @@ class User(AbstractUser):
     persona_name = models.CharField(max_length=256, blank=True, default=None, null=True, verbose_name="Persona name")
     persona_description = models.TextField(blank=True, default=None, null=True)
     # Pictures of their persona for the chat scene, one per mood (like a character's sprites)
+    persona_sprite_originals = models.JSONField(default=dict, blank=True)  # {sprite name: file path before its cut-out}
     persona_photo_neutral = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
     persona_photo_happy = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
     persona_photo_sad = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)

@@ -497,6 +497,14 @@ def save_char_profile(character, updates):
 STICKER_MOODS = ("happy", "smug", "angry", "sleepy", "shocked", "love", "crying", "thumbs up")
 
 
+def sticker_background(looks=""):
+    """✂️ A flat key colour behind a sticker (one the figure doesn't wear), so the browser cuts it out and the white
+    outline stays."""
+    from mainapp import episode_looks
+    hexcode, words, _ = episode_looks.KEYS[episode_looks.pick_key(str(looks or ""))]
+    return f"a solid, completely flat {words} ({hexcode}) background outside the white outline, no shadow"
+
+
 def make_sticker(user, character, mood):
     """🎨 One sticker of their pack, in their texting look: sticker style (bold white outline, plain background,
     big expression), the face kept from their texting pictures. Replaces that mood's sticker. Returns the profile."""
@@ -509,7 +517,8 @@ def make_sticker(user, character, mood):
     same = "The SAME person as in the reference pictures: same face, hair, eyes and outfit. " if refs else ""
     prompt = (f"A messenger sticker of {character.name}, feeling {mood}. {same}Sticker style: one figure (head and "
               f"shoulders or a small full body, slightly chibi), a big readable {mood} expression and pose, a thick white "
-              f"outline around the figure, a flat plain light background, no text, no frame. Art style: {style}.\n"
+              f"outline around the figure, {sticker_background(prof.get('appearance_notes') or character.description)}, "
+              f"no text, no frame. Art style: {style}.\n"
               f"How they look: {(prof.get('appearance_notes') or character.description or '')[:600]}")
     img, _ = make_picture(user, prompt, references=refs)
     url = default_storage.url(default_storage.save(f"messenger/stickers/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
@@ -537,7 +546,7 @@ def custom_sticker(user, idea, character=None, of_me=False):
     same = f"The SAME person as in the reference pictures ({who}): same face, hair and eyes. " if refs else ""
     prompt = (f"A messenger sticker: {idea}." + (f" It shows {who}. " if who else " ") + same +
               "Sticker style: one clear subject, slightly chibi, a big readable expression or pose, a thick white outline, "
-              "a flat plain light background, no frame; text only if the idea asks for words."
+              f"{sticker_background(look)}, no frame; text only if the idea asks for words."
               + (f"\nHow they look: {look}" if look else ""))
     img, _ = make_picture(user, prompt, references=refs)
     url = default_storage.url(default_storage.save(f"messenger/stickers/user{user.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))

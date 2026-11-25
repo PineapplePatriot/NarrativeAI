@@ -2045,11 +2045,34 @@
         if (!TG._packBusy || i >= todo.length) { TG._packBusy = false; st.textContent = "🎨 Done: " + i + " sticker" + (i === 1 ? "" : "s") + "."; return; }
         st.textContent = "🎨 Drawing “" + todo[i] + "” (" + (i + 1) + " of " + todo.length + ")… press 🎨 to stop";
         apiPost({ action: "make_sticker", char_slug: m.slug, mood: todo[i] }).then(function (res) {
+          var made = ((res.profile || {}).sticker_pack || []).filter(function (s) { return s.mood === todo[i]; })[0];
+          return (made ? TG.cutSticker(made.url) : Promise.resolve(null)).then(function (url) {
+            if (url) {  // ✂️ the cut-out takes the drawn one's place everywhere it's shown
+              (res.profile.sticker_pack || []).forEach(function (s) { if (s.url === made.url) s.url = url; });
+              (res.stickers || []).forEach(function (s) { if (s.url === made.url) s.url = url; });
+            }
+            return res;
+          });
+        }).then(function (res) {
           syncCharCatalog(res.char_slug, res.profile);
           t.stickers = (t.stickers || []).filter(function (s) { return s.char_slug !== res.char_slug; }).concat(res.stickers);
           renderStickerTray(); i++; next();
         }).catch(function (e) { TG._packBusy = false; st.textContent = "Stopped at “" + todo[i] + "”: " + e.message; });
       })();
+    },
+    // ✂️ A drawn sticker sits on a flat colour: cut it out in the browser and keep the transparent one in its place.
+    // Resolves to the new url, or null (the drawn one stays) when it can't be cut.
+    cutSticker: function (url) {
+      if (!window.Cutout || !url) return Promise.resolve(null);
+      return Cutout.cutUrl(url).then(function (blob) {
+        var fd = new FormData();
+        fd.append("kind", "sticker_cut"); fd.append("url", url); fd.append("file", blob, "sticker.png");
+        return fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd });
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (res.error) throw new Error(res.error);
+        if (res.user_profile) STATE.user_profile = Object.assign(STATE.user_profile || {}, { custom_stickers: res.user_profile.custom_stickers });
+        return res.url;
+      }).catch(function () { return null; });
     },
     toggleStickerIdea: function () {
       var box = document.getElementById("tgStickerIdea"), who = document.getElementById("tgStickerWho");
@@ -2067,11 +2090,15 @@
       var st = document.getElementById("tgStickerStatus"); st.hidden = false; st.textContent = "✨ Drawing the sticker…";
       btn.disabled = true;
       apiPost({ action: "custom_sticker", idea: idea, who: document.getElementById("tgStickerWho").value }).then(function (res) {
+        st.textContent = "✂️ Cutting it out…";
+        return TG.cutSticker(res.sticker.url).then(function (url) { if (url) res.sticker.url = url; return res; });
+      }).then(function (res) {
         btn.disabled = false; st.textContent = "✨ Added to My Stickers.";
         document.getElementById("tgStickerText").value = "";
         var u = STATE.user_profile || (STATE.user_profile = {});
-        u.custom_stickers = (u.custom_stickers || []).concat([res.sticker]);
-        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).concat([res.sticker]);
+        var known = function (list) { return (list || []).some(function (x) { return x.id === res.sticker.id; }); };
+        if (!known(u.custom_stickers)) u.custom_stickers = (u.custom_stickers || []).concat([res.sticker]);
+        if (STATE.active_thread && !known(STATE.active_thread.stickers)) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).concat([res.sticker]);
         renderStickerTray();
       }).catch(function (e) { btn.disabled = false; st.textContent = "✨ " + e.message; });
     },

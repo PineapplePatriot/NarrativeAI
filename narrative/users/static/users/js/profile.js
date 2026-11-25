@@ -26,12 +26,36 @@ photoInput.addEventListener("change", function () {
         fig.classList.add('working');
         try {
             const resp = await fetch(box.dataset.url, { method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ emotion: mood, note: document.getElementById('personaPicHint')?.value || '' }) });
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ emotion: mood, note: document.getElementById('personaPicHint')?.value || '',
+                    plain: !!document.getElementById('personaPlain')?.checked }) });
             const d = await resp.json();
             if (!resp.ok) throw new Error(d.error || 'Could not make it.');
-            fig.querySelector('img, span').outerHTML = `<img src="${d.url}?t=${Date.now()}" alt="">`;
+            let url = d.url;
+            if (d.cut && window.Cutout) {  // ✂️ drawn on a plain colour: cut out here, the transparent one kept
+                try { url = await sendCut(d.name, await Cutout.cutUrl(d.url)); }
+                catch (err) { note.textContent = `Made, but the cut-out failed: ${err.message}`; }
+            }
+            fig.querySelector('img, span').outerHTML = `<img src="${url}?t=${Date.now()}" alt="">`;
+            paintCuts();
         } finally { fig.classList.remove('working'); }
     }
+    // ✂️ cut-outs of the persona's pictures (the original is kept on the server, so ↺ brings it back)
+    let cutNames = [];
+    async function sendCut(name, blob) {
+        const fd = new FormData(); fd.append('target', 'persona'); fd.append('name', name); fd.append('file', blob, 'cut.png');
+        const resp = await fetch(box.dataset.cut, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd });
+        const d = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(d.error || 'Could not save the cut-out.');
+        cutNames = d.cut || cutNames;
+        return d.url;
+    }
+    function paintCuts() {
+        box.querySelectorAll('figure[data-mood]').forEach(fig => {
+            const undo = fig.querySelector('.persona-uncut');
+            if (undo) undo.hidden = !cutNames.includes(`persona_photo_${fig.dataset.mood}`);
+        });
+    }
+    if (window.Cutout) fetch(`${box.dataset.cut}?target=persona`).then(r => r.json()).then(d => { cutNames = d.cut || []; paintCuts(); }).catch(() => {});
     async function run(btn, moods) {
         const buttons = document.querySelectorAll('.persona-pic-actions button');
         buttons.forEach(b => { b.disabled = true; });
@@ -50,8 +74,30 @@ photoInput.addEventListener("change", function () {
         bar.className = 'persona-pic-one';
         const label = () => has(mood) ? '↻' : '✨';
         bar.innerHTML = `<label title="Upload your own ${mood} picture">📤<input type="file" accept="image/png,image/jpeg,image/webp" hidden></label>` +
-                        `<button type="button" title="Make just this one from the neutral picture">${label()}</button>`;
+                        `<button type="button" title="Make just this one from the neutral picture">${label()}</button>` +
+                        (window.Cutout ? `<button type="button" class="persona-cut" title="Cut out the background (free, in your browser)">✂️</button>` +
+                                         `<button type="button" class="persona-uncut" title="Undo the cut-out" hidden>↺</button>` : '');
         fig.appendChild(bar);
+        bar.querySelector('.persona-cut')?.addEventListener('click', async () => {
+            const img = fig.querySelector('img');
+            if (!img) { note.textContent = 'There is no picture there to cut out yet.'; return; }
+            const blob = await Cutout.review(img.src.split('?')[0], { title: `Cut out your ${mood} picture` });
+            if (!blob) return;
+            try { img.src = `${await sendCut(`persona_photo_${mood}`, blob)}?t=${Date.now()}`; note.textContent = `✓ ${mood}: cut out.`; }
+            catch (err) { note.textContent = err.message; }
+            paintCuts();
+        });
+        bar.querySelector('.persona-uncut')?.addEventListener('click', async () => {
+            const resp = await fetch(box.dataset.cut, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+                body: JSON.stringify({ target: 'persona', name: `persona_photo_${mood}`, undo: true }) });
+            const d = await resp.json().catch(() => ({}));
+            if (!resp.ok) { note.textContent = d.error || 'Could not undo it.'; return; }
+            cutNames = d.cut || [];
+            const img = fig.querySelector('img');
+            if (img) img.src = `${d.url}?t=${Date.now()}`;
+            note.textContent = `✓ ${mood}: the original is back.`;
+            paintCuts();
+        });
         bar.querySelector('input').addEventListener('change', async (e) => {
             const file = e.target.files[0]; if (!file) return;
             const fd = new FormData(); fd.append('emotion', mood); fd.append('file', file);

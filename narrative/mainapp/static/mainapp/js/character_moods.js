@@ -10,7 +10,8 @@
     function paint(d) {
         const moods = Object.entries(d.first || {});
         $('mmGrid').innerHTML = moods.length ? moods.map(([m, url]) => `<figure class="mm-item"><img src="${esc(url)}" alt="">
-            <figcaption>${esc(m)}</figcaption><button type="button" class="mm-x" data-remove="${esc(m)}" title="Take it away">✕</button></figure>`).join('')
+            <figcaption>${esc(m)}</figcaption><button type="button" class="mm-x" data-remove="${esc(m)}" title="Take it away">✕</button>
+            ${window.Cutout ? `<button type="button" class="mm-cut" data-cut="${esc(m)}" data-url="${esc(url)}" title="Cut out the background (free, in your browser)">✂️</button>` : ''}</figure>`).join('')
             : '<p class="section-help">None yet.</p>';
         $('mmSuggest').innerHTML = (d.suggested || []).filter(m => !(m in (d.first || {}))).map(m => `<option value="${esc(m)}">`).join('');
     }
@@ -39,14 +40,34 @@
         status(`Drawing “${name}” from the neutral picture… (a few cents, on your key)`);
         try {
             const resp = await fetch(box.dataset.make, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-                body: JSON.stringify({ emotion: name, note: document.getElementById('spriteNote')?.value || '' }) });
+                body: JSON.stringify({ emotion: name, note: document.getElementById('spriteNote')?.value || '',
+                                       plain: !!document.getElementById('spritePlain')?.checked }) });
             const d = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(d.error || 'The picture maker failed.');
+            if (d.cut && window.Cutout) await sendCut(d.name, await Cutout.cutUrl(d.url)).catch((err) => status(`Made, but the cut-out failed: ${err.message}`, true));
             await load(); $('mmName').value = ''; status(`✓ “${name}” made.`);
         } catch (e) { status(e.message, true); }
         finally { $('mmMake').disabled = false; }
     });
+    // ✂️ an extra mood's cut-out, kept in its place (the original is remembered on the server)
+    async function sendCut(name, blob) {
+        const maker = document.getElementById('spriteMaker');
+        const form = new FormData();
+        form.append('target', 'character'); form.append('slug', maker.dataset.slug); form.append('name', name);
+        form.append('file', blob, 'cut.png');
+        const resp = await fetch(maker.dataset.cut, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: form });
+        const d = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(d.error || 'Could not save the cut-out.');
+    }
     $('mmGrid').addEventListener('click', async (e) => {
+        const c = e.target.closest('[data-cut]');
+        if (c) {
+            const blob = await Cutout.review(c.dataset.url.split('?')[0], { title: `Cut out “${c.dataset.cut}”` });
+            if (!blob) return;
+            try { await sendCut(`extra:${c.dataset.cut}`, blob); await load(); status(`✓ “${c.dataset.cut}” cut out.`); }
+            catch (err) { status(err.message, true); }
+            return;
+        }
         const b = e.target.closest('[data-remove]');
         if (!b || !confirm(`Take away the “${b.dataset.remove}” picture?`)) return;
         try { await load({ method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ remove: b.dataset.remove }) }); }

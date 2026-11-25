@@ -74,6 +74,7 @@ class Character(models.Model):
     sections = models.JSONField(default=dict, blank=True)
     # More mood pictures than the nine fields above (mainapp/sprites.py): {"first": {emotion: path}, "second": {...}}
     extra_sprites = models.JSONField(default=dict, blank=True)
+    sprite_originals = models.JSONField(default=dict, blank=True)  # {sprite name: file path before its cut-out}
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.

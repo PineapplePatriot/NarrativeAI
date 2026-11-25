@@ -3661,25 +3661,37 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
         extra = True
     neutral = getattr(obj, f"{prefix}_neutral")
     reference, kind = None, "image/png"
+    from . import episode_looks, sprite_cuts
+    plain = bool(data.get("plain"))  # ✂️ drawn on a flat colour, so the browser can cut it out
+    key_hex, key_words, _ = episode_looks.KEYS[episode_looks.pick_key(" ".join(str(t or "") for t in looks))]
+    plain_line = (f"Background: one solid, completely flat {key_words} ({key_hex}) behind the figure: no gradient, "
+                  "no shadow, no floor, no props; that colour must not appear on the character.")
     if emotion == "neutral":  # the first picture, from the words (no picture to start from)
         looks = "\n".join(t for t in (*looks, str(data.get("hint") or "")[:600]) if str(t or "").strip())
         if not looks.strip():
             return JsonResponse({"error": "Write the description first (how they look helps most), "
                                           "or upload a picture."}, status=400)
         prompt = (f"A character portrait of {who}, for a visual-novel style chat: one person, waist up, facing the "
-                  f"viewer, a calm neutral expression, a simple background that suits them. Draw them as this "
+                  f"viewer, a calm neutral expression, "
+                  f"{'a background as described below' if plain else 'a simple background that suits them'}. Draw them as this "
                   f"description says (appearance first; leave out anything that isn't visible):\n{looks}\n"
-                  "Illustrated, consistent and clean. No text, no borders, no extra people.")
+                  "Illustrated, consistent and clean. No text, no borders, no extra people."
+                  + (f"\n{plain_line}" if plain else ""))
     else:
         if not neutral:
             return JsonResponse({"error": "Add a neutral picture first (upload one, or make it from the description "
                                           "with the button above); the moods are made from it."}, status=400)
-        with neutral.open("rb") as f:
-            reference = f.read()
+        # The neutral picture as drawn, not its cut-out: its plain background carries over, so the mood cuts cleanly too
+        uncut = sprite_cuts.uncut_bytes(obj, f"{prefix}_neutral")
+        if uncut is None:
+            with neutral.open("rb") as f:
+                uncut = (f.read(), "image/png")
+        reference = uncut[0]
         kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
         prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
                   f"art style, framing, lighting and background. Only the expression and body language change: show "
-                  f"them {emotion}. No text, no borders, no extra people.")
+                  f"them {emotion}. No text, no borders, no extra people."
+                  + (f"\nKeep the same flat background colour. {plain_line}" if plain else ""))
     note = " ".join(str(data.get("note") or "").split())[:500]
     if note:  # ↻ a redo with their words: what was wrong last time isn't obvious to the image model
         prompt += f"\nTheir note for this picture (follow it exactly; it fixes what was wrong in the last try): {note}"
@@ -3694,19 +3706,22 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
         return JsonResponse({"error": str(e)}, status=502)
     ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
     if extra:  # one of the character's own moods
+        name = f"{'extra2' if prefix == 'photo_second' else 'extra'}:{emotion}"
+        sprite_cuts.forget(obj, name)
         try:
             url = sprite_mod.save(obj, emotion, image, ext, second=prefix == "photo_second")
         except ValueError as e:
             return JsonResponse({"error": str(e)}, status=400)
-        return JsonResponse({"status": "ok", "emotion": emotion, "url": url, "cost": cost,
+        return JsonResponse({"status": "ok", "emotion": emotion, "url": url, "cost": cost, "name": name, "cut": plain,
                              "spending": ai_client.spending(request.user)})
     field = getattr(obj, f"{prefix}_{emotion}")
+    sprite_cuts.forget(obj, f"{prefix}_{emotion}")
     if field:
         field.storage.delete(field.name)
     field.save(f"{slugify(base_name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
     obj.save()
     return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
-                         "spending": ai_client.spending(request.user)})
+                         "name": f"{prefix}_{emotion}", "cut": plain, "spending": ai_client.spending(request.user)})
 
 
 @login_required
@@ -3746,6 +3761,32 @@ def character_sprite(request, slug):
     who = character.name if not second else (character.second_name or f"the second character of {character.name}")
     looks = (str(character.description or "")[:2500], str(character.personality or "")[:600])
     return _make_sprite(request, character, prefix, who, looks, character.name)
+
+
+@login_required
+def sprite_cut(request):
+    """✂️ A chat sprite's cut-out (multipart: target "character" + slug, or "persona"; name; file), or with
+    {"undo": true} (JSON) its original back. GET ?target&slug: the names whose cut can be undone."""
+    from . import sprite_cuts
+    body = request.POST if request.method == "POST" and request.FILES else (
+        json.loads(request.body.decode("utf-8") or "{}") if request.method == "POST" else request.GET)
+    if body.get("target") == "persona":
+        obj = request.user
+    else:
+        obj = get_object_or_404(Character, slug=str(body.get("slug") or ""), author=request.user)
+    if request.method == "GET":
+        return JsonResponse({"cut": sprite_cuts.originals_list(obj)})
+    name = str(body.get("name") or "")
+    try:
+        if request.FILES.get("file"):
+            url = sprite_cuts.save_cut(obj, name, request.FILES["file"].read())
+        elif body.get("undo"):
+            url = sprite_cuts.undo(obj, name)
+        else:
+            return JsonResponse({"error": "Attach the cut-out."}, status=400)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    return JsonResponse({"url": url, "cut": sprite_cuts.originals_list(obj)})
 
 
 @login_required
@@ -5040,6 +5081,13 @@ def messenger_api(request):
             return JsonResponse({"error": "No file attached."}, status=400)
         if upload.size > 15 * 1024 * 1024:
             return JsonResponse({"error": "File is over 15 MB."}, status=400)
+        if kind == "sticker_cut":  # ✂️ the browser's cut-out of a sticker the user owns, in its place
+            from . import sprite_cuts
+            try:
+                url = sprite_cuts.replace_sticker(request.user, str(request.POST.get("url") or ""), upload.read())
+            except ValueError as exc:
+                return JsonResponse({"error": str(exc)}, status=400)
+            return JsonResponse({"url": url, "user_profile": messenger.user_profile(request.user)})
         ext = "." + upload.name.rsplit(".", 1)[-1].lower()[:8] if "." in upload.name else ".bin"
         ext = re.sub(r"[^.a-z0-9]", "", ext) or ".bin"
         raw_bytes = upload.read()

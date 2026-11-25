@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'mainapp/css/cutout.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -72,7 +73,7 @@
             <p class="persona-help">Shown in the chat scene next to the character, with your mood after each exchange.
                 Upload a neutral picture of your persona, or make one from “About you in stories”; then make the other
                 moods from it (Nano Banana, a few cents each, on your key).</p>
-            <div class="persona-pics" id="personaPics" data-url="{% url 'persona_sprite' %}">
+            <div class="persona-pics" id="personaPics" data-url="{% url 'persona_sprite' %}" data-cut="{% url 'sprite_cut' %}">
                 {% for mood, pic in persona_pictures %}
                 <figure data-mood="{{ mood }}">{% if pic %}<img src="{{ pic }}" alt="">{% else %}<span>—</span>{% endif %}<figcaption>{{ mood }}</figcaption></figure>
                 {% endfor %}
@@ -81,6 +82,7 @@
             {{ form.persona_photo_neutral }}
             <label class="persona-help">What to change (optional, used for every picture made from here):
                 <input type="text" id="personaPicHint" maxlength="500" placeholder="e.g. shorter hair; glasses; a warmer smile"></label>
+            <label class="persona-help"><input type="checkbox" id="personaPlain" checked> ✂️ Draw on a plain background and cut it out (transparent pictures over the chat's background)</label>
             <div class="persona-pic-actions">
                 <button type="button" class="secondary" id="personaMakeNeutral">✨ Make it from my description</button>
                 <button type="button" class="secondary" id="personaMakeMoods">✨ Make the missing moods</button>
@@ -98,7 +100,8 @@
     </div>
 
     {{ persona_parts|json_script:"persona-parts" }}
-    <script src="{% static 'users/js/profile.js' %}?v=4"></script>
+    <script src="{% static 'mainapp/js/cutout.js' %}?v=1"></script>
+    <script src="{% static 'users/js/profile.js' %}?v=5"></script>
     <script src="{% static 'users/js/persona_parts.js' %}?v=2"></script>
 </body>
 </html>
