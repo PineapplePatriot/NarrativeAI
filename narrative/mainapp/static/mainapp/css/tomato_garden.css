@@ -161,3 +161,20 @@
 /* crops shown as their own pixel pictures */
 .g-ci { image-rendering: pixelated; vertical-align: middle; object-fit: contain; }
 .g-pi { vertical-align: middle; object-fit: contain; }
+/* 🎪 The fair */
+.g-contests { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .g-contests { grid-template-columns: 1fr; } }
+.g-contest { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 10px; background: var(--na-surface-2, rgba(127,127,127,.08)); }
+.g-contest select { max-width: 100%; }
+.g-results { margin-top: 12px; }
+.g-results summary { cursor: pointer; font-weight: 600; }
+.g-result { padding: 8px 0; border-top: 1px solid rgba(127,127,127,.2); }
+.g-result-head { display: flex; gap: 10px; align-items: center; }
+.g-result-head small { display: block; }
+.g-board { margin: 6px 0; padding-left: 22px; font-size: .9em; }
+.g-board li.you { font-weight: 700; }
+.g-trophies { display: flex; flex-wrap: wrap; gap: 4px; }
+.g-trophy { display: inline-flex; }
+.g-fair-box button:disabled { opacity: .45; cursor: not-allowed; }
+.g-contest .g-giftrow { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.g-contest .g-giftrow select { width: 100%; }

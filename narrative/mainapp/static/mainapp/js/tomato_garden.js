@@ -749,6 +749,7 @@
         paintKitchen();
         paintVillage();
         paintCrafts();
+        paintFair();
         if (sel) paintTile();
     }
     // 🏡 The cottage: the stage being built, its builder's order, the last scene between Il Dattore and Pantaleone
@@ -1101,6 +1102,70 @@
         redraw();
         if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
     }
+
+    // 🎪 The village fair (mainapp/tomato_fair.py): three contests a week, judged on Sunday, ribbons on the wall
+    const RIBBON_COL = { 1: ['#3a6fd8', '#244a9a'], 2: ['#d6463a', '#9e2a22'], 3: ['#e8b923', '#a8820f'], 0: ['#8e3fb8', '#5a2577'] };
+    function ribbonSvg(place, size = 40, label = '') {
+        const [c, d] = RIBBON_COL[place] || ['#9aa3ad', '#646d7a'];
+        let petals = '';
+        for (let i = 0; i < 12; i++) { const a = i * 30; petals += `<ellipse cx="20" cy="9" rx="4" ry="7" fill="${i % 2 ? c : d}" transform="rotate(${a} 20 18)"/>`; }
+        return `<svg viewBox="0 0 40 54" width="${size}" height="${Math.round(size * 1.35)}" role="img" aria-label="${esc(label)}">
+            <path d="M13 26 L7 52 L13 47 L17 53 L19 28Z" fill="${d}"/><path d="M27 26 L33 52 L27 47 L23 53 L21 28Z" fill="${c}"/>
+            ${petals}<circle cx="20" cy="18" r="8.5" fill="#fbf6ea" stroke="${d}" stroke-width="1.5"/>
+            <text x="20" y="22" text-anchor="middle" font-size="${place ? 11 : 9}" font-weight="700" font-family="Georgia, serif" fill="${d}">${place ? place : '★'}</text></svg>`;
+    }
+    function fairOptions(contest) {
+        const out = [];
+        if (contest === 'harvest') {
+            Object.entries(st.shelf || {}).forEach(([k, n]) => out.push({ v: `crop:${k}`, t: `${prizeOf(k).name.replace(/ (seeds|cloves|runners|bush)$/, '')} (shelf, ${n})` }));
+            (st.almanac || []).forEach(a => { const n = (st.basket || {})['seed_' + a.id]; if (n) out.push({ v: `mutation:${a.id}`, t: `${a.emoji} ${a.name} (${n})` }); });
+        } else if (contest === 'dish') {
+            ((st.kitchen || {}).pantry || []).forEach(d => out.push({ v: `dish:${d.id}`, t: `${d.emoji} ${d.name} (${d.n})` }));
+        } else {
+            ((st.crafts || {}).vase || []).forEach((b, i) => out.push({ v: `bouquet:${i}`, t: `💐 “${b.name}” ${'★'.repeat(b.charm)}` }));
+        }
+        return out;
+    }
+    function paintFair() {
+        const box = $('gFair'), f = st.fair;
+        if (!box || !f) return;
+        $('gFairNote').textContent = f.unread ? '🎉 New results' : '';
+        const when = f.open ? (f.days_left ? `Judging on Sunday, in ${f.days_left} day${f.days_left > 1 ? 's' : ''}.` : 'Judging today!') : 'This week is judged: the next fair opens on Monday.';
+        let html = `<p class="muted g-small">${when} This week's judges: ${f.judges.map(j => `${j.emoji} ${esc(j.name)}`).join(', ')}. Each has their own taste.</p>`;
+        html += `<div class="g-contests">${f.contests.map(c => {
+            const opts = fairOptions(c.id);
+            return `<div class="g-contest"><b>${c.emoji} ${esc(c.name)}</b>
+                ${c.entry ? `<small>Entered: ${esc(c.entry)}. Fingers crossed.</small>`
+                    : !f.open ? '<small class="muted">Closed this week.</small>'
+                    : opts.length ? `<small class="muted">Enter ${esc(c.ask)}. It's given up.</small><div class="g-giftrow"><select data-fair-for="${c.id}">${opts.map(o => `<option value="${o.v}">${esc(o.t)}</option>`).join('')}</select>
+                        <button type="button" class="na-btn" data-fair="${c.id}">Enter</button></div>`
+                    : `<small class="muted">Needs ${esc(c.ask)}.</small>`}</div>`;
+        }).join('')}</div>`;
+        const r = f.results;
+        if (r) {
+            html += `<details class="g-results"${f.unread ? ' open' : ''} data-fair-results><summary>📣 Results, week ${esc(r.week.split('-W')[1])}${r.best ? ' · 🏆 Best in show!' : ''}</summary>
+                ${Object.values(r.contests).map(c => `<div class="g-result"><div class="g-result-head">${ribbonSvg(c.place <= 3 ? c.place : -1, 30, c.ribbon)}
+                    <div><b>${c.emoji} ${esc(c.name)}: ${esc(c.ribbon)}</b><small>for ${esc(c.what)} · 🍅 +${c.prize}</small></div></div>
+                    <ol class="g-board">${c.board.map(x => `<li class="${x.you ? 'you' : ''}">${esc(x.you ? 'You' : x.who)} <span class="muted">${x.score}</span></li>`).join('')}</ol>
+                    <small class="muted">${c.notes.map(esc).join(' ')}</small></div>`).join('')}</details>`;
+        }
+        const t = f.trophies || [];
+        html += `<h3 class="g-sub">Trophy wall</h3>` + (t.length
+            ? `<div class="g-trophies">${t.slice().reverse().map(x => `<span class="g-trophy" title="${esc((x.place ? ['', 'First', 'Second', 'Third'][x.place] + ' place, ' : '') + (x.contest === 'best' ? 'Best in show' : (f.contests.find(c => c.id === x.contest) || {}).name || '') + ', week ' + x.week.split('-W')[1] + ': ' + x.what)}">${ribbonSvg(x.place, 30)}</span>`).join('')}</div>`
+            : '<p class="muted g-small">Empty for now. Ribbons for the top three go here.</p>');
+        box.innerHTML = html;
+        const res = box.querySelector('[data-fair-results]');
+        if (res && f.unread) res.addEventListener('toggle', () => { if (!res.open) call({ action: 'fair_read' }).then(take).catch(() => {}); }, { once: true });
+        if (res && f.unread && res.open) call({ action: 'fair_read' }).then(s => { st.fair = s.fair; $('gFairNote').textContent = ''; }).catch(() => {});
+    }
+    $('gFair')?.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-fair]');
+        if (!b) return;
+        const [kind, item] = (b.parentElement.querySelector('select').value || ':').split(':');
+        b.disabled = true;
+        try { take(await call({ action: 'fair_enter', contest: b.dataset.fair, kind, item })); }
+        catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
 
     // 📋 The order board and 🧬 the almanac
     function paintBoard() {

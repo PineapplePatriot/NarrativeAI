@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=14">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=16">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="garden" %}
@@ -54,6 +54,10 @@
       <div class="pit-box-head"><h2>🏘️ The neighbours</h2><span class="muted" id="gLetterCount"></span></div>
       <div id="gVillage"></div>
     </section>
+    <section class="pit-box g-fair-box" aria-label="The village fair">
+      <div class="pit-box-head"><h2>🎪 The village fair</h2><span class="muted" id="gFairNote"></span></div>
+      <div id="gFair"></div>
+    </section>
     <section class="pit-box g-craft-box" aria-label="Bouquets and postcards">
       <div class="pit-box-head"><h2>💐 Bouquets &amp; postcards</h2></div>
       <div id="gCrafts"></div>
@@ -76,6 +80,6 @@
     </section>
   </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=23"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=24"></script>
 </body>
 </html>
