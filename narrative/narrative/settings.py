@@ -220,3 +220,7 @@ LIVE_INLINE = sys.argv[1:2] == ["test"]
 
 # 📥 Telegram sticker packs in the messenger (Screen Hub): a bot token from @BotFather, set as a Railway variable
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+
+# Bulba's checks of drawn pictures (limbs, faces, who's in it) call a vision model; the test suite runs without them
+# unless a test switches them on with its own mocks.
+PICTURE_CHECKS = "test" not in sys.argv

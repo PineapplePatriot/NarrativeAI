@@ -1368,7 +1368,7 @@ def skip_stage(session):
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extras_form", "retry_reply",
                "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
                "polish_message", "fix_automatically", "propose_memory_edit", "propose_text_rules",
-               *tune.TURN_ENDING, "propose_texting_profile", "propose_texting_chat", "propose_texting_look",
+               *tune.TURN_ENDING, "propose_texting_lore", "propose_texting_profile", "propose_texting_chat", "propose_texting_look",
                "retry_texting_reply"}
 
 

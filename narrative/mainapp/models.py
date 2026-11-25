@@ -307,3 +307,89 @@ class MessengerThread(models.Model):
 
     def __str__(self):
         return self.title or f"Messenger #{self.pk}"
+
+
+class ScreenEntry(models.Model):
+    """A persisted mini-app record, isolated to one user's one story/chat."""
+    owner = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="screen_entries")
+    thread = models.ForeignKey(MessengerThread, on_delete=models.CASCADE, related_name="screen_entries")
+    kind = models.CharField(max_length=16, choices=[(v, v) for v in ("document", "mail", "event", "track")])
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    revision = models.PositiveIntegerField(default=1)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated", "-pk")
+        indexes = [models.Index(fields=["owner", "thread", "kind"], name="screen_owner_thread_kind")]
+
+
+class ScreenDocumentProposal(models.Model):
+    document = models.ForeignKey(ScreenEntry, on_delete=models.CASCADE, related_name="proposals")
+    base_revision = models.PositiveIntegerField()
+    before = models.TextField()
+    after = models.TextField()
+    character_slug = models.CharField(max_length=255)
+    character_name = models.CharField(max_length=255)
+    status = models.CharField(max_length=12, default="pending")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-pk",)
+
+
+class PulseReminder(models.Model):
+    event = models.OneToOneField(ScreenEntry, on_delete=models.CASCADE, related_name="pulse_reminder")
+    event_revision = models.PositiveIntegerField()
+    due_at = models.DateTimeField(db_index=True)
+    clock = models.CharField(max_length=8, default="real")
+    enabled = models.BooleanField(default=False, db_index=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    checked_at = models.DateTimeField(null=True, blank=True)
+    fingerprint = models.CharField(max_length=64)
+
+
+class EpisodeLook(models.Model):
+    """One outfit for visual-novel episodes: a set of cut-out mood pictures all edited from one base picture.
+
+    Separate from the chat page's stage sprites and from the phone's pictures. `character` empty = the user's
+    own persona. `setting` is "canon" or "modern", after how the episode was entered. `moods` holds
+    {mood: {"raw": path on a flat background, "cut": transparent path or ""}}; "neutral" is the base.
+    """
+    author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="episode_looks")
+    character = models.ForeignKey(Character, on_delete=models.CASCADE, null=True, blank=True, related_name="episode_looks")
+    setting = models.CharField(max_length=10, default="canon")
+    name = models.CharField(max_length=60)
+    outfit = models.TextField(blank=True)
+    key_colour = models.CharField(max_length=10, default="green")
+    moods = models.JSONField(default=dict, blank=True)
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="variants")
+    identity = models.JSONField(default=dict, blank=True)  # what Bulba saw in the reference picture
+    review = models.JSONField(default=dict, blank=True)    # Bulba's check of the drawn neutral picture
+    model = models.CharField(max_length=80, blank=True)    # the picture model that draws this look ("" = the app's default)
+    mood_notes = models.JSONField(default=dict, blank=True)  # {mood: how THIS person shows it}, from Bulba, editable
+    cost = models.FloatField(default=0)                    # what drawing this look has cost so far, as reported
+    trial = models.BooleanField(default=False)             # drawn to compare picture models; kept out of episodes until kept
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated",)
+
+
+class EpisodePlace(models.Model):
+    """A place drawn for an episode and kept, so it looks the same the next time the story goes there.
+
+    `card` is the place written out (layout, light, objects); the picture is drawn from it once.
+    """
+    author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="episode_places")
+    name = models.CharField(max_length=120)
+    card = models.TextField(blank=True)
+    setting = models.CharField(max_length=10, default="canon")
+    image = models.CharField(max_length=300)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created",)

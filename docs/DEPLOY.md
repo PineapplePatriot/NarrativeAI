@@ -99,3 +99,17 @@ The backup only works with the same `DJANGO_SECRET_KEY`: keep that variable as i
 - **Replies never arrive:** check the demo key and its credit limit on OpenRouter, and the logs.
 - **Pictures or voices missing:** they live on the volume; files from your own computer aren't uploaded.
   Add them again through the app.
+
+
+## Pulse calendar reminders
+
+The Docker startup script also runs `python manage.py pulse_tick --watch` beside
+Gunicorn, on the same persistent database. Confirmed plans with reminders enabled
+can therefore leave system messages in TeleChat while users are offline. These
+reminders make no model calls. Normal invitation replies and VN launches remain
+explicit user actions that use their configured models.
+
+If a custom Start Command overrides Docker's CMD, run the Pulse timer against the
+same `NARRATIVE_DATA_DIR` as the web app. The standard container handles this for
+you; an independent SQLite disk on a second service will not share plans.
+Details and verification: [Pulse scheduler handoff](pulse-scheduler-handoff.md).
