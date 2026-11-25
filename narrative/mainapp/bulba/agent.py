@@ -338,7 +338,7 @@ def tool_get_current_setup(session, args):
         "presets": [p.name for p in Preset.objects.filter(user=user)][:20],
         "persona": {"name": getattr(user, "persona_name", "") or "", "description": getattr(user, "persona_description", "") or ""},
         "characters": [{"name": c.name, "description": (c.description or "")[:200]}
-                       for c in Character.objects.filter(author=user)[:20]],
+                       for c in Character.objects.filter(author=user, side_story__isnull=True)[:20]],
     }, []
 
 

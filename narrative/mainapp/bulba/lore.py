@@ -183,7 +183,7 @@ def tool_work_on_character(session, args):
     """Setup only: point Bulba at one of the user's existing characters (its card and lorebook)."""
     from mainapp.models import Character
     name = str(args.get("name") or "").strip()
-    mine = Character.objects.filter(author=session.user)
+    mine = Character.objects.filter(author=session.user, side_story__isnull=True)
     character = mine.filter(name__iexact=name).first() if name else None
     if character is None:
         return {"error": f"No character called “{name}”." if name else "Which one?",

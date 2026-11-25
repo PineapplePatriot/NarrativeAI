@@ -274,7 +274,8 @@ class LookCheckTests(LooksSetup):
         with patch("mainapp.bulba.vision.looker", return_value=("vision/model", "x")), \
              patch("mainapp.bulba.vision.prepare", return_value=("data:x", None)), \
              patch("mainapp.ai_client.complete", return_value=good):
-            self.assertEqual(episode_looks.review(self.user, look, [], (b"drawn", "image/png")), {"ok": True, "issues": []})
+            self.assertEqual(episode_looks.review(self.user, look, [(b"ref", "image/png")], (b"drawn", "image/png")),
+                             {"ok": True, "issues": []})
 
     def test_a_mood_whose_outline_changed_is_flagged_and_can_be_redrawn(self):
         look, _, _ = self.make()

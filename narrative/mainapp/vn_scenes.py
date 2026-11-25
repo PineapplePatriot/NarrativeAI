@@ -582,9 +582,17 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
     return boxes
 
 
+def _story_note(user, scene):
+    """The arc's quiet direction, read fresh from the story (never kept in the scene the page sees)."""
+    from mainapp import stories
+    from mainapp.models import Story
+    story = Story.objects.filter(author=user, pk=scene.get("story_id") or 0).first()
+    return stories.secret_direction(story) if story else ""
+
+
 def start_scene(user, thread=None, characters=None, location_hint="", looks=None,
                 direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay", pulse_event=None, generate_background=False,
-                casting=None, style=None):
+                casting=None, style=None, story=None):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
@@ -600,7 +608,12 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
     if casting and casting["cast"] and not pulse_event:
         chars = [c for c in chars if c.slug in casting["cast"]] or chars  # Bulba's sheet says who is there
 
-    context = vn_support.scene_context(user, thread)
+    if story is not None:
+        from mainapp import stories
+        thread, pulse_event = None, None  # a story scene is its own world: no phone thread, no calendar plan
+        context = stories.scene_context(user, story)
+    else:
+        context = vn_support.scene_context(user, thread)
     if pulse_event:
         # Freeze the plan at launch. Calendar edits cannot rewrite an episode already in progress.
         context["clock"] = pulse_event["when_label"]
@@ -622,6 +635,9 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
 
     telechat_context = ("Earlier memory:\n" + context["memory"] + "\nThread scenario:\n" + context["scenario"]
                         + "\nConversation:\n" + context["conversation"])
+    if story is not None:
+        telechat_context = (f"STORY: {story.title}\n{context['scenario']}\nThe story so far:\n"
+                            + (context["memory"] or "(this is the first scene)"))
 
     model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
@@ -634,6 +650,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
             "length": (style or {}).get("length") if (style or {}).get("length") in vn_story.LENGTHS else "medium",
             "write_out": bool((style or {}).get("write_out", True)),
             "phone_snapshot": copy.deepcopy(thread.data or {}) if thread else {}}
+    if story is not None:
+        seed["story_id"] = story.pk
     if pulse_event:
         seed["pulse_event"] = copy.deepcopy(pulse_event)
     prompt = VN_SCENE_PROMPT.format(
@@ -646,8 +664,10 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
         char_roster=roster_text,
         telechat_context=telechat_context,
         scene_history="(Scene is just beginning — set the stage as they meet!)",
-        step_input=(location_hint or "Begin the in-person scene right where the latest texts left off.")
+        step_input=(location_hint or ("Begin the next scene of the story." if story is not None
+                                      else "Begin the in-person scene right where the latest texts left off."))
                    + ("\n" + vn_casting.brief(casting) if casting else "")
+                   + ("\n" + _story_note(user, seed) if story is not None else "")
                    + "\nUser's writing directions: " + direction,
     )
 
@@ -820,7 +840,8 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
                        + "Continuity record (carry earlier facts forward):\n"
                        + json.dumps(scene.get("continuity") or {}, ensure_ascii=False)
                        + "\nRecent transcript:\n" + "\n".join(hist_lines)),
-        step_input=step_dir + "\nUser's writing directions: " + scene.get("direction", ""),
+        step_input=step_dir + "\nUser's writing directions: " + scene.get("direction", "")
+                   + ("\n" + _story_note(user, scene) if scene.get("story_id") else ""),
     )
 
     scene["beats"] = history
@@ -1209,6 +1230,16 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
                 )
                 messenger.save_thread_data(thread, td)
 
+    if scene.get("story_id"):
+        from mainapp import stories
+        try:
+            kept = stories.record_scene(user, scene, {"summary": chat_summary, "cg_url": cg_url,
+                                                      "cost": gallery_entry.get("cost") if isinstance(gallery_entry.get("cost"), dict)
+                                                      else episode_cost(user, scene.get("cost_since"))})
+        except Exception as exc:  # the episode is saved either way; the story can catch up from the shelf
+            kept, gallery_entry["story_error"] = None, f"The scene is saved, but the story couldn't be updated: {exc}"
+        if kept is not None:
+            gallery_entry["story"] = {"id": kept.story_id, "scene": kept.number, "chapter_card": kept.chapter_card}
     return gallery_entry, float(cost or 0.0)
 
 

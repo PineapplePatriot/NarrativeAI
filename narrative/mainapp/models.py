@@ -75,6 +75,8 @@ class Character(models.Model):
     # More mood pictures than the nine fields above (mainapp/sprites.py): {"first": {emotion: path}, "second": {...}}
     extra_sprites = models.JSONField(default=dict, blank=True)
     sprite_originals = models.JSONField(default=dict, blank=True)  # {sprite name: file path before its cut-out}
+    side_story = models.ForeignKey("Story", on_delete=models.CASCADE, null=True, blank=True, related_name="side_characters")
+    # ↑ a side character Bulba made for one story: plays in its scenes, stays out of the library and the phone
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.
@@ -394,3 +396,43 @@ class EpisodePlace(models.Model):
 
     class Meta:
         ordering = ("-created",)
+
+
+class Story(models.Model):
+    """A long-form visual-novel story, started from scratch: its cast (with side characters made for it), who the
+    user is in it, the world written down as it grows (the bible), and Bulba's arc, hidden unless the user asks."""
+    author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="stories")
+    title = models.CharField(max_length=160)
+    premise = models.TextField(blank=True)
+    setting = models.CharField(max_length=10, default="canon")  # canon, modern or original
+    tone = models.CharField(max_length=300, blank=True)
+    persona = models.JSONField(default=dict, blank=True)  # {"mode": "usual"} or {"mode": "story", "name", "description"}
+    cast = models.ManyToManyField(Character, blank=True, related_name="stories")
+    arc = models.JSONField(default=dict, blank=True)    # {"chapters": [{"title", "goal", "beats", "ends_when"}], "ending", "at"}
+    show_arc = models.BooleanField(default=False)
+    bible = models.JSONField(default=dict, blank=True)  # {"world", "relations", "threads", "timeline"}
+    style = models.JSONField(default=dict, blank=True)  # balance, length, write_out, interaction and authoring modes
+    status = models.CharField(max_length=10, default="playing")  # playing, ended
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated",)
+
+
+class StoryScene(models.Model):
+    """One finished scene of a story: kept whole, so it can be reread and its facts carried forward."""
+    story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name="scenes")
+    number = models.PositiveIntegerField(default=1)
+    chapter = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=160, blank=True)
+    place = models.CharField(max_length=160, blank=True)
+    summary = models.TextField(blank=True)
+    beats = models.JSONField(default=list, blank=True)
+    cg_url = models.CharField(max_length=300, blank=True)
+    cost = models.FloatField(default=0)
+    chapter_card = models.JSONField(default=dict, blank=True)  # set on the scene that closed a chapter
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("number",)

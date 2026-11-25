@@ -55,7 +55,7 @@ def index_page(request):
         return redirect("users:welcome")
     # Your characters, the ones you played most recently first
     from django.db.models import F, Max
-    characters = (Character.objects.filter(author=request.user)
+    characters = (Character.objects.filter(author=request.user, side_story__isnull=True)
                   .annotate(last_played=Max("chats__time_update"))
                   .order_by(F("last_played").desc(nulls_last=True), "-id"))
     context = {
@@ -3005,7 +3005,7 @@ def preset_list(request):
         "job_defaults": presets.JOB_DEFAULTS,
         "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
-        "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
+        "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user, side_story__isnull=True)],
         "starters": starters.for_page(_chat_model(request.user)),
         "experience_control": control.mode_of(presets.normalize(selected.data)),
         "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
@@ -3409,7 +3409,7 @@ class CharactersList(LoginRequiredMixin, ListView):
     def get_queryset(self):
         # Only your own characters, the ones you played most recently first
         from django.db.models import Count, F, Max
-        return (Character.objects.filter(author=self.request.user)
+        return (Character.objects.filter(author=self.request.user, side_story__isnull=True)
                 .annotate(last_played=Max("chats__time_update"), chat_count=Count("chats"))
                 .order_by(F("last_played").desc(nulls_last=True), "-id"))
 
@@ -4195,7 +4195,7 @@ def quick_setup(request):
         url = reverse("chat", kwargs={"slug": character.slug}) if character else None
         return JsonResponse({"status": "ok", "url": url})
     state = _extras_page_state(request.user)
-    characters = list(Character.objects.filter(author=request.user).order_by("-time_update")[:12])
+    characters = list(Character.objects.filter(author=request.user, side_story__isnull=True).order_by("-time_update")[:12])
     picked = request.GET.get("character") or (characters[0].slug if characters else "")
     if request.GET.get("status"):  # the page refreshes its sections after Bulba applies something beside it
         return JsonResponse(_quick_status(request.user, picked, characters))
@@ -4895,7 +4895,7 @@ def bulba_transcript(request):
 
 def _user_characters(user):
     from django.db.models import Q
-    return list(Character.objects.filter(Q(author=user) | Q(is_default=True)).distinct().order_by("-time_create"))
+    return list(Character.objects.filter(Q(author=user) | Q(is_default=True), side_story__isnull=True).distinct().order_by("-time_create"))
 
 
 @login_required
@@ -6245,6 +6245,56 @@ def vn_scenes_api(request):
 
     action = body.get("action") or ""
 
+    the_story = None
+    if action.startswith("story_") or (action in ("casting_propose", "start_scene") and body.get("story_id")):
+        from . import stories
+        try:
+            if action == "story_list":
+                from .models import Story
+                return JsonResponse({"stories": [stories.pack(s) for s in Story.objects.filter(author=request.user)[:60]]})
+            if action == "story_propose":  # Bulba's setup from the user's wishes (one call); nothing is kept yet
+                cast = [char_by_slug[s] for s in (body.get("cast") or []) if isinstance(s, str) and s in char_by_slug][:6]
+                setup = stories.propose(request.user, str(body.get("wishes") or "")[:1500], cast,
+                                        setting=body.get("setting") if body.get("setting") in stories.SETTINGS else "canon",
+                                        tone=str(body.get("tone") or "")[:200],
+                                        persona=body.get("persona") if isinstance(body.get("persona"), dict) else None)
+                return JsonResponse({"setup": setup})
+            if action == "story_create":
+                cast = [char_by_slug[s] for s in (body.get("cast") or []) if isinstance(s, str) and s in char_by_slug][:6]
+                made = stories.create(request.user, body.get("setup") if isinstance(body.get("setup"), dict) else {}, cast,
+                                      setting=body.get("setting"), persona=body.get("persona"),
+                                      style=body.get("style") if isinstance(body.get("style"), dict) else None)
+                return JsonResponse({"story": stories.pack(made, full=True)})
+            if action == "story_scene":  # reread one finished scene of a story
+                return JsonResponse({"scene": stories.scene_beats(request.user, str(body.get("story_scene_id") or "0"))})
+            the_story = stories.owned(request.user, body.get("story_id"))
+            if action == "story_get":
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_show_arc":  # the plan stays hidden unless the user asks to see it
+                the_story.show_arc = bool(body.get("show"))
+                the_story.save(update_fields=["show_arc", "updated"])
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_edit":
+                for field, n in (("title", 160), ("premise", 1500), ("tone", 300)):
+                    if isinstance(body.get(field), str) and body[field].strip():
+                        setattr(the_story, field, body[field].strip()[:n])
+                if body.get("persona") is not None and isinstance(body["persona"], dict) and body["persona"].get("mode") in ("usual", "story"):
+                    the_story.persona = {k: str(body["persona"].get(k) or "")[:1500] for k in ("mode", "name", "description")}
+                if body.get("status") in ("playing", "paused", "ended"):
+                    the_story.status = body["status"]
+                the_story.save()
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_delete":
+                stories.delete(the_story)
+                return JsonResponse({"ok": True})
+            if action.startswith("story_"):
+                return JsonResponse({"error": "Unknown story action."}, status=400)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        char_by_slug.update({c.slug: c for c in the_story.cast.all()})  # its side characters too
+
     if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
         active = vn_scenes.get_vn_state(request.user).get("active_scene") or {}
         if body.get("scene_id") and (body["scene_id"] != active.get("id") or
@@ -6436,6 +6486,11 @@ def vn_scenes_api(request):
         try:
             if not vn_scenes.get_vn_state(request.user).get("active_scene"):
                 vn_scenes.mark_prep(request.user)  # the coming episode's cost counts from its casting
+            if action == "casting_propose" and the_story is not None:  # the next scene of a long-form story
+                cast = list(the_story.cast.all())
+                sheet = vn_casting.propose(request.user, None, cast, wish=str(body.get("wish") or "")[:600],
+                                           director=body.get("authoring_mode") == "director", story=the_story)
+                return JsonResponse({"casting": sheet, "backgrounds": vn_scenes.available_backgrounds(cast, request.user)})
             if action == "casting_propose":  # Bulba's casting sheet for this chat (one call to Bulba's model)
                 t_obj = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id") or 0).prefetch_related("characters").first()
                 if not t_obj:
@@ -6494,6 +6549,8 @@ def vn_scenes_api(request):
             picked = [char_by_slug[s] for s in pulse_event["participants"]]
         if not picked and t_obj:
             picked = list(t_obj.characters.all())
+        if not picked and the_story is not None:
+            picked = list(the_story.cast.all())
         if not picked:
             return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
         hint = str(body.get("location_hint") or "").strip()
@@ -6511,7 +6568,9 @@ def vn_scenes_api(request):
                 pulse_event=pulse_event,
                 generate_background=bool(body.get("generate_background", False)),
                 casting=body.get("casting") if isinstance(body.get("casting"), dict) else None,
-                style={k: body.get(k) for k in ("balance", "length", "write_out") if k in body},
+                style={k: body.get(k) for k in ("balance", "length", "write_out") if k in body}
+                      or ((the_story.style or {}) if the_story is not None else {}),
+                story=the_story,
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)

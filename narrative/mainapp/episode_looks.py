@@ -124,9 +124,12 @@ def _base_prompt(user, character, look):
     seen = identity_line(look.identity)
     return (
         f"A visual-novel character sprite of {who} ({era}).\n"
-        "The attached pictures show this exact person. Draw the same face, hair, eyes, skin, body and art style. "
-        "If anything written below disagrees with the pictures about how they look, the pictures win.\n"
-        + (f"What the reference shows: {seen}\n" if seen else "")
+        + ("The attached pictures show this exact person. Draw the same face, hair, eyes, skin, body and art style. "
+           "If anything written below disagrees with the pictures about how they look, the pictures win.\n"
+           + (f"What the reference shows: {seen}\n" if seen else "")
+           if not (look.identity or {}).get("description") else
+           f"This is a new character: draw them exactly as described, in a clean illustrated visual-novel style.\n"
+           f"How they look: {seen}\n")
         + "Framing: from the knees up, centred, the whole head and hair inside the picture with a little space above. "
         "Tall portrait picture.\n"
         + POSE + "\n"
@@ -321,10 +324,19 @@ def identity(user, refs):
     return {k: " ".join(str(raw.get(k) or "").split())[:200] for k in IDENTITY_FIELDS if str(raw.get(k) or "").strip()}
 
 
+def written_identity(character):
+    """How a side character looks, from their written description (they have no picture yet)."""
+    prof = messenger.char_profile(character)
+    words = " ".join(str(x) for x in (prof.get("appearance_notes"), character.description) if x)
+    return {"description": " ".join(words.split())[:600]} if words.strip() else {}
+
+
 def identity_line(seen):
     seen = seen if isinstance(seen, dict) else {}
     names = {"hair": "hair", "eyes": "eyes", "skin": "skin", "face": "face", "build": "build", "marks": "marks",
              "art_style": "art style"}
+    if seen.get("description") and not any(seen.get(k) for k in IDENTITY_FIELDS):
+        return seen["description"]
     return "; ".join(f"{names[k]}: {seen[k]}" for k in IDENTITY_FIELDS if seen.get(k))
 
 
@@ -346,6 +358,9 @@ def review(user, look, refs, drawn):
     Returns {"ok": True/False/None, "issues": [plain sentences]}; None when the picture couldn't be checked.
     A text call with pictures attached; nothing is redrawn.
     """
+    if not refs:  # a side character's first picture: no reference to compare with, so the general check
+        from mainapp import picture_checks
+        return picture_checks.check(user, "sprite", drawn, [], outfit=look.outfit)
     from mainapp.bulba import vision
     import base64
     try:
@@ -425,10 +440,13 @@ def create(user, character, setting, name, outfit, moods=None, model=None, mood_
     name = " ".join(str(name or "").split())[:60] or "Everyday"
     outfit = str(outfit or "").strip()[:1200]
     refs = references(user, character, setting)
-    if not refs:
+    from_words = not refs and character is not None and character.side_story_id is not None
+    if not refs and not from_words:
         raise ai_client.AIError("There's no picture of them to work from yet: add a "
                                 + ("phone portrait" if setting == "modern" else "neutral sprite") + " first.")
-    seen = identity(user, refs)
+    # A story's side character has no picture yet: the first is drawn from Bulba's description of them, and every
+    # mood after it is an edit of that picture, so they stay the same person from then on.
+    seen = identity(user, refs) if refs else written_identity(character)
     look = EpisodeLook.objects.create(author=user, character=character, setting=setting, name=name, outfit=outfit,
                                       identity=seen, key_colour=pick_key(identity_line(seen) + " " + outfit),
                                       model=picture_model(user, model), trial=bool(trial))

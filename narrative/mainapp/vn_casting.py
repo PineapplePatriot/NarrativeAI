@@ -33,10 +33,21 @@ def _person(user, key, character, thread_data):
             "looks": [{"id": l.pk, "name": l.name, "outfit": l.outfit} for l in looks[:8]]}
 
 
-def context(user, thread, chars, pulse_event=None, director=False):
+def _story_data(story):
+    """A story's end-of-last-scene in the phone's shape: who wears what."""
+    last = (story.bible or {}).get("last") or {}
+    return {"scene": {name: {"wearing": worn} for name, worn in (last.get("outfits") or {}).items()}, "places": {}}
+
+
+def context(user, thread, chars, pulse_event=None, director=False, story=None):
     """Everything Bulba reads for the casting sheet, and what the sheet's choices are checked against."""
-    data = messenger.thread_data(thread) if thread else {}
-    scene = vn_support.scene_context(user, thread)
+    if story is not None:
+        from mainapp import stories
+        thread, pulse_event = None, None
+        data, scene = _story_data(story), stories.scene_context(user, story)
+    else:
+        data = messenger.thread_data(thread) if thread else {}
+        scene = vn_support.scene_context(user, thread)
     people = [_person(user, c.slug, c, data) for c in chars]
     me = _person(user, "user", None, data)
     me.update(name=scene["user_name"], setting=vn_scenes.scene_setting(chars),
@@ -50,7 +61,10 @@ def context(user, thread, chars, pulse_event=None, director=False):
     recent = [{"title": g.get("title", ""), "location": g.get("location", ""), "summary": g.get("summary", "")[:240]}
               for g in (vn_scenes.get_vn_state(user).get("gallery") or [])[-4:]
               if not thread or g.get("thread_id") in (None, thread.pk)]
-    return {"scene": scene, "people": people, "me": me, "director": director, "backdrops": backdrops,
+    if story is not None:
+        recent = [{"title": s.title, "location": s.place, "summary": s.summary[:240]}
+                  for s in list(story.scenes.order_by("-number")[:4])[::-1]]
+    return {"story": story, "scene": scene, "people": people, "me": me, "director": director, "backdrops": backdrops,
             "phone_places": data.get("places") or {}, "recent": recent, "pulse": pulse_event or {}}
 
 
@@ -105,9 +119,9 @@ def _lines(items):
     return "\n".join(items) or "(none)"
 
 
-def propose(user, thread, chars, pulse_event=None, wish="", director=False):
+def propose(user, thread, chars, pulse_event=None, wish="", director=False, story=None):
     """Bulba's casting sheet (one call to Bulba's model), checked against what really exists."""
-    ctx = context(user, thread, chars, pulse_event, director)
+    ctx = context(user, thread, chars, pulse_event, director, story=story)
     sc = ctx["scene"]
     people = ctx["people"] + ([ctx["me"]] if director else [])
     prompt = PROMPT.format(
@@ -125,8 +139,29 @@ def propose(user, thread, chars, pulse_event=None, wish="", director=False):
         recent=_lines(f"- {r['title']} at {r['location']}: {r['summary']}" for r in ctx["recent"]),
         me_rule=", and for `user`" if director else "",
     )
+    if story is not None:
+        prompt = _for_story(prompt, story)
     raw = messenger.ask_json(user, prompt, need=("place", "opening"), max_tokens=2200)
     return clean(raw, ctx)
+
+
+def _for_story(prompt, story):
+    """The same sheet for the next scene of a long-form story: the bible and where the last scene ended, no phone."""
+    bible = story.bible or {}
+    last = bible.get("last") or {}
+    first = not story.scenes.exists()
+    head = ("You are Bulba, preparing the casting sheet for the NEXT SCENE of a long-form visual-novel story "
+            f"(\"{story.title}\", {story.tone or 'its own tone'}). There is no phone chat: the story bible below is the truth.\n"
+            + ("This is the FIRST scene. Its opening: " + (bible.get("opening") or story.premise[:400]) + "\n" if first else
+               f"The last scene ended at {last.get('place') or '?'}, {last.get('time') or '?'}, with "
+               f"{', '.join(last.get('present') or []) or '?'} there. The next scene follows on (later the same day, or "
+               "after a gap the story makes sensible); time only moves forward.\n")
+            + "Timeline so far:\n" + "\n".join(f"- {t}" for t in (bible.get("timeline") or [])[-8:]) + "\n")
+    body = prompt.split("\n", 1)[1] if "\n" in prompt else prompt
+    return head + body.replace("Right now (from the phone)", "What they wore at the end of the last scene").replace(
+        "Recent texts:", "(no texts: this is a story)").replace("PLACES THE PHONE ALREADY DESCRIBED", "PLACES ALREADY DESCRIBED").replace(
+        "RECENT EPISODES", "EARLIER SCENES OF THE STORY").replace("Don't invent events the chat doesn't support.",
+                                                                  "Don't invent events the story doesn't support.")
 
 
 def clean(raw, ctx):
