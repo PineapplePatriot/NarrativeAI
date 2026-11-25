@@ -158,3 +158,5 @@
 .g-pc-fields label { display: flex; flex-direction: column; gap: 4px; font-size: .9em; }
 @media (max-width: 640px) { .g-pc-fields { grid-template-columns: 1fr; } }
 .g-pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* crops shown as their own pixel pictures */
+.g-ci { image-rendering: pixelated; vertical-align: middle; object-fit: contain; }

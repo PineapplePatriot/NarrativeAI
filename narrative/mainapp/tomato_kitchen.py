@@ -37,7 +37,40 @@ RECIPES = {
     "monstrous_salad": {"name": "Monstrous salad (it bites back)", "emoji": "🥗", "needs": {"seed_monster": 1, "seed_carrot": 2},
                         "boost": ("luck", 3, "mutations three times as likely for 4 hours"),
                         "line": "It is eating the croutons. Let it."},
+    "ratatouille": {"name": "Ratatouille", "emoji": "🥘", "needs": {"seed_eggplant": 1, "seed_pepper": 1, "seed_tomato": 1},
+                    "boost": ("grow", 4, "every plant grows 4 hours at once"),
+                    "line": "Layered in a spiral, because you were raised right."},
+    "strawberry_tart": {"name": "Strawberry tart", "emoji": "🍓", "needs": {"seed_strawberry": 3, "seed_sunflower": 1},
+                        "boost": ("luck", 2, "mutations twice as likely for 6 hours"),
+                        "line": "Mirela would call it “acceptable”. That's her highest praise."},
     # --- secret: found by trying ---
+    "pesto": {"name": "Pesto", "emoji": "🌿", "needs": {"seed_basil": 2, "seed_garlic": 1}, "secret": True,
+              "boost": ("compost", 1, "+1 compost on every harvest for 6 hours"),
+              "line": "Signora Rosa can smell it from her balcony. She sings a little louder."},
+    "borscht": {"name": "Borscht", "emoji": "🍲", "needs": {"seed_beet": 2, "seed_carrot": 1, "seed_garlic": 1}, "secret": True,
+                "boost": ("grow", 5, "every plant grows 5 hours at once"),
+                "line": "The colour of a good winter. Nonna Lyuba would nod once. That's enough."},
+    "pea_soup": {"name": "Pea soup", "emoji": "🥣", "needs": {"seed_peas": 3}, "secret": True,
+                 "boost": ("compost", 1, "+1 compost on every harvest for 6 hours"),
+                 "line": "Thick enough to stand a spoon in. The spoon is fine with this."},
+    "strawberry_jam": {"name": "Strawberry jam", "emoji": "🍯", "needs": {"seed_strawberry": 3}, "secret": True,
+                       "boost": ("water", 2, "every tomato you throw waters twice as much for 6 hours"),
+                       "line": "Six jars. Four by tomorrow. You know why."},
+    "chili_sauce": {"name": "Chili sauce", "emoji": "🌶️", "needs": {"seed_chili": 2, "seed_tomato": 1}, "secret": True,
+                    "boost": ("water", 3, "every tomato you throw waters three times as much for 4 hours"),
+                    "line": "Bulba tasted it and has not spoken since. Respectfully."},
+    "blueberry_pie": {"name": "Blueberry pie", "emoji": "🥧", "needs": {"seed_blueberry": 2, "seed_strawberry": 1}, "secret": True,
+                      "boost": ("luck", 2, "mutations twice as likely for 6 hours"),
+                      "line": "Your teeth are blue now. It was worth it."},
+    "melon_salad": {"name": "Watermelon and basil", "emoji": "🍉", "needs": {"seed_watermelon": 1, "seed_basil": 1}, "secret": True,
+                    "boost": ("grow", 3, "every plant grows 3 hours at once"),
+                    "line": "Cold, sweet, green-smelling. Summer, in a bowl."},
+    "stuffed_peppers": {"name": "Stuffed peppers", "emoji": "🫑", "needs": {"seed_pepper": 2, "seed_tomato": 1, "seed_garlic": 1}, "secret": True,
+                        "boost": ("compost", 2, "+2 compost on every harvest for 6 hours"),
+                        "line": "Each one a small, warm, generous house."},
+    "mandrake_tonic": {"name": "Mandrake tonic", "emoji": "🧪", "needs": {"seed_mandrake": 1, "seed_garlic": 1}, "secret": True,
+                       "boost": ("luck", 3, "mutations three times as likely for 4 hours"),
+                       "line": "It screamed going in. It's quiet now. Drink it before it changes its mind."},
     "ketchup": {"name": "Homemade ketchup", "emoji": "🥫", "needs": {"seed_tomato": 4}, "secret": True,
                 "boost": ("water", 2, "every tomato you throw waters twice as much for 6 hours"),
                 "line": "Bulba looks at the jar for a long time. It says nothing. It is moved."},
@@ -67,7 +100,7 @@ RECIPES = {
 FAILED = {"name": "Something brown", "emoji": "🟤", "line": "The stove made a noise you'll be thinking about tonight."}
 HOURS = {"compost": 6, "luck": 6, "water": 6}
 for _r in RECIPES.values():
-    if _r["boost"][0] == "luck" and "4 hours" in _r["boost"][2]:
+    if _r["boost"][0] != "grow" and "4 hours" in _r["boost"][2]:
         _r["hours"] = 4
 
 

@@ -19,7 +19,8 @@
     // --- Pixel art: rows of letters, one letter per pixel (palette below), '.' is see-through ---
     const PAL = { k: '#1d1b26', g: '#3f9b3a', G: '#2b6b27', l: '#86cf5e', b: '#7a5232', B: '#4f341f', r: '#e0352b', R: '#9e1f17',
         o: '#f07b1d', O: '#b4550f', y: '#f5cf3a', Y: '#c9971a', w: '#ffffff', c: '#efe9dc', s: '#f1c27d', S: '#c98e5a', u: '#4aa8e8',
-        q: '#8fe3dc', Q: '#3f9fa6', U: '#2a6aa3', n: '#a3acb8', N: '#646d7a', p: '#8e3fb8', P: '#5a2577', t: '#c49155', T: '#8f6331', h: '#e8d28a', H: '#b89a4a', m: '#ff7aa8' };
+        q: '#8fe3dc', Q: '#3f9fa6', U: '#2a6aa3', n: '#a3acb8', N: '#646d7a', p: '#8e3fb8', P: '#5a2577', t: '#c49155', T: '#8f6331', h: '#e8d28a', H: '#b89a4a', m: '#ff7aa8',
+        e: '#a3194f', E: '#6a0f33', v: '#3b4fa8', V: '#232f6b', d: '#1f5a24', z: '#d8cbb0', a: '#ffd6e4' };
     const cache = new Map();
     function sprite(name, rows, swap = {}) {
         const key = name + JSON.stringify(swap);
@@ -34,6 +35,15 @@
         }));
         cache.set(key, c);
         return c;
+    }
+    // A crop's own little picture (its ripe sprite), for buttons and lists instead of an emoji
+    const iconCache = {};
+    function cropImg(seed, size = 20) {  // (a mutation's seed shows the mutation's colours)
+        const c = (st && st.crops && st.crops[seed]) || {}, base = c.base || seed, v = VARIANT[c.variant];
+        const art = ART['ripe_' + base];
+        if (!art) return prizeOf(seed).emoji;
+        if (!iconCache[seed]) iconCache[seed] = sprite('ripe_' + base + (v ? '_' + c.variant : ''), art, v ? v.ripe : {}).toDataURL();
+        return `<img class="g-ci" src="${iconCache[seed]}" width="${size}" height="${size}" alt="">`;
     }
     const ART = {
         seed: ['.......l........', '......lgl.......', '.....BBBBBB.....', '....BBkBBkBB....'],
@@ -51,6 +61,29 @@
                 '.......g........', '......bgb.......'],
         ripe_seed_pumpkin: ['........G.......', '.......Gg..l....', '...ooooGooo.gl..', '..oOooOoooOo....', '.ooOooOoooOoo...',
                 '.ooOooOoooOoo...', '..oOooOoooOo....', '...ooooooooo....'],
+        // 🌱 The newer crops, ripe
+        ripe_seed_peas: ['.b..........b...', '.bbbbbbbbbbbb...', '.b..lgl..lg.b...', '.b.lG.g.GlG.b...', '.b.lG.gglGl.b...',
+                '.b.lG..g.Gl.b...', '.b..l.lgl.l.b...', '.b....lgl...b...', '.b.....g....b...', '.b....bgb...b...'],
+        ripe_seed_beet: ['...l.....l......', '..lgl...lgl.....', '..lel.l.lel.....', '...lelglel......', '....leeel.......',
+                '....eeeee.......', '...eeeEeee......', '...eeEeeee......', '....eeeee.......', '......e.........'],
+        ripe_seed_basil: ['.....l..........', '....lgl.........', '..l.lgl.l.......', '.lgl.g.lgl......', '.lggl.lggl......',
+                '..lglgglg.......', '.l..lgl..l......', 'lgl.lgl.lgl.....', 'lggl.g.lggl.....', '.lgggggggl......', '.....g..........', '....bgb.........'],
+        ripe_seed_garlic: ['.....l.l........', '.....g.g........', '....l.gg.l......', '.....lgg........', '......g.........',
+                '.....czc........', '....czczc.......', '...czzczzc......', '...cczczcc......', '....ccccc.......', '.....n.n........'],
+        ripe_seed_strawberry: ['....l...l.......', '...lgl.lgl......', '..lgggggggl.....', '...lgwglgl......', '.g..g..g..g.....',
+                'GrG.g..g.GrG....', 'rhr.g.lgl.rhr...', 'rrr..g...rrr....', '.r...g....r.....', '....bgb.........'],
+        ripe_seed_eggplant: ['....l..l........', '...lglgl........', '....lgl.........', '.....g..........', '....GgG.........',
+                '...pPppp........', '..pppppPp.......', '..ppwppPp.......', '..pppppPp.......', '...pppPp........', '....PPP.........'],
+        ripe_seed_pepper: ['......g.........', '.....Gg.........', '...rrrgrr.......', '..rRrrrrRr......', '..rrrrrrRr......',
+                '..rrwrrrRr......', '..rrrrrrRr......', '..rRrrrrRr......', '...rrRRrr.......', '....rR.r........'],
+        ripe_seed_chili: ['....l...l.......', '...lgl.lgl......', '..lglgggglg.....', '...gr..g.rg.....', '...r..g..r......',
+                '..rr..g..rr.....', '..r..lgl..r.....', '..R...g...R.....', '......g.........', '.....bgb........'],
+        ripe_seed_blueberry: ['....lglgl.......', '..lglgglgl......', '.lgvgglgvgl.....', '.gvVglgvVgl.....', '.lglgvgglgl.....',
+                '..gvVglgvg......', '..lglgvVgl......', '....lgggl.......', '.....bgb........', '.....bbb........'],
+        ripe_seed_watermelon: ['.......l..l.....', '......lgl.g.....', '.....g...g......', '...dgdgdgdgd....', '..dgdgdgdgdgd...',
+                '.dgdgdgdgdgdgd..', '.dgdgdgdgdgdgd..', '..dgdgdgdgdgd...', '...dgdgdgdgd....'],
+        ripe_seed_mandrake: ['...l.l.l........', '..lglglgl.......', '...lgggl........', '....ggg.........', '...tttttt.......',
+                '..ttkttktt......', '..tttttttt......', '..ttTkkTtt......', '...tttttt.......', '..bbbbbbbb......'],
         gnome: ['....r.....', '...rr.....', '...rrr....', '..rrrrr...', '..sssss...', '..skssk...', '.wwwwwww..', '..wwwww...',
                 '..uuuuu...', '.suuuuus..', '..uuuuu...', '..k...k...'],
         bench: ['.SSSSSSSSSSSSSS.', '.bbbbbbbbbbbbbb.', '.SSSSSSSSSSSSSS.', '.bbbbbbbbbbbbbb.', '................', '.SSSSSSSSSSSSSS.',
@@ -104,25 +137,61 @@
         visitor_dattore: [['..kk..kk..', '..kk..kk..'], ['...kk.kk..', '...kk.kk..']],
         visitor_pantaleone: [['..kk..kk..', '..PP..PP..'], ['...kk.kk..', '...PP.PP..']],
     };
-    const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm' };
+    const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm', seed_peas: 'w', seed_beet: 'y',
+        seed_basil: 'w', seed_garlic: 'm', seed_strawberry: 'w', seed_eggplant: 'p', seed_pepper: 'w', seed_chili: 'w', seed_blueberry: 'a',
+        seed_watermelon: 'y', seed_mandrake: 'p' };
     // 🧬 A mutation looks like one from the sprout on: its leaves tinted (leaf), its ripe crop recoloured (ripe), its
-    // flower (flower), a little effect (fx: glow, sparkle, stripes, legs, wink, face, zz, hat, twin) and a size (scale)
+    // flower (flower), a little effect (fx: glow, sparkle, stripes, legs, wink, face, zz, hat, twin,
+    // notes, smoke, crown, scream) and a size (scale)
     const VARIANT = {
-        heart_tomato: { leaf: { g: 'G' }, flower: 'm', ripe: { r: 'm', R: 'r' }, fx: 'hearts' },
+        heart_tomato: { leaf: { l: 'm' }, flower: 'm', ripe: { r: 'm', R: 'r' }, fx: 'hearts' },
         stripy_tomato: { leaf: { l: 'h' }, flower: 'y', ripe: { R: 'y' }, fx: 'stripes' },
         golden_tomato: { leaf: { l: 'y', g: 'Y' }, flower: 'y', ripe: { r: 'y', R: 'Y' }, fx: 'glow', glow: '255,214,90' },
-        twin_carrot: { leaf: { l: 'g' }, flower: 'w', ripe: {}, fx: 'twin' },
+        twin_carrot: { leaf: { l: 'h' }, flower: 'w', ripe: {}, fx: 'twin' },
         purple_carrot: { leaf: { l: 'm' }, flower: 'p', ripe: { o: 'p', O: 'P' } },
-        legs_carrot: { leaf: { g: 'G' }, flower: 'w', ripe: {}, fx: 'legs' },
-        giant_sunflower: { leaf: {}, flower: 'y', ripe: {}, scale: 1.35 },
+        legs_carrot: { leaf: { l: 'o' }, flower: 'w', ripe: {}, fx: 'legs' },
+        giant_sunflower: { leaf: { l: 'y' }, flower: 'y', ripe: {}, scale: 1.35 },
         night_sunflower: { leaf: { l: 'q', g: 'Q' }, flower: 'q', ripe: { y: 'q', Y: 'Q', B: 'U' }, fx: 'glow', glow: '143,227,220', night: true },
-        winking_sunflower: { leaf: {}, flower: 'y', ripe: {}, fx: 'wink' },
-        giant_pumpkin: { leaf: {}, flower: 'y', ripe: {}, scale: 1.4 },
-        smiling_pumpkin: { leaf: {}, flower: 'o', ripe: {}, fx: 'face' },
+        winking_sunflower: { leaf: { l: 'h', g: 'Y' }, flower: 'y', ripe: {}, fx: 'wink' },
+        giant_pumpkin: { leaf: { l: 'o' }, flower: 'y', ripe: {}, scale: 1.4 },
+        smiling_pumpkin: { leaf: { l: 'y', g: 'O' }, flower: 'o', ripe: {}, fx: 'face' },
         glass_pumpkin: { leaf: { l: 'q', g: 'Q' }, flower: 'q', ripe: { o: 'q', O: 'Q' }, fx: 'sparkle', alpha: .75 },
         glowing_monster: { leaf: { l: 'q' }, flower: 'm', ripe: {}, fx: 'glow', glow: '255,122,168' },
         sleepy_monster: { leaf: { l: 'n', g: 'N' }, flower: 'p', ripe: { m: 'n' }, fx: 'zz' },
-        polite_monster: { leaf: {}, flower: 'm', ripe: {}, fx: 'hat' },
+        polite_monster: { leaf: { l: 'n', g: 'k' }, flower: 'm', ripe: {}, fx: 'hat' },
+        giant_peas: { leaf: { l: 'h' }, flower: 'w', ripe: {}, scale: 1.4 },
+        rainbow_peas: { leaf: { l: 'm' }, flower: 'm', ripe: { l: 'm', G: 'p' }, fx: 'sparkle' },
+        chatty_peas: { leaf: { l: 'y' }, flower: 'y', ripe: {}, fx: 'notes' },
+        heart_beet: { leaf: { l: 'm' }, flower: 'm', ripe: { e: 'm', E: 'r' }, fx: 'hearts' },
+        golden_beet: { leaf: { l: 'y' }, flower: 'y', ripe: { e: 'y', E: 'Y' }, fx: 'glow', glow: '255,214,90' },
+        vampire_beet: { leaf: { l: 'n', g: 'N' }, flower: 'r', ripe: { e: 'R', E: 'k' }, fx: 'face', glow: '224,53,43', night: true },
+        purple_basil: { leaf: { l: 'p', g: 'P' }, flower: 'm', ripe: { l: 'p', g: 'P' } },
+        giant_basil: { leaf: { l: 'd' }, flower: 'w', ripe: {}, scale: 1.45 },
+        singing_basil: { leaf: { l: 'q' }, flower: 'q', ripe: { l: 'q' }, fx: 'notes' },
+        twin_garlic: { leaf: { l: 'c' }, flower: 'm', ripe: {}, fx: 'twin' },
+        black_garlic: { leaf: { l: 'n', g: 'N' }, flower: 'k', ripe: { c: 'N', z: 'k' } },
+        ward_garlic: { leaf: { l: 'h' }, flower: 'w', ripe: { z: 'h' }, fx: 'sparkle', glow: '255,246,176' },
+        giant_strawberry: { leaf: { l: 'r' }, flower: 'w', ripe: {}, scale: 1.4 },
+        white_strawberry: { leaf: { l: 'c' }, flower: 'w', ripe: { r: 'c', h: 'r' } },
+        heart_strawberry: { leaf: { l: 'm', g: 'e' }, flower: 'm', ripe: { r: 'm' }, fx: 'hearts' },
+        stripy_eggplant: { leaf: { l: 'h' }, flower: 'w', ripe: {}, fx: 'stripes', stripe: 'c' },
+        white_eggplant: { leaf: { l: 'c' }, flower: 'w', ripe: { p: 'c', P: 'n', w: 'z' } },
+        smug_eggplant: { leaf: { l: 'p', g: 'P' }, flower: 'p', ripe: {}, fx: 'face' },
+        rainbow_pepper: { leaf: { l: 'y' }, flower: 'o', ripe: { R: 'y', w: 'o' }, fx: 'stripes', stripe: 'g' },
+        tiny_pepper: { leaf: { l: 'r' }, flower: 'w', ripe: {}, scale: .7 },
+        lantern_pepper: { leaf: { l: 'o' }, flower: 'o', ripe: { r: 'o', R: 'O' }, fx: 'glow', glow: '240,123,29', night: true },
+        ghost_chili: { leaf: { l: 'c', g: 'n' }, flower: 'w', ripe: { r: 'w', R: 'n' }, alpha: .7 },
+        blue_chili: { leaf: { l: 'q' }, flower: 'u', ripe: { r: 'u', R: 'U' } },
+        dragon_chili: { leaf: { l: 'o', g: 'R' }, flower: 'r', ripe: { r: 'o', R: 'r' }, fx: 'smoke', glow: '255,120,40' },
+        giant_blueberry: { leaf: { l: 'v' }, flower: 'a', ripe: {}, scale: 1.35 },
+        pink_blueberry: { leaf: { l: 'm' }, flower: 'm', ripe: { v: 'm', V: 'e' } },
+        starry_blueberry: { leaf: { l: 'U' }, flower: 'u', ripe: { v: 'U', V: 'k' }, fx: 'sparkle', glow: '143,170,255', night: true },
+        yellow_watermelon: { leaf: { l: 'y' }, flower: 'y', ripe: { d: 'Y', g: 'y' } },
+        giant_watermelon: { leaf: { l: 'd' }, flower: 'y', ripe: {}, scale: 1.45 },
+        smiling_watermelon: { leaf: { l: 'd', g: 'd' }, flower: 'y', ripe: {}, fx: 'face' },
+        sleepy_mandrake: { leaf: { l: 'n', g: 'N' }, flower: 'p', ripe: { k: 'T' }, fx: 'zz' },
+        crowned_mandrake: { leaf: { l: 'y' }, flower: 'y', ripe: {}, fx: 'crown' },
+        screaming_mandrake: { leaf: { l: 'r', g: 'R' }, flower: 'r', ripe: {}, fx: 'scream' },
     };
     const HATS = { '👑': 'hat_crown', '👒': 'hat_straw', '🎩': 'hat_top' };
     const LINES = {
@@ -273,13 +342,19 @@
             grd.addColorStop(0, `rgba(${v.glow},${a + .15})`); grd.addColorStop(1, `rgba(${v.glow},0)`);
             g.fillStyle = grd; g.fillRect(x - 6, y - 6, w + 12, h + 12);
         }
-        if (stg !== 'ripe') {  // while growing: a hint (a sparkle now and then) that it isn't an ordinary plant
-            if (moving && Math.sin(sec * 2.3 + x) > .8) { g.fillStyle = '#fff6b0'; g.fillRect(x + (x * 7) % w, y + 1, 1, 1); }
+        if (stg !== 'ripe') {  // while growing: a pulsing mark in the mutation's own colour, so it's never mistaken for an ordinary plant
+            if (stg === 'seed') return;
+            const t = moving ? (Math.sin(sec * 3 + x) + 1) / 2 : 1;
+            g.globalAlpha = .5 + .5 * t;
+            g.fillStyle = PAL[v.flower] || '#fff6b0';
+            g.fillRect(x + w - 4, y, 2, 2); g.fillRect(x + w - 6, y + 2, 1, 1); g.fillRect(x + w - 2, y + 2, 1, 1);
+            g.fillStyle = '#fffbe0'; g.fillRect(x + w - 4 + (t > .5 ? 1 : 0), y - 1, 1, 1);
+            g.globalAlpha = 1;
             return;
         }
         const P = (c, px, py, pw = 1, ph = 1) => { g.fillStyle = PAL[c] || c; g.fillRect(x + px, y + py, pw, ph); };
         if (v.fx === 'hearts' && moving) { const k = (sec * .8 + x) % 3; P('m', 3, -k * 2, 1, 1); P('m', 5, -k * 2, 1, 1); P('m', 4, -k * 2 + 1, 1, 1); }
-        if (v.fx === 'stripes') for (let i = 1; i < w - 1; i += 3) P('y', i, Math.floor(h / 2), 1, 2);
+        if (v.fx === 'stripes') for (let i = 1; i < w - 1; i += 3) P(v.stripe || 'y', i, Math.floor(h / 2), 1, 2);
         if (v.fx === 'sparkle' && moving && Math.sin(sec * 4 + x) > .6) P('w', (Math.floor(sec * 3) * 5) % w, 2 + (Math.floor(sec * 3) * 3) % (h - 4));
         if (v.fx === 'legs') { P('o', w / 2 - 2, h, 1, 3); P('o', w / 2 + 1, h, 1, 3); if (moving && Math.floor(sec * 2) % 2) P('o', w / 2 + 2, h + 2); }
         if (v.fx === 'wink') { P('k', 6, 2, 1, 1); P('k', 8, 2, 2, 1); P('k', 6, 4, 4, 1); }
@@ -287,6 +362,10 @@
         if (v.fx === 'zz' && moving) { const k = (sec * .7) % 3; P('w', w - 3, -k * 2, 2, 1); P('w', w - 2, -k * 2 + 1); P('w', w - 3, -k * 2 + 2, 2, 1); }
         if (v.fx === 'hat') { P('k', 2, -3, 5, 3); P('k', 1, 0, 7, 1); P('r', 2, -1, 5, 1); }
         if (v.fx === 'twin') put(img, x + 4, y + 1);
+        if (v.fx === 'notes' && moving) { const k = (sec * .9 + x) % 4; P('k', w - 4, -k * 2, 1, 3); P('k', w - 5, -k * 2 + 2, 2, 1); P('k', w - 4, -k * 2, 2, 1); }
+        if (v.fx === 'smoke' && moving) { const k = (sec * 1.2 + x) % 4; P('n', 3 + (k > 2 ? 1 : 0), 2 - k * 2, 2, 1); P('c', 4, 1 - k * 3, 1, 1); }
+        if (v.fx === 'crown') { P('y', 3, 1, 1, 1); P('y', 5, 0, 1, 1); P('y', 7, 1, 1, 1); P('y', 3, 2, 5, 2); P('r', 5, 2); }
+        if (v.fx === 'scream') { P('k', 4, 6, 3, 2); P('r', 5, 7); if (moving && Math.floor(sec * 3) % 2) { P('w', -2, 2, 1, 3); P('w', w, 2, 1, 3); } }
     }
     // 🏡 The cottage, drawn in the stages built so far (mainapp/tomato_house.py); scaffolding while one is being built
     function cottage(sec, h, moving, night) {
@@ -520,7 +599,7 @@
         if (!t) {
             const seeds = Object.keys(st.basket).filter(k => st.crops[k]), decor = Object.keys(st.basket).filter(k => !st.crops[k]);
             box.innerHTML = `<h3>An empty patch</h3>${seeds.length ? `<div class="g-small muted">Plant</div><div class="g-row">${seeds.map(k =>
-                `<button type="button" class="na-btn" data-do="plant" data-id="${k}">${prizeOf(k).emoji} ${esc(st.crops[k].name)} ×${st.basket[k]}</button>`).join('')}</div>` : ''}
+                `<button type="button" class="na-btn" data-do="plant" data-id="${k}">${cropImg(k)} ${esc(st.crops[k].name)} ×${st.basket[k]}</button>`).join('')}</div>` : ''}
                 ${decor.length ? `<div class="g-small muted">Place</div><div class="g-row">${decor.map(k =>
                 `<button type="button" class="na-btn" data-do="place" data-id="${k}">${prizeOf(k).emoji} ${esc(prizeOf(k).name)}</button>`).join('')}</div>` : ''}
                 ${!seeds.length && !decor.length ? '<p class="muted">Your basket is empty. The Sauce-o-Matic gives out seeds and decorations.</p>' : ''}`;
@@ -567,7 +646,7 @@
         const items = Object.entries(st.basket);
         $('gBasket').innerHTML = items.length ? `<div class="g-basket">${items.map(([k, n]) => `<button type="button" class="g-bitem${armed === k ? ' armed' : ''}"
                 draggable="true" data-item="${k}" title="Drag it onto a patch, or tap it and then a patch">
-                <span class="e">${prizeOf(k).emoji}</span><span>${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)}</span><b>×${n}</b></button>`).join('')}</div>`
+                <span class="e">${st.crops[k] ? cropImg(k, 24) : prizeOf(k).emoji}</span><span>${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)}</span><b>×${n}</b></button>`).join('')}</div>`
             : '<p class="muted g-small">Empty. Seeds and decorations come from the Sauce-o-Matic.</p>';
         $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
         const gard = (x, on) => `<div class="g-gard${on ? '' : ' resting'}"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br>
@@ -603,7 +682,7 @@
         else if (hs.building) body = `<p class="g-next">🔨 ${esc(hs.builder)} is building. Ready in about <b>${dur(hs.building)}</b>.</p>`;
         else {
             const missing = c.needs.some(x => x.have < x.n) || (c.mutations && c.found < c.mutations);
-            const chips = c.needs.map(x => `<span class="g-chip${x.have >= x.n ? ' full' : ''}">${x.seed === 'seed_tomato' ? '🍅' : prizeOf(x.seed).emoji} ${x.have}/${x.n}</span>`).join('')
+            const chips = c.needs.map(x => `<span class="g-chip${x.have >= x.n ? ' full' : ''}">${cropImg(x.seed)} ${x.have}/${x.n}</span>`).join('')
                 + (c.mutations ? `<span class="g-chip${c.found >= c.mutations ? ' full' : ''}" title="Different mutations found">🧬 ${Math.min(c.found, c.mutations)}/${c.mutations}</span>` : '');
             const canGive = c.needs.some(x => x.have < x.n && (st.shelf || {})[x.seed]);
             body = missing
@@ -644,7 +723,7 @@
     function paintKitchen() {
         const box = $('gKitchen'), k = st.kitchen;
         if (!box || !k) return;
-        const cropIcon = (seed) => seed === 'seed_tomato' ? '🍅' : prizeOf(seed).emoji;
+        const cropIcon = (seed) => cropImg(seed, 22);
         $('gBoosts').textContent = (k.boosts || []).map(b => ({ compost: `🍞 +${b.n} compost a harvest`, luck: `🍰 mutations ×${b.n}`,
             water: `🥫 watering ×${b.n}` })[b.kind] + ` · ${dur(b.left)}`).join(' · ');
         if (!k.open) {
@@ -752,10 +831,11 @@
     const WRAP_LOOK = { kraft: ['#c79a66', '#a8794a'], newspaper: ['#ece7da', '#9a958a'], lace: ['#fbf8f2', '#d9cfc0'], ribbon: null };
     function bouquetSvg(stems, wrap, size = 96) {
         // stems drawn as a fan: greenery at the back, flowers in the middle, the odd accent in front
-        const order = ['seed_carrot', 'seed_tomato', 'seed_sunflower', 'seed_monster'];
+        const order = ['seed_carrot', 'seed_basil', 'seed_peas', 'seed_tomato', 'seed_strawberry', 'seed_blueberry', 'seed_chili', 'seed_sunflower', 'seed_monster'];
+        const GREENS = ['seed_carrot', 'seed_basil', 'seed_peas'];
         const list = [];
         order.forEach(k => { for (let i = 0; i < (stems[k] || 0); i++) list.push(k); });
-        const back = list.filter(k => k === 'seed_carrot'), front = list.filter(k => k !== 'seed_carrot');
+        const back = list.filter(k => GREENS.includes(k)), front = list.filter(k => !GREENS.includes(k));
         const fan = (arr, r, spread) => arr.map((k, i) => {
             const a = (arr.length === 1 ? 0 : (i / (arr.length - 1) - .5) * spread) * Math.PI / 180;
             return { k, x: 50 + Math.sin(a) * r, y: 92 - Math.cos(a) * r };
@@ -767,6 +847,17 @@
             const x = p.x.toFixed(1), y = p.y.toFixed(1);
             if (p.k === 'seed_carrot') {
                 for (let j = -2; j <= 2; j++) s += `<path d="M${x} ${y} l${j * 4} -9" stroke="#6fbf4a" stroke-width="2.4" stroke-linecap="round"/>`;
+            } else if (p.k === 'seed_basil') {
+                [[-4, -3], [3, -4], [0, -8], [-2, 2], [3, 1]].forEach(([dx, dy]) => { s += `<ellipse cx="${(p.x + dx).toFixed(1)}" cy="${(p.y + dy).toFixed(1)}" rx="3.4" ry="2.4" fill="#4fae3c" stroke="#2f7a28" stroke-width=".6"/>`; });
+            } else if (p.k === 'seed_peas') {
+                s += `<path d="M${x} ${y} q6 -4 3 -10 M${x} ${y} q-6 -2 -4 -9" stroke="#86cf5e" stroke-width="1.6" fill="none"/><ellipse cx="${p.x + 3}" cy="${p.y - 3}" rx="2" ry="5" fill="#6fbf4a" stroke="#3f8f2f" stroke-width=".6"/><circle cx="${p.x - 3}" cy="${p.y - 8}" r="1.8" fill="#fff"/>`;
+            } else if (p.k === 'seed_strawberry') {
+                s += `<path d="M${p.x - 5} ${p.y - 2} q5 -3 10 0 q-1 8 -5 10 q-4 -2 -5 -10Z" fill="#e0352b"/><path d="M${p.x - 4} ${p.y - 3} l4 2 l4 -2 l-4 -2Z" fill="#3f8f2f"/>`
+                    + [[-2, 1], [2, 1], [0, 4]].map(([dx, dy]) => `<circle cx="${p.x + dx}" cy="${p.y + dy}" r=".7" fill="#f5cf3a"/>`).join('');
+            } else if (p.k === 'seed_blueberry') {
+                s += [[-3, 0], [3, 0], [0, -4], [0, 3]].map(([dx, dy]) => `<circle cx="${p.x + dx}" cy="${p.y + dy}" r="3" fill="#3b4fa8"/><circle cx="${p.x + dx - .8}" cy="${p.y + dy - .8}" r=".9" fill="#8fa2e8"/>`).join('');
+            } else if (p.k === 'seed_chili') {
+                s += `<path d="M${p.x - 1} ${p.y - 6} q-3 8 3 14 q1 -9 -1 -14Z" fill="#e0352b" stroke="#9e1f17" stroke-width=".6"/><path d="M${p.x - 2} ${p.y - 7} h3" stroke="#3f8f2f" stroke-width="1.6"/>`;
             } else if (p.k === 'seed_tomato') {
                 s += `<circle cx="${x}" cy="${y}" r="6" fill="#e0402f"/><circle cx="${p.x - 2}" cy="${p.y - 2}" r="1.6" fill="#ff9a86"/><path d="M${p.x - 3} ${p.y - 6} l3 2 l3 -2" stroke="#3f8f2f" stroke-width="1.6" fill="none"/>`;
             } else if (p.k === 'seed_sunflower') {
@@ -795,11 +886,12 @@
         Object.keys(bunch).forEach(k => { if (!shelf[k]) delete bunch[k]; });
         const total = Object.values(bunch).reduce((a, b) => a + b, 0);
         const flower = Object.keys(bunch).some(k => c.stems[k] === 'flower' && bunch[k] > 0);
-        const label = { seed_sunflower: ['🌻', 'Sunflower'], seed_monster: ['🌺', 'Monstrous flower'], seed_carrot: ['🌿', 'Carrot tops'], seed_tomato: ['🍅', 'Tomato sprig'] };
+        const label = { seed_sunflower: 'Sunflower', seed_monster: 'Monstrous flower', seed_carrot: 'Carrot tops', seed_tomato: 'Tomato sprig',
+            seed_basil: 'Basil', seed_peas: 'Pea vine', seed_strawberry: 'Strawberries', seed_blueberry: 'Blueberries', seed_chili: 'A chili' };
         const have = Object.keys(c.stems).filter(k => shelf[k]);
         let html = `<div class="g-craft-cols"><div class="g-arrange"><h3 class="g-sub">Arrange a bouquet</h3>`;
         html += have.length ? `<p class="muted g-small">${c.min_stems} to ${c.max_stems} stems from the shelf, at least one flower. Variety makes it charming.</p>
-            <div class="g-potpick">${have.map(k => `<div class="g-potrow"><span class="e">${label[k][0]}</span><span>${label[k][1]} <small class="muted">(${shelf[k]})</small></span>
+            <div class="g-potpick">${have.map(k => `<div class="g-potrow"><span class="e">${cropImg(k, 22)}</span><span>${label[k]} <small class="muted">(${shelf[k]})</small></span>
                 <button type="button" class="na-btn" data-stem="${k}" data-d="-1" ${bunch[k] ? '' : 'disabled'}>−</button><b>${bunch[k] || 0}</b>
                 <button type="button" class="na-btn" data-stem="${k}" data-d="1" ${(bunch[k] || 0) < shelf[k] && total < c.max_stems ? '' : 'disabled'}>+</button></div>`).join('')}</div>
             <div class="g-wraps">${Object.entries(c.wraps).map(([k, t]) => `<label><input type="radio" name="gWrap" value="${k}" ${wrapPick === k ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
@@ -807,7 +899,7 @@
             <input type="text" id="gBqName" maxlength="${c.name_max}" placeholder="Name it (or not)" value="${esc(($('gBqName') || {}).value || '')}">
             <button type="button" class="na-btn na-primary" data-craft="arrange" ${total >= c.min_stems && total <= c.max_stems && flower && c.vase.length < c.max ? '' : 'disabled'}>💐 Arrange (${total})</button>
             ${c.vase.length >= c.max ? '<small class="muted">The vase is full: give one away first.</small>' : total && !flower ? '<small class="muted">It needs a flower.</small>' : ''}`
-            : '<p class="muted g-small">Nothing for a bouquet on the shelf yet: grow sunflowers or monstrous flowers (carrot tops and tomatoes can join them).</p>';
+            : '<p class="muted g-small">Nothing for a bouquet on the shelf yet: grow sunflowers or monstrous flowers (carrot tops, basil, pea vines, berries, a tomato or a chili can join them).</p>';
         html += `</div><div class="g-vase"><h3 class="g-sub">The vase (${c.vase.length} of ${c.max})</h3>`;
         html += c.vase.length ? `<div class="g-bqs">${c.vase.map((b, i) => `<figure class="g-bq">${bouquetSvg(b.stems, b.wrap, 72)}
                 <figcaption><b>${esc(b.name)}</b><small class="g-stars" title="${b.charm} of 5">${'★'.repeat(b.charm)}${'☆'.repeat(5 - b.charm)}</small>${i === 0 ? '<small class="muted">next to give</small>' : ''}</figcaption></figure>`).join('')}</div>
@@ -930,7 +1022,7 @@
     function paintBoard() {
         const orders = st.orders || [], days = (s) => s >= 86400 ? `${Math.ceil(s / 86400)} days left` : `${Math.max(1, Math.round(s / 3600))} h left`;
         $('gFilled').textContent = st.filled ? `${st.filled} filled` : '';
-        const icon = (seed) => seed === 'seed_tomato' ? '🍅' : prizeOf(seed).emoji;
+        const icon = (seed) => cropImg(seed, 22);
         const total = (o) => Object.values(o.needs).reduce((a, b) => a + b, 0), have = (o) => Object.values(o.have).reduce((a, b) => a + b, 0);
         $('gOrders').innerHTML = (orders.length ? `<div class="g-orders">${orders.map(o => `<div class="g-order${o.dish ? ' dish' : ''}">
                 <span class="e">${o.dish ? o.emoji : icon(Object.keys(o.needs)[0])}</span>

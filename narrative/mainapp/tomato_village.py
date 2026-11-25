@@ -97,6 +97,16 @@ NEIGHBOURS = {
 def _today():
     return timezone.localdate().isoformat()
 
+# The newer crops, in their tastes (Rosa sings over pesto; Pepper's bees love blueberries; Mirela bakes with strawberries;
+# a crow keeps away from garlic; Nonna Lyuba knows exactly what a beetroot is for)
+for _who, _likes, _dislikes in (("rosa", ["seed_basil", "pesto", "seed_strawberry"], ["seed_chili"]),
+                                ("pepper", ["seed_blueberry", "blueberry_pie", "seed_watermelon"], ["seed_mandrake"]),
+                                ("mirela", ["seed_strawberry", "strawberry_tart", "strawberry_jam"], ["chili_sauce"]),
+                                ("corvin", ["seed_blueberry", "seed_peas"], ["seed_garlic", "pesto"]),
+                                ("lyuba", ["seed_beet", "borscht", "seed_garlic", "pea_soup"], ["melon_salad"])):
+    NEIGHBOURS[_who]["likes"] += [x for x in _likes if x not in NEIGHBOURS[_who]["likes"]]
+    NEIGHBOURS[_who]["dislikes"] += [x for x in _dislikes if x not in NEIGHBOURS[_who]["dislikes"]]
+
 
 def _village(g):
     v = g.get("village") if isinstance(g.get("village"), dict) else {}
@@ -217,7 +227,11 @@ def tick(g, m, rng=None):
     rng = rng or random.SystemRandom()
     who = sorted(NEIGHBOURS, key=lambda k: (v["hearts"].get(k, 0), rng.random()))[0] if rng.random() < .6 else rng.choice(list(NEIGHBOURS))
     from mainapp import tomato_kitchen as K
-    asks = [a for a in _requests(who) if a[0] != "dish" or K.is_open(g)]
+    def can(a):  # only what this garden could have: no requests for chillies before any chili seed was seen
+        if a[0] == "dish":
+            return K.is_open(g) and all(c in G.EVERYDAY or c in m["items"] or c in g["shelf"] for c in K.RECIPES[a[1]]["needs"])
+        return a[0] != "crop" or a[1] in G.EVERYDAY or a[1] in m["items"] or a[1] in g["shelf"]
+    asks = [a for a in _requests(who) if can(a)] or [("crop", "seed_tomato", 2)]
     kind, item, n = rng.choice(asks)
     v["visitor"] = {"who": who, "kind": kind, "id": item, "n": n, "day": today, "done": False,
                     "hello": rng.choice(NEIGHBOURS[who]["hello"])}

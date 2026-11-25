@@ -2,7 +2,8 @@
 💐 Things made in the garden, not grown: bouquets arranged from what's on the shelf.
 
 - A bouquet is STEMS_MIN to STEMS_MAX stems from the shelf (at least one flower: a sunflower or a monstrous flower;
-  carrot tops count as greenery, a tomato sprig as an odd accent; a pumpkin is not a stem), a wrapping and a name the
+  carrot tops, basil and pea vines count as greenery, a tomato sprig, berries or a chili as an odd accent; a pumpkin is not
+  a stem), a wrapping and a name the
   person writes. It goes into the vase (VASE_MAX at most) until it's given to a neighbour (mainapp/tomato_village.py).
 - Charm (1 to 5 ★) comes from variety: more kinds of stem, a full bunch, a monstrous flower, a wrapping that suits.
   A neighbour who likes bouquets takes a charming one (4★ or more) as one more heart.
@@ -19,6 +20,11 @@ STEMS = {  # what can go in, and as what
     "seed_monster": "flower",
     "seed_carrot": "greens",
     "seed_tomato": "accent",
+    "seed_basil": "greens",
+    "seed_peas": "greens",
+    "seed_strawberry": "accent",
+    "seed_blueberry": "accent",
+    "seed_chili": "accent",
 }
 WRAPS = {
     "kraft": "brown paper and string",

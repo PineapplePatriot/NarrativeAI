@@ -40,7 +40,20 @@ CROPS = {  # seed id → what grows
     "seed_sunflower": {"name": "Sunflower", "hours": 30, "compost": 3},
     "seed_pumpkin": {"name": "Pumpkin", "hours": 48, "compost": 6},
     "seed_monster": {"name": "Monstrous flower", "hours": 40, "compost": 8},
+    # --- vegetables, fruit and berries, herbs and odd ones ---
+    "seed_peas": {"name": "Pea pod", "hours": 16, "compost": 2},
+    "seed_beet": {"name": "Beetroot", "hours": 20, "compost": 2},
+    "seed_basil": {"name": "Basil", "hours": 14, "compost": 1, "plural": "bunches of basil", "one": "bunch of basil"},
+    "seed_garlic": {"name": "Garlic bulb", "hours": 22, "compost": 2},
+    "seed_strawberry": {"name": "Strawberry", "hours": 20, "compost": 2, "plural": "strawberries"},
+    "seed_eggplant": {"name": "Eggplant", "hours": 36, "compost": 4},
+    "seed_pepper": {"name": "Bell pepper", "hours": 30, "compost": 3},
+    "seed_chili": {"name": "Chili", "hours": 28, "compost": 3, "plural": "chillies"},
+    "seed_blueberry": {"name": "Blueberry", "hours": 34, "compost": 4, "plural": "blueberries"},
+    "seed_watermelon": {"name": "Watermelon", "hours": 44, "compost": 6},
+    "seed_mandrake": {"name": "Mandrake", "hours": 48, "compost": 8},
 }
+EVERYDAY = ("seed_tomato", "seed_carrot", "seed_sunflower")  # always on the order board; the rest once their seeds were had
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
 DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman")
 GARDENERS = {
@@ -61,6 +74,8 @@ DISHES = (
     {"name": "Carrot cake", "emoji": "🍰", "needs": {"seed_carrot": 3, "seed_sunflower": 1}},
     {"name": "Pumpkin risotto", "emoji": "🍚", "needs": {"seed_pumpkin": 1, "seed_tomato": 2}},
     {"name": "Monstrous salad (it bites back)", "emoji": "🥗", "needs": {"seed_monster": 1, "seed_carrot": 2}},
+    {"name": "Ratatouille", "emoji": "🥘", "needs": {"seed_eggplant": 1, "seed_pepper": 1, "seed_tomato": 1}},
+    {"name": "Strawberry tart", "emoji": "🍓", "needs": {"seed_strawberry": 3, "seed_sunflower": 1}},
 )
 NEIGHBOURS = ("Signora Rosa", "the bakery", "Old Man Pepper", "the pizzeria", "Bulba (suspicious)", "the soup kitchen",
               "a very polite crow", "the village fair")
@@ -77,6 +92,28 @@ MUTATIONS = {
                      ("glass_pumpkin", "🔮", "Glass pumpkin", True)],
     "seed_monster": [("glowing_monster", "✨", "Glowing monstrous flower", False), ("sleepy_monster", "😴", "Sleepy monstrous flower", False),
                      ("polite_monster", "🎩", "A very polite monstrous flower", True)],
+    "seed_peas": [("giant_peas", "🫛", "A pea pod the length of a forearm", False), ("rainbow_peas", "🌈", "Rainbow peas", False),
+                  ("chatty_peas", "💬", "Peas that gossip in their pod", True)],
+    "seed_beet": [("heart_beet", "💗", "Heart-shaped beetroot", False), ("golden_beet", "🟡", "Golden beetroot", False),
+                  ("vampire_beet", "🧛", "A beetroot that only comes out at night", True)],
+    "seed_basil": [("purple_basil", "🟣", "Purple basil", False), ("giant_basil", "🌳", "Basil the size of a shrub", False),
+                   ("singing_basil", "🎵", "Basil that hums (Basil the witch is flattered)", True)],
+    "seed_garlic": [("twin_garlic", "🧄", "Garlic twins", False), ("black_garlic", "⚫", "Black garlic", False),
+                    ("ward_garlic", "🛡️", "Garlic of warding (Sir Corvin keeps his distance)", True)],
+    "seed_strawberry": [("giant_strawberry", "🍓", "A strawberry the size of a fist", False), ("white_strawberry", "🤍", "White strawberries", False),
+                        ("heart_strawberry", "💘", "A strawberry in love", True)],
+    "seed_eggplant": [("stripy_eggplant", "🦓", "Striped eggplant", False), ("white_eggplant", "🥚", "White eggplant, like an egg", False),
+                      ("smug_eggplant", "😏", "A smug eggplant", True)],
+    "seed_pepper": [("rainbow_pepper", "🌈", "A pepper of every colour", False), ("tiny_pepper", "🤏", "A tiny pepper", False),
+                    ("lantern_pepper", "🏮", "A pepper that glows like a lantern", True)],
+    "seed_chili": [("ghost_chili", "👻", "Ghost chili", False), ("blue_chili", "🔵", "Blue chili", False),
+                   ("dragon_chili", "🐉", "Dragon chili (it smokes a little)", True)],
+    "seed_blueberry": [("giant_blueberry", "🫐", "Blueberries the size of plums", False), ("pink_blueberry", "🩷", "Pink blueberries (it's confused)", False),
+                       ("starry_blueberry", "✨", "Blueberries with stars inside", True)],
+    "seed_watermelon": [("yellow_watermelon", "🟨", "Yellow watermelon", False), ("giant_watermelon", "🍉", "A prize-winning watermelon", False),
+                        ("smiling_watermelon", "😁", "A watermelon that grins", True)],
+    "seed_mandrake": [("sleepy_mandrake", "😴", "A sleepy mandrake (blessedly quiet)", False), ("crowned_mandrake", "👑", "Mandrake royalty", False),
+                      ("screaming_mandrake", "😱", "A mandrake that screams at harvest", True)],
 }
 MUTANT = {mid: {"id": mid, "crop": crop, "emoji": e, "name": n, "rare": r} for crop, ms in MUTATIONS.items() for mid, e, n, r in ms}
 # Seeds of the variants: they grow like their crop (seed id "seed_<mutation id>")
@@ -195,8 +232,11 @@ def _mutate(g, m, seed, rng=None):
 def describe(needs):
     """{"seed_carrot": 2, "seed_tomato": 1} → "2 carrots and 1 tomato"."""
     def name(k, n):
-        word = CROPS[k]["name"].lower()
-        return word if n == 1 else word + ("es" if word.endswith("o") else "s")
+        c = CROPS[k]
+        word = c["name"].lower()
+        if n == 1:
+            return c.get("one") or word
+        return c.get("plural") or word + ("es" if word.endswith("o") else "s")
     parts = [f"{n} {name(k, n)}" for k, n in needs.items()]
     return " and ".join(parts) if len(parts) < 3 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
@@ -330,7 +370,7 @@ def _orders(g, m, rng=None, today=None):
     if g.get("order_day") == day or len(g["orders"]) >= order_slots(g):
         return None
     # Crops they can grow: everyday ones always, the rarer ones once they've had their seeds
-    crops = ["seed_tomato", "seed_carrot", "seed_sunflower"] + [c for c in ("seed_pumpkin", "seed_monster") if c in m["items"]]
+    crops = list(EVERYDAY) + [c for c in CROPS if c not in EVERYDAY and not CROPS[c].get("base") and (c in m["items"] or c in g["shelf"])]
     dish = None
     if H.has(g, "kitchen") and rng.random() < .5:  # 🍲 with the kitchen: half the new orders are dishes, paid double
         dishes = [d for d in DISHES if all(k in crops for k in d["needs"])]
