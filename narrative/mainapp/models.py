@@ -425,6 +425,7 @@ class StoryScene(models.Model):
     story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name="scenes")
     number = models.PositiveIntegerField(default=1)
     chapter = models.PositiveIntegerField(default=1)
+    episode_id = models.CharField(max_length=40, blank=True)  # the episode it was played as (finishing it again updates it)
     title = models.CharField(max_length=160, blank=True)
     place = models.CharField(max_length=160, blank=True)
     summary = models.TextField(blank=True)

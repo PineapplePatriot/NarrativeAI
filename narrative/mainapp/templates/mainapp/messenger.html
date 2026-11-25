@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=43">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=26">
+  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=27">
   <link rel="stylesheet" href="{% static 'mainapp/css/cutout.css' %}?v=1">
   <link rel="stylesheet" href="{% static 'mainapp/css/screen_home.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
@@ -31,6 +31,10 @@
       <button type="button" class="dock-app-btn" data-app="scenes" onclick="TG.switchApp('scenes')" title="Visual Novel Meet-Up Scenes & Event CG Gallery">
         <span class="dock-ico">🎬</span>
         <span>Scenes</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="stories" onclick="TG.switchApp('stories')" title="Stories: long visual novels from scratch">
+        <span class="dock-ico">📖</span>
+        <span>Stories</span>
       </button>
       <button type="button" class="dock-app-btn" data-app="subtext" onclick="TG.switchApp('subtext')" title="Subtext — Public Posts, Locked Burner Accounts & AITA Threads">
         <span class="dock-ico">🌐</span>
@@ -214,6 +218,10 @@
         </div>
         <div class="tg-drawer-body" id="tgDrawerBody"></div>
       </aside>
+    </section>
+
+    <section class="screen-app-view" id="app-stories" aria-label="Stories">
+      <div id="storiesRoot" aria-live="polite"></div>
     </section>
 
     <section class="screen-app-view" id="app-scenes" aria-label="Visual novel episodes">
@@ -485,11 +493,12 @@
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/cutout.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/ep_dialog.js' %}?v=2"></script>
-  <script src="{% static 'mainapp/js/episode_looks.js' %}?v=13"></script>
-  <script src="{% static 'mainapp/js/vn_casting.js' %}?v=7"></script>
-  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=22"></script>
+  <script src="{% static 'mainapp/js/episode_looks.js' %}?v=14"></script>
+  <script src="{% static 'mainapp/js/vn_casting.js' %}?v=8"></script>
+  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=23"></script>
   <script src="{% static 'mainapp/js/vn_editor.js' %}?v=7"></script>
+  <script src="{% static 'mainapp/js/stories.js' %}?v=1"></script>
   <script src="{% static 'mainapp/js/pulse.js' %}?v=1"></script>
-  <script src="{% static 'mainapp/js/screen_home.js' %}?v=5"></script>
+  <script src="{% static 'mainapp/js/screen_home.js' %}?v=6"></script>
 </body>
 </html>

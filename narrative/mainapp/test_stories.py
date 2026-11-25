@@ -129,3 +129,24 @@ class StoryTests(TestCase):
         self.client.force_login(get_user_model().objects.create_user(username="other"))
         self.assertEqual(self.api(action="story_get", story_id=story.pk).status_code, 400)
         self.assertEqual(self.api(action="story_list").json()["stories"], [])
+
+    def test_side_characters_get_looks_through_their_story(self):
+        story = self.make()
+        oren = Character.objects.get(side_story=story)
+        r = self.api(action="episode_looks", character_slugs=[oren.slug])
+        self.assertEqual([p["key"] for p in r.json()["cast"]], ["user"])  # not reachable without the story
+        r = self.api(action="episode_looks", story_id=story.pk, character_slugs=[oren.slug, self.mira.slug])
+        self.assertEqual([p["key"] for p in r.json()["cast"]], [oren.slug, self.mira.slug, "user"])
+        self.assertFalse(r.json()["cast"][0]["has_reference"])  # drawn from words
+
+    def test_finishing_a_reopened_scene_again_rewrites_it(self):
+        story = self.make()
+        scene = {"id": "vns_once", "story_id": story.pk, "title": "Arrival", "location": "steps",
+                 "beats": [{"speaker_name": "Mira", "text": "Late."}]}
+        keeper = {"summary": "First.", "arc": {"beats_reached": 2, "chapter_done": True}, "chapter_card": "Done."}
+        with patch.object(messenger, "ask_json", return_value=keeper):
+            stories.record_scene(self.user, scene, {"summary": "x"})
+            stories.record_scene(self.user, {**scene, "title": "Arrival, again"}, {"summary": "y"})
+        story.refresh_from_db()
+        self.assertEqual([(s.number, s.title) for s in story.scenes.all()], [(1, "Arrival, again")])
+        self.assertEqual(story.arc["at"]["chapter"], 1)  # the chapter closed once, not twice

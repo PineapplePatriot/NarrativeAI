@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const apps = [
-    ['messenger','TeleChat','↗','#387795'], ['scenes','Scenes','▣','#785eaa'],
+    ['messenger','TeleChat','↗','#387795'], ['scenes','Scenes','▣','#785eaa'], ['stories','Stories','▤','#8a6a4f'],
     ['subtext','Subtext','@','#53699b'], ['files','Drive','▰','#b9935b'],
     ['mail','Mail','✉','#708bb2'], ['wave','Wave','♫','#967b95'],
     ['pulse','Pulse','▦','#6b998d'], ['moments','Moments','✧','#9b778f'],
@@ -19,6 +19,7 @@
   const S = {app:'home',thread:null,cache:new Map(),epochs:new Map(),selection:new Map(),dirtyThreads:new Set(),busy:false,errors:new Map(),tab:'documents',overview:null};
   const icons = {
     messenger:'M4 5h16v11H9l-5 4V5z M8 9h8 M8 12h5',
+    stories:'M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1z M12 6v14',
     scenes:'M4 8h16v12H4z M4 8V4h16v4 M8 4l-2 4 M14 4l-2 4 M20 4l-2 4 M10 12l5 3-5 3z',
     subtext:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M3 12h18 M12 3c-5 5-5 13 0 18 M12 3c5 5 5 13 0 18',
     files:'M3 6V4h7l2 3h9v13H3V6z M3 10h18',

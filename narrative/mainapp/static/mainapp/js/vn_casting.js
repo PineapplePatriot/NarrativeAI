@@ -44,12 +44,14 @@
       try {sessionStorage.removeItem(STORE + threadId);} catch (_) {}
     },
 
+    thread() {return vn().story ? vn().storyThread() : TG.state.active_thread;},
+
     members() {
-      const t = TG.state.active_thread;
+      const t = this.thread();
       const slugs = (t?.member_slugs || (t?.members || []).map((m) => m.slug)).filter(Boolean);
       return slugs.map((slug) => {
         const c = (TG.state.characters || []).find((x) => x.slug === slug) || {slug};
-        return {key: slug, name: c.display_name || c.name || slug};
+        return {key: slug, name: c.display_name || c.name || t?.names?.[slug] || slug};
       });
     },
 
@@ -79,8 +81,10 @@
           <div class="cast-sheet" role="form" aria-label="Casting">
             <header class="cast-head">
               <div class="cast-top">
-                <span class="cast-kicker">In person · continues ${esc(thread ? thread.title : "your chat")}</span>
+                <span class="cast-kicker">${thread?.story_id ? `Story · ${esc(thread.title)} · scene ${Number(thread.scenes || 0) + 1}`
+                  : `In person · continues ${esc(thread ? thread.title : "your chat")}`}</span>
                 <span class="cast-links">
+                  ${thread?.story_id ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.backToStory(${Number(thread.story_id)})">📖 The story</button>` : ""}
                   <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.switchTab('gallery')">Saved episodes</button>
                   ${(TG.state.vn_scenes?.drafts || []).length ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.openVersions?.()">Unfinished (${TG.state.vn_scenes.drafts.length})</button>` : ""}
                 </span>
@@ -95,7 +99,7 @@
                 <button type="button" class="ep-btn ep-btn-primary" onclick="CASTING.ask(this)" ${s.asking ? "disabled" : ""}>🥔 ${s.proposal ? "Ask Bulba again" : "Ask Bulba to cast it"}</button>
                 ${s.proposal ? `<button type="button" class="ep-btn" onclick="CASTING.applyAll()">Apply everything</button>` : ""}
               </div>
-              ${s.asking ? `<div class="cast-bulba" role="status"><span class="cast-potato" aria-hidden="true">🥔</span><span>Bulba is reading your chat<span class="cast-dots"><i>.</i><i>.</i><i>.</i></span></span></div>` : ""}
+              ${s.asking ? `<div class="cast-bulba" role="status"><span class="cast-potato" aria-hidden="true">🥔</span><span>${vn().story ? "Bulba is reading the story" : "Bulba is reading your chat"}<span class="cast-dots"><i>.</i><i>.</i><i>.</i></span></span></div>` : ""}
               ${s.error ? `<div class="cast-bulba cast-error" role="alert">${esc(s.error)}</div>` : ""}
             </header>
 
@@ -136,7 +140,7 @@
             </details>
 
             <footer class="cast-foot">
-              <span class="cast-foot-left"><button type="button" class="ep-btn ep-btn-quiet" onclick="TG.switchApp('messenger')">Back to the phone</button>
+              <span class="cast-foot-left"><button type="button" class="ep-btn ep-btn-quiet" onclick="${vn().story ? "VN_SCENES.returnToPhone()" : "TG.switchApp('messenger')"}">${vn().story ? "Back to the story" : "Back to the phone"}</button>
                 ${vn().costLine(TG.state.vn_scenes?.cost, "Casting so far")}</span>
               <button type="button" class="ep-btn ep-btn-primary cast-start" onclick="VN_SCENES.launchFromActiveThread()">${
                 s.place.state === "applied" && !placeBg ? "Start the episode<small>draws the place · 1 picture</small>" : "Start the episode"}</button>
@@ -293,13 +297,13 @@
 
     async ask(btn) {
       const s = this.sheet();
-      const t = TG.state.active_thread;
+      const t = this.thread();
       if (!t) {vn().notify("Open the chat this episode continues first.", true); return;}
       s.asking = true; s.error = "";
       this.rerender();
-      const pulse = vn().pendingPulse;
+      const pulse = t.story_id ? null : vn().pendingPulse;
       try {
-        const data = await vn().apiPost({action: "casting_propose", thread_id: t.id,
+        const data = await vn().apiPost({action: "casting_propose", ...(t.story_id ? {story_id: t.story_id} : {thread_id: t.id}),
           wish: document.getElementById("vnLocationHintInput")?.value || "",
           authoring_mode: document.getElementById("vnAuthoringMode")?.value || "roleplay",
           ...(pulse?.thread_id === t.id ? {pulse_event_id: pulse.id, pulse_event_revision: pulse.revision} : {})});

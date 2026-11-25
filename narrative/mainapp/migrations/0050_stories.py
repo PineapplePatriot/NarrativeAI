@@ -81,6 +81,7 @@ class Migration(migrations.Migration):
                 ),
                 ("number", models.PositiveIntegerField(default=1)),
                 ("chapter", models.PositiveIntegerField(default=1)),
+                ("episode_id", models.CharField(blank=True, max_length=40)),
                 ("title", models.CharField(blank=True, max_length=160)),
                 ("place", models.CharField(blank=True, max_length=160)),
                 ("summary", models.TextField(blank=True)),

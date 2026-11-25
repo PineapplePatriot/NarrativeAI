@@ -203,12 +203,18 @@ def record_scene(user, scene, finished):
     beats = scene.get("beats") or []
     arc = story.arc or {}
     at = dict(arc.get("at") or {"chapter": 0, "beat": 0})
-    number = story.scenes.count() + 1
     transcript = "\n".join(f"{b.get('speaker_name') or b.get('speaker')}: {b.get('text')}" for b in beats[-80:])
-    kept = StoryScene.objects.create(story=story, number=number, chapter=int(at.get("chapter") or 0) + 1,
-                                     title=_text(scene.get("title"), 160), place=_text(scene.get("location"), 160),
-                                     summary=_text(finished.get("summary"), 2000), beats=beats,
-                                     cg_url=finished.get("cg_url") or "", cost=float((finished.get("cost") or {}).get("total") or 0))
+    fields = {"title": _text(scene.get("title"), 160), "place": _text(scene.get("location"), 160),
+              "summary": _text(finished.get("summary"), 2000), "beats": beats, "cg_url": finished.get("cg_url") or "",
+              "cost": float((finished.get("cost") or {}).get("total") or 0)}
+    kept = story.scenes.filter(episode_id=scene.get("id") or "-").first()
+    again = kept is not None  # reopened from Saved episodes and finished again: the same scene, rewritten
+    if again:
+        for key, value in fields.items():
+            setattr(kept, key, value)
+    else:
+        kept = StoryScene.objects.create(story=story, number=story.scenes.count() + 1, chapter=int(at.get("chapter") or 0) + 1,
+                                         episode_id=str(scene.get("id") or "")[:40], **fields)
     try:
         out = messenger.ask_json(user, KEEPER_PROMPT.format(
             title=story.title, premise=story.premise[:1200], bible=json.dumps(story.bible or {}, ensure_ascii=False)[:5000],
@@ -234,7 +240,7 @@ def record_scene(user, scene, finished):
         reached = progress.get("beats_reached")
         if isinstance(reached, int) and reached >= 0:
             at["beat"] = max(int(at.get("beat") or 0), reached)
-        if progress.get("chapter_done") is True and chapters:
+        if progress.get("chapter_done") is True and chapters and not again:
             kept.chapter_card = {"chapter": int(at.get("chapter") or 0) + 1,
                                  "title": chapters[min(int(at.get("chapter") or 0), len(chapters) - 1)]["title"],
                                  "text": _text(out.get("chapter_card"), 800)}

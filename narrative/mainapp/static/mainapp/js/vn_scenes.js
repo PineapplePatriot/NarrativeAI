@@ -8,6 +8,21 @@
     beatIndex: 0,
     musicPlaying: false,
     lastFinaleEntry: null,
+    story: null,  // the long-form story the next episode belongs to ({id, title, scenes, cast}), or null for a phone chat
+
+    /* The story, shaped like a chat for the casting sheet and the looks panel. */
+    storyThread() {
+      const s = this.story;
+      return s ? {id: "story-" + s.id, story_id: s.id, title: s.title, member_slugs: s.cast.map((c) => c.slug),
+                  names: Object.fromEntries(s.cast.map((c) => [c.slug, c.name])), scenes: s.scenes} : null;
+    },
+    playStory(story) {
+      if (this.activeScene()) {this.notify("Save or finish the open episode before playing the next scene.", true); return;}
+      this.story = story; this.lastFinaleEntry = null; this.tab = "stage";
+      TG.switchApp("scenes"); this.render();
+    },
+    backToStory(id) {this.story = null; this.lastFinaleEntry = null; this.render(); window.STORIES?.open(id);},
+    leaveStory() {this.story = null; this.lastFinaleEntry = null; this.render();},
     busy: false,
 
     attr(value) {return TG.esc(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');},
@@ -213,7 +228,7 @@
 
     async launchFromActiveThread() {
       if (this.busy) return;
-      const t = TG.state.active_thread;
+      const t = this.story ? this.storyThread() : TG.state.active_thread;
       if (!t) {
         this.notify("Select a TeleChat conversation first.");
         return;
@@ -234,7 +249,7 @@
       try {
         const data = await this.apiPost({
           action: "start_scene",
-          thread_id: t.id,
+          ...(t.story_id ? {story_id: t.story_id} : {thread_id: t.id}),
           ...(this.pendingPulse?.thread_id === t.id ? {pulse_event_id:this.pendingPulse.id,pulse_event_revision:this.pendingPulse.revision}:{}),
           location_hint: hint,
           looks: window.EPISODE_LOOKS?.chosen() || {},
@@ -585,7 +600,18 @@
       }
     },
 
+    storyId() {return this.activeScene()?.story_id || this.lastFinaleEntry?.story?.id || this.story?.id || null;},
+    backLabel() {return this.storyId() ? "Back to the story" : "Back to the phone";},
+
     returnToPhone() {
+      const storyId = this.storyId();
+      if (storyId) {  // a story's scenes have no phone: back to the story's page
+        this.stopMusic();
+        if (!this.activeScene()) this.story = null;
+        this.lastFinaleEntry = null;
+        window.STORIES?.open(storyId);
+        return;
+      }
       const tid = this.activeScene()?.thread_id || this.lastFinaleEntry?.thread_id;
       this.lastFinaleEntry = null;
       this.stopMusic();
@@ -685,8 +711,11 @@
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:4px;">
                 <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.switchTab('gallery')">Saved episodes</button>
+                ${e.story_error ? `<div class="cast-bulba cast-error" role="alert">${this.attr(e.story_error)}</div>` : ""}
+                ${e.story?.chapter_card?.title ? `<div class="story-card-mini"><b>Chapter ${this.attr(e.story.chapter_card.chapter)} closed: ${this.attr(e.story.chapter_card.title)}</b><span>${this.attr(e.story.chapter_card.text || "")}</span></div>` : ""}
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                  <button type="button" class="tg-bulba-btn" onclick="VN_SCENES.startAnotherScene()">🎬 Start Next Scene</button>
+                  ${e.story ? `<button type="button" class="tg-bulba-btn" onclick="VN_SCENES.backToStory(${Number(e.story.id)})">📖 Back to the story</button>` : `
+                  <button type="button" class="tg-bulba-btn" onclick="VN_SCENES.startAnotherScene()">🎬 Start Next Scene</button>`}
                   <button type="button" class="tg-send-btn" onclick="VN_SCENES.returnToPhone()">📱 Back to TeleChat Phone ➤</button>
                 </div>
               </div>
@@ -699,7 +728,7 @@
       const sc = this.activeScene();
       // 2. No episode open: the casting sheet it will start from.
       if (!sc) {
-        const t = TG.state.active_thread;
+        const t = this.story ? this.storyThread() : TG.state.active_thread;
         document.getElementById("app-scenes")?.classList.add("ep-playing");
         window.CASTING.render(root, t);
         this.bindDrafts(root, "launch:" + (t?.id || "none"));
@@ -848,7 +877,7 @@
             </section>
             <section class="ep-sheet-part">
               <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.closeSheet(); VN_SCENES.switchTab('gallery')">Saved episodes</button>
-              <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.closeSheet(); VN_SCENES.returnToPhone()">Back to the phone</button>
+              <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.closeSheet(); VN_SCENES.returnToPhone()">${this.backLabel()}</button>
             </section>
           </aside>
           <div class="ep-log" id="epLog" hidden role="dialog" aria-label="Backlog"></div>
@@ -1215,7 +1244,7 @@
               <div class="ep-shelf-actions">
                 <button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.switchTab('stage')">${this.activeScene() ? "Back to the episode" : "New episode"}</button>
                 ${(TG.state.vn_scenes?.drafts || []).length ? `<button type="button" class="ep-btn" onclick="VN_SCENES.openVersions?.()">Unfinished (${TG.state.vn_scenes.drafts.length})</button>` : ""}
-                <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.returnToPhone()">Back to the phone</button>
+                <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.returnToPhone()">${this.backLabel()}</button>
               </div>
             </header>
             ${gallery.length ? `<div class="ep-shelf-grid">${gallery.map((item) => `

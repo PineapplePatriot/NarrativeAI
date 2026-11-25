@@ -6246,7 +6246,7 @@ def vn_scenes_api(request):
     action = body.get("action") or ""
 
     the_story = None
-    if action.startswith("story_") or (action in ("casting_propose", "start_scene") and body.get("story_id")):
+    if action.startswith("story_") or body.get("story_id"):
         from . import stories
         try:
             if action == "story_list":
@@ -6294,6 +6294,12 @@ def vn_scenes_api(request):
         except ai_client.AIError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
         char_by_slug.update({c.slug: c for c in the_story.cast.all()})  # its side characters too
+    else:
+        open_story = (vn_scenes.get_vn_state(request.user).get("active_scene") or {}).get("story_id")
+        if open_story:  # an open story scene: its side characters can change looks, be voiced, be checked
+            from .models import Story
+            for kept in Story.objects.filter(author=request.user, pk=open_story)[:1]:
+                char_by_slug.update({c.slug: c for c in kept.cast.all()})
 
     if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
         active = vn_scenes.get_vn_state(request.user).get("active_scene") or {}

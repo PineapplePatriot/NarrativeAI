@@ -10,6 +10,8 @@
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 
   async function post(payload) {
+    const story = window.VN_SCENES?.story;
+    if (story && !window.VN_SCENES.activeScene?.() && !payload.story_id) payload = {...payload, story_id: story.id};  // its side characters
     const resp = await fetch(api(), {method: "POST", headers: {"Content-Type": "application/json", "X-CSRFToken": csrf()},
       body: JSON.stringify(payload)});
     let data;
@@ -96,7 +98,8 @@
       if (!thread) {root.innerHTML = ""; return;}
       root.innerHTML = `<p class="ep-looks-note">Loading episode looks…</p>`;
       try {
-        const data = await post({action: "episode_looks", thread_id: thread.id});
+        const data = await post(thread.story_id ? {action: "episode_looks", story_id: thread.story_id, character_slugs: thread.member_slugs}
+                                                : {action: "episode_looks", thread_id: thread.id});
         this.cast = data.cast || [];
         this.coreMoods = data.core_moods || [];
         this.models = data.picture_models || [["", "Nano Banana (Google): the app's default"]];
