@@ -55,7 +55,8 @@ CROPS = {  # seed id → what grows
 }
 EVERYDAY = ("seed_tomato", "seed_carrot", "seed_sunflower")  # always on the order board; the rest once their seeds were had
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
-DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman")
+DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman", "birdbath", "wheelbarrow", "watering_can", "sundial", "beehive",
+         "fairy_arch")
 GARDENERS = {
     "gardener_farmer": "Plants grow 25% faster: he waters everything, including things that aren't plants.",
     "gardener_frog": "+1 compost on every harvest: he carries the basket.",
@@ -564,7 +565,7 @@ def public(score):
             "orders": [{**o, "what": describe(o["needs"]), "left": max(0, o["due"] - int(now))} for o in g["orders"]],
             "orders_max": order_slots(g), "filled": g["filled"], "shelf": g["shelf"], "shelf_max": SHELF_MAX, "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
-            "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
+            "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"], "img": p.get("img", "")} for p in M.PRIZES
                           if p["kind"] in ("seed", "decor", "gardener")},
                        **{sid: {"name": f"{MUTANT[mid]['name']} seeds", "emoji": MUTANT[mid]["emoji"]} for sid, mid in VARIANT_SEEDS.items()}},
             "keep": {"common": KEEP[False], "rare": KEEP[True]}}

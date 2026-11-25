@@ -61,6 +61,47 @@
                 '.......g........', '......bgb.......'],
         ripe_seed_pumpkin: ['........G.......', '.......Gg..l....', '...ooooGooo.gl..', '..oOooOoooOo....', '.ooOooOoooOoo...',
                 '.ooOooOoooOoo...', '..oOooOoooOo....', '...ooooooooo....'],
+        // 🌿 Growing shapes, so a carrot and an eggplant don't look alike before they ripen (SHAPE picks one per crop)
+        sprout_feather: ['......l.l.......', '.....l.l.l......', '......lgl.......', '.......g........', '......bgb.......'],
+        leafy_feather: ['.l.l..l.l..l.l..', '..l....l....l...', '.l.l.l.l.l.l.l..', '..l...l.l...l...', '...l..l.l..l....',
+                '....l.lgl.l.....', '.....lgggl......', '......ggg.......', '......bbb.......'],
+        bloom_feather: ['.F.F..F.F..F.F..', '..l....l....l...', '.l.l.l.l.l.l.l..', '..l...l.l...l...', '...l..l.l..l....',
+                '....l.lgl.l.....', '.....lgggl......', '......ggg.......', '......bbb.......'],
+        sprout_stalk: ['.......l........', '......lgl.......', '.......g........', '.......g........', '......bgb.......'],
+        leafy_stalk: ['.......l........', '......lgl.......', '.......g........', '....llgg........', '...lggGg........', '.......g........',
+                '.......ggll.....', '.......gGggl....', '.......g........', '.......g........', '......bgb.......'],
+        bloom_stalk: ['......FFF.......', '.....FgggF......', '......FFF.......', '.......g........', '....llgg........', '...lggGg........',
+                '.......g........', '.......ggll.....', '.......gGggl....', '.......g........', '.......g........', '......bgb.......'],
+        sprout_vine: ['.....l...l......', '....lgl.lgl.....', '......ggg.......', '.......b........'],
+        leafy_vine: ['..ll......ll....', '.lggl....lggl...', '.lgGl.ll.lgGl...', '..ll.lggl.ll....', '.g.g.lgGl.g.g...', '..g.g.ll.g.g....',
+                '...gggggggg.....'],
+        bloom_vine: ['..ll..F...ll....', '.lggl.....lggl..', '.lgGl.ll.lgGlF..', '..ll.lggl.ll....', 'Fg.g.lgGl.g.g...', '..g.g.ll.g.gF...',
+                '...gggggggg.....'],
+        sprout_spiky: ['......l.l.......', '.....lg.gl......', '......ggg.......', '.......g........', '......bgb.......'],
+        leafy_spiky: ['.l...l...l......', '.gl.lgl.lg......', '..g.lgl.g.......', '..gg.g.gg.......', '.l.gggggg.l.....', 'lg..ggg..gl.....',
+                '.g...g...g......', '..ggggggg.......', '.....g..........', '....bgb.........'],
+        bloom_spiky: ['.F...F...F......', '.gl.lFl.lg......', '..g.lgl.g.......', '..gg.g.gg.......', '.F.gggggg.F.....', 'lg..ggg..gl.....',
+                '.g...g...g......', '..ggggggg.......', '.....g..........', '....bgb.........'],
+        sprout_stake: ['.....b..........', '.....b.l........', '.....blgl.......', '.....b.g........', '.....bbgb.......'],
+        leafy_stake: ['.....b..........', '.....bl.........', '....lbgl........', '.....bg.l.......', '....lgb.gl......', '...lglb.g.......',
+                '.....gbgl.......', '....lgb.........', '.....gb.........', '....bgbb........'],
+        bloom_stake: ['.....bF.........', '.....bl.........', '....lbgF........', '.....bg.l.......', '....Fgb.gl......', '...lglb.gF......',
+                '.....gbgl.......', '....lgbF........', '.....gb.........', '....bgbb........'],
+        sprout_rosette: ['......l.l.......', '.....lglgl......', '......ggg.......', '.......b........'],
+        leafy_rosette: ['..l....l....l...', '.lgl..lgl..lgl..', '..lGl.lGl.lGl...', '...lgllGlgl.....', '....lgggggl.....', '.....ggggg......',
+                '......bbb.......'],
+        bloom_rosette: ['..F....F....F...', '.lgl..lgl..lgl..', '..lGl.lGl.lGl...', '...lgllGlgl.....', '....lgggggl.....', '.....ggggg......',
+                '......bbb.......'],
+        sprout_shrub: ['......lgl.......', '.....lgggl......', '.......g........', '......bgb.......'],
+        leafy_shrub: ['.....llll.......', '...llgggggl.....', '..lgggGgggGl....', '..lgGgggGggl....', '..lggggGgggl....', '...lgGgggggl....',
+                '....llgggl......', '.......B........', '......bBb.......'],
+        bloom_shrub: ['.....lFll.......', '...llgggFgl.....', '..lFggGgggGl....', '..lgGgggGgFl....', '..lggFgGgggl....', '...lgGgggFgl....',
+                '....llgggl......', '.......B........', '......bBb.......'],
+        sprout_tuft: ['......l.l.......', '......l.l.......', '......glg.......', '.......g........', '......bgb.......'],
+        leafy_tuft: ['....l....l......', '....l..l.l......', '.....l.l.l......', '.....l.lgl......', '.....lgl.l......', '......lgl.......',
+                '......ggg.......', '......bbb.......'],
+        bloom_tuft: ['.......FF.......', '......FFFF......', '.......FF.......', '.......l........', '....l..l..l.....', '.....l.l.l......',
+                '.....lgl.l......', '......lgl.......', '......ggg.......', '......bbb.......'],
         // 🌱 The newer crops, ripe
         ripe_seed_peas: ['.b..........b...', '.bbbbbbbbbbbb...', '.b..lgl..lg.b...', '.b.lG.g.GlG.b...', '.b.lG.gglGl.b...',
                 '.b.lG..g.Gl.b...', '.b..l.lgl.l.b...', '.b....lgl...b...', '.b.....g....b...', '.b....bgb...b...'],
@@ -92,6 +133,20 @@
                 '.b.uuuuuuuu.b.', 'bbbbuuuuuubbbb', '.h..uuuuuu..h.', '....uuuuuu....', '......bb......', '......bb......', '......bb......'],
         pond: ['...uuuuuuuuu....', '.uuuUuuuuuuuuu..', 'uuuuuuwwuuuuuUuu', 'uuUuuuuuuuuwuuuu', '.uuuuuuuUuuuuuu.', '...uuuuuuuuuu...'],
         pond2: ['...uuuuuuuuu....', '.uuuuuuuUuuuuu..', 'uuuUuuuuuwwuuuuu', 'uuuuuwuuuuuuuUuu', '.uuuuUuuuuuuuuu.', '...uuuuuuuuuu...'],
+        // the decorations drawn as pictures in the machine (static/img/tomato/deco_*.svg), in pixels here
+        birdbath: ['..............', '.nnnnnnnnnnnn.', 'nuuuuwuuuuuuun', '.nnnnnnnnnnnn.', '.....nccn.....', '.....nccn.....', '.....nccn.....',
+                '....nnccnn....', '...nnnnnnnn...'],
+        wheelbarrow: ['...gbgbgr.......', '..rrrrrrrrr.....', '..rRRRRRRRr.....', '...rRRRRRrrbbbb.', '....rrrrr.......', '...kk..n........',
+                '..kNNk.n........', '...kk...........'],
+        watering_can: ['....UUUU......', '...U....U.....', '..uuuuuuuu....', '..uwuuuuuu..UU', '..uwuumuuuuuU.', '..uwuuuuuuu...',
+                '..uuuuuuuu....', '..UUUUUUUU....'],
+        sundial: ['.......Y......', '......YY......', '.....YYY......', '..ccccccccc...', '.cTccTccTcTc..', '..ccccccccc...', '.....czc......',
+                '.....czc......', '....cczcc.....', '...ccccccc....'],
+        beehive: ['.....hhhh.....', '....hHHHHh....', '...hhhhhhhh...', '..hHHHHHHHHh..', '..hhhhkhhhhh..', '.hHHHkkkHHHHh.', '.hhhhkkkhhhhh.',
+                '..bbbbbbbbbb..', '..b........b..'],
+        fairy_arch: ['....lglgll....', '..lgy.w..mgl..', '.lw........yl.', '.gy........wg.', '.l..........l.', '.gm........yg.', '.l..........l.',
+                '.gw........mg.', '.l..........l.', '.g..........g.', '.b..........b.'],
+        robin: ['.oo.', 'oook', '.bb.'],
         lantern: ['..k...', '.RRRR.', 'RrrrrR', 'RryyrR', 'RrrrrR', '.RRRR.', '..k...'],
         gardener_farmer: ['..hhhhhh..', '.hhhhhhhh.', 'hhHHHHHHhh', '..ssssss..', '..skssks..', '..ssssss..', '..wwwwww..', '...wwww...',
                 '.uuUuuUuu.', 'suuuuuuuus', '.uuuuuuuu.'],
@@ -137,6 +192,13 @@
         visitor_dattore: [['..kk..kk..', '..kk..kk..'], ['...kk.kk..', '...kk.kk..']],
         visitor_pantaleone: [['..kk..kk..', '..PP..PP..'], ['...kk.kk..', '...PP.PP..']],
     };
+    // Each crop's growing shape (ART <stage>_<shape>; none: the tomato's bush) and leaf colours
+    const SHAPE = { seed_carrot: 'feather', seed_sunflower: 'stalk', seed_pumpkin: 'vine', seed_watermelon: 'vine', seed_monster: 'spiky',
+        seed_peas: 'stake', seed_beet: 'rosette', seed_strawberry: 'rosette', seed_mandrake: 'rosette', seed_basil: 'shrub', seed_eggplant: 'shrub',
+        seed_blueberry: 'shrub', seed_garlic: 'tuft' };
+    const CROP_LEAF = { seed_beet: { G: 'e' }, seed_eggplant: { G: 'P' }, seed_blueberry: { l: 'g', g: 'G', G: 'v' }, seed_garlic: { l: 'q', g: 'Q' },
+        seed_mandrake: { l: 'g', g: 'G', G: 'T' }, seed_watermelon: { G: 'd' }, seed_chili: { g: 'G' }, seed_pepper: { l: 'g' },
+        seed_strawberry: { G: 'g' }, seed_basil: { G: 'l' }, seed_monster: { l: 'p', G: 'P' } };
     const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm', seed_peas: 'w', seed_beet: 'y',
         seed_basil: 'w', seed_garlic: 'm', seed_strawberry: 'w', seed_eggplant: 'p', seed_pepper: 'w', seed_chili: 'w', seed_blueberry: 'a',
         seed_watermelon: 'y', seed_mandrake: 'p' };
@@ -329,8 +391,11 @@
         const kind = t.look || t.seed;  // a mutation's seed grows like its crop, but looks like the mutation (VARIANT)
         const v = VARIANT[t.variant] || null;
         if (stg === 'ripe') return sprite('ripe_' + kind + (v ? '_' + t.variant : ''), ART['ripe_' + kind], v ? v.ripe : {});
-        if (stg === 'bloom') return sprite('bloom' + (v ? '_' + t.variant : ''), ART.bloom, { ...(v ? v.leaf : {}), F: (v && v.flower) || FLOWER[kind] || 'y' });
-        return sprite(stg + (v && stg !== 'seed' ? '_' + t.variant : ''), ART[stg], v && stg !== 'seed' ? v.leaf : {});
+        if (stg === 'seed') return sprite('seed', ART.seed);
+        const shape = SHAPE[kind] ? '_' + SHAPE[kind] : '', swap = { ...(CROP_LEAF[kind] || {}), ...(v ? v.leaf : {}) };
+        const name = stg + '_' + kind + (v ? '_' + t.variant : '');
+        if (stg === 'bloom') return sprite(name, ART['bloom' + shape] || ART.bloom, { ...swap, F: (v && v.flower) || FLOWER[kind] || 'y' });
+        return sprite(name, ART[stg + shape] || ART[stg], swap);
     }
     // 🧬 The mutation's little effect, drawn over (or around) its plant
     function variantFx(v, img, x, y, p, sec, moving, night) {
@@ -451,7 +516,17 @@
                 g.fillStyle = '#5aa83a'; g.fillRect(px + 1, py + 1, 14, 14);
                 g.fillStyle = '#6cbb47'; g.fillRect(px + 3, py + 4, 1, 2); g.fillRect(px + 11, py + 9, 1, 2); g.fillRect(px + 6, py + 12, 1, 1);
                 const name = t.id === 'pond' && moving && Math.floor(sec) % 2 ? 'pond2' : t.id, img = sprite(name, ART[name] || ART.gnome);
-                things.push({ y: py + 16, f: () => put(img, px + (16 - img.width) / 2, py + 15 - img.height) });
+                const ix = px + (16 - img.width) / 2, iy = py + 15 - img.height;
+                things.push({ y: py + 16, f: () => {
+                    put(img, ix, iy);
+                    if (t.id === 'beehive' && moving && night < .5) for (let i = 0; i < 3; i++) {  // bees on their rounds
+                        const a = sec * (1.4 + i * .3) + i * 2.1, bx = ix + 7 + Math.cos(a) * (7 + i * 2), by = iy + 3 + Math.sin(a * 1.3) * 4;
+                        g.fillStyle = PAL.y; g.fillRect(Math.round(bx), Math.round(by), 2, 1); g.fillStyle = PAL.k; g.fillRect(Math.round(bx) + 1, Math.round(by), 1, 1);
+                    }
+                    if (t.id === 'birdbath' && night < .3 && Math.floor(sec / 7 + t.x) % 3 !== 0) {  // a robin drops in, now and then
+                        put(sprite('robin', ART.robin), ix + 10, iy - 2 - (moving && Math.floor(sec * 2) % 4 === 0 ? 1 : 0));
+                    }
+                } });
             }
         });
         walkers.forEach(w => {
@@ -486,6 +561,14 @@
         if (night) { g.fillStyle = `rgba(10, 15, 45, ${night})`; g.fillRect(0, 0, W, H); }
         if (night > .1) {
             g.globalCompositeOperation = 'lighter';
+            st.tiles.filter(t => t.id === 'fairy_arch').forEach(t => {  // the fairy lights, twinkling
+                [[3, 2], [9, 1], [2, 5], [11, 3], [1, 8], [12, 7]].forEach(([lx, ly], i) => {
+                    const a = .25 + .35 * Math.abs(Math.sin(sec * 1.7 + i * 1.3)), cx = GX + t.x * T + 1 + lx, cy = GY + t.y * T + 4 + ly;
+                    const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 5);
+                    rg.addColorStop(0, `rgba(255,236,150,${a})`); rg.addColorStop(1, 'rgba(255,236,150,0)');
+                    g.fillStyle = rg; g.fillRect(cx - 5, cy - 5, 10, 10);
+                });
+            });
             st.tiles.filter(t => t.id === 'lantern').forEach(t => {
                 const cx = GX + t.x * T + 8, cy = GY + t.y * T + 8, rg = g.createRadialGradient(cx, cy, 1, cx, cy, 22);
                 rg.addColorStop(0, 'rgba(255,190,90,.55)'); rg.addColorStop(1, 'rgba(255,190,90,0)');
@@ -590,6 +673,7 @@
 
     // --- The side panel ---
     const prizeOf = (id) => (st.prizes[id] || { name: id, emoji: '❔' });
+    const prizePic = (id, size = 22) => prizeOf(id).img ? `<img class="g-pi" src="${esc(prizeOf(id).img)}" width="${size}" height="${size}" alt="">` : prizeOf(id).emoji;
     let tileKey = '';
     function paintTile() {
         const box = $('gTile');
@@ -601,12 +685,12 @@
             box.innerHTML = `<h3>An empty patch</h3>${seeds.length ? `<div class="g-small muted">Plant</div><div class="g-row">${seeds.map(k =>
                 `<button type="button" class="na-btn" data-do="plant" data-id="${k}">${cropImg(k)} ${esc(st.crops[k].name)} ×${st.basket[k]}</button>`).join('')}</div>` : ''}
                 ${decor.length ? `<div class="g-small muted">Place</div><div class="g-row">${decor.map(k =>
-                `<button type="button" class="na-btn" data-do="place" data-id="${k}">${prizeOf(k).emoji} ${esc(prizeOf(k).name)}</button>`).join('')}</div>` : ''}
+                `<button type="button" class="na-btn" data-do="place" data-id="${k}">${prizePic(k)} ${esc(prizeOf(k).name)}</button>`).join('')}</div>` : ''}
                 ${!seeds.length && !decor.length ? '<p class="muted">Your basket is empty. The Sauce-o-Matic gives out seeds and decorations.</p>' : ''}`;
             return;
         }
         if (t.kind === 'decor') {
-            box.innerHTML = `<h3>${prizeOf(t.id).emoji} ${esc(prizeOf(t.id).name)}</h3><div class="g-row">
+            box.innerHTML = `<h3>${prizePic(t.id, 28)} ${esc(prizeOf(t.id).name)}</h3><div class="g-row">
                 <button type="button" class="na-btn" data-do="remove">Back to the basket</button></div>`;
             return;
         }
@@ -646,7 +730,7 @@
         const items = Object.entries(st.basket);
         $('gBasket').innerHTML = items.length ? `<div class="g-basket">${items.map(([k, n]) => `<button type="button" class="g-bitem${armed === k ? ' armed' : ''}"
                 draggable="true" data-item="${k}" title="Drag it onto a patch, or tap it and then a patch">
-                <span class="e">${st.crops[k] ? cropImg(k, 24) : prizeOf(k).emoji}</span><span>${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)}</span><b>×${n}</b></button>`).join('')}</div>`
+                <span class="e">${st.crops[k] ? cropImg(k, 24) : prizePic(k, 26)}</span><span>${esc(st.prizes[k] ? prizeOf(k).name : st.crops[k] ? st.crops[k].name + ' seeds' : k)}</span><b>×${n}</b></button>`).join('')}</div>`
             : '<p class="muted g-small">Empty. Seeds and decorations come from the Sauce-o-Matic.</p>';
         $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
         const gard = (x, on) => `<div class="g-gard${on ? '' : ' resting'}"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br>

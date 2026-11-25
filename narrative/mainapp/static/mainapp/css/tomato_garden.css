@@ -160,3 +160,4 @@
 .g-pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 /* crops shown as their own pixel pictures */
 .g-ci { image-rendering: pixelated; vertical-align: middle; object-fit: contain; }
+.g-pi { vertical-align: middle; object-fit: contain; }

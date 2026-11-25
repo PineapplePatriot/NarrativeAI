@@ -63,3 +63,16 @@ class CropTests(SimpleTestCase):
                 vis = g["village"]["visitor"]
                 if vis["kind"] == "crop":
                     self.assertIn(vis["id"], G.EVERYDAY)
+
+
+class DecorationTests(SimpleTestCase):
+    def test_every_decoration_is_a_prize_drawn_twice(self):
+        root = Path(__file__).resolve().parents[1]
+        by_id = {p["id"]: p for p in M.PRIZES}
+        for d in G.DECOR:
+            with self.subTest(d):
+                self.assertEqual(by_id[d]["kind"], "decor")
+                self.assertRegex(JS, rf"\n\s+{d}: \[")  # the pixel sprite on the canvas
+        for d in ("birdbath", "wheelbarrow", "watering_can", "sundial", "beehive", "fairy_arch"):
+            img = by_id[d]["img"]
+            self.assertTrue((root / img.lstrip("/")).is_file(), img)  # the picture in the machine
