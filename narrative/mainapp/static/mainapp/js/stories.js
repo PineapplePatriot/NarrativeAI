@@ -19,7 +19,7 @@
     return data;
   }
 
-  const blankDraft = () => ({wishes: "", cast: [], setting: "canon", tone: "", persona: {mode: "usual", name: "", description: ""},
+  const blankDraft = () => ({wishes: "", cast: [], setting: "canon", tone: "", mode: "episodes", persona: {mode: "usual", name: "", description: ""},
                              setup: null, asking: false, error: "", showPlan: false});
 
   const STORIES = {
@@ -90,6 +90,7 @@
       d.wishes = val("[data-st=wishes]") ?? d.wishes;
       d.tone = val("[data-st=tone]") ?? d.tone;
       d.setting = val("[data-st=setting]") ?? d.setting;
+      d.mode = root.querySelector("[data-st=mode]:checked")?.value || d.mode;
       const mode = root.querySelector("[data-st=pmode]:checked")?.value;
       if (mode) d.persona.mode = mode;
       d.persona.name = val("[data-st=pname]") ?? d.persona.name;
@@ -135,6 +136,9 @@
             <label class="cast-field">Setting<select class="tg-select" data-st="setting">${SETTINGS.map(([v, l]) => `<option value="${v}" ${d.setting === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
             <label class="cast-field">Tone <span class="cast-muted">(optional)</span><input class="ep-input" data-st="tone" value="${esc(d.tone)}" placeholder="slow burn, dry humour…"></label>
           </div>
+          <h3 class="cast-sub">How you play it</h3>
+          <label class="cast-check"><input type="radio" name="stMode" data-st="mode" value="episodes" ${d.mode !== "roleplay" ? "checked" : ""}> Episodes: each scene is cast with Bulba first; short turns, choices if you like</label>
+          <label class="cast-check"><input type="radio" name="stMode" data-st="mode" value="roleplay" ${d.mode === "roleplay" ? "checked" : ""}> Roleplay: only the first scene is planned; you write one to three paragraphs and get about as much back</label>
           <h3 class="cast-sub">Who you play</h3>
           <label class="cast-check"><input type="radio" name="stPersona" data-st="pmode" value="usual" ${d.persona.mode === "usual" ? "checked" : ""} onchange="STORIES.keep(); STORIES.render()"> As usual: ${esc(name)}</label>
           <label class="cast-check"><input type="radio" name="stPersona" data-st="pmode" value="story" ${d.persona.mode === "story" ? "checked" : ""} onchange="STORIES.keep(); STORIES.render()"> Someone for this story</label>
@@ -207,7 +211,7 @@
       if (!d.setup.title.trim()) {d.error = "Give the story a title."; this.render(); return;}
       btn.disabled = true;
       try {
-        const data = await post({action: "story_create", setup: d.setup, cast: d.cast, setting: d.setting, persona: d.persona});
+        const data = await post({action: "story_create", setup: d.setup, cast: d.cast, setting: d.setting, persona: d.persona, mode: d.mode});
         this.draft = blankDraft();
         this.story = data.story; this.view = "story"; this.list = null;
         this.render();
@@ -232,12 +236,27 @@
             <span class="cast-links"><button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.backToList()">All stories</button></span></div>
           <h2>${esc(s.title)}</h2>
           <p class="cast-opening">${esc(s.premise)}</p>
-          <p class="cast-muted">You play ${esc(s.persona)} · ${esc(s.cast.map((c) => c.name + (c.side ? " (this story's)" : "")).join(", "))}${s.tone ? " · " + esc(s.tone) : ""}</p>
+          <p class="cast-muted">You play ${esc(s.persona)} · ${esc(s.cast.map((c) => c.name + (c.side ? " (this story's)" : "")).join(", "))}${s.tone ? " · " + esc(s.tone) : ""}${s.cost ? ` · spent so far $${Number(s.cost).toFixed(2)}` : ""}</p>
           <div class="cast-ask">
-            ${ended ? "" : `<button type="button" class="ep-btn ep-btn-primary" onclick="STORIES.play()">🎬 ${scenes.length ? "Play the next scene" : "Play the first scene"}</button>`}
-            <button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.remove()">Delete story</button>
+            ${s.open_scene ? `<button type="button" class="ep-btn ep-btn-primary" onclick="STORIES.resumeOpen()">▶ Continue “${esc(s.open_scene.title || "the scene")}”</button>`
+              : ended ? "" : `<button type="button" class="ep-btn ep-btn-primary" onclick="STORIES.play()">🎬 ${!scenes.length ? "Play the first scene" : s.mode === "roleplay" ? "Continue the story" : "Play the next scene"}</button>`}
+            ${(s.drafts || []).map((d) => `<button type="button" class="ep-btn" onclick="STORIES.resumeDraft('${esc(d.id)}')">Resume “${esc(d.title)}”</button>`).join("")}
+            <label class="cast-field story-mode">How you play
+              <select class="tg-select" onchange="STORIES.setMode(this.value)">
+                <option value="episodes" ${s.mode !== "roleplay" ? "selected" : ""}>Episodes: each scene is cast, short turns with choices</option>
+                <option value="roleplay" ${s.mode === "roleplay" ? "selected" : ""}>Roleplay: you write paragraphs, the story flows on</option></select></label>
           </div>
         </header>
+        ${(s.missing || []).length ? `<section class="cast-part"><h3>Not in the story yet</h3>
+          <p class="cast-muted">These scenes finished, but Bulba couldn't add them to the story then.</p>
+          ${s.missing.map((m) => `<div class="cast-outfit"><b>${esc(m.title || "A scene")}</b><span>${esc(m.summary)}</span>
+            <div class="cast-actions"><button type="button" class="ep-btn" onclick="STORIES.catchUp('${esc(m.id)}', this)">Add it to the story</button></div></div>`).join("")}</section>` : ""}
+        ${(s.new_people || []).length ? `<section class="cast-part"><h3>Bulba noticed <span class="cast-badge is-bulba">Bulba</span></h3>
+          <p class="cast-muted">People who came up and may matter again. Added, they become this story's own characters with their own looks.</p>
+          ${s.new_people.map((p) => `<div class="cast-outfit"><b>${esc(p.name)}</b> <span class="cast-muted">${esc(p.role)}</span><span>${esc(p.appearance)}</span>
+            <div class="cast-actions"><button type="button" class="ep-btn" onclick="STORIES.newPerson('${esc(p.name)}', true)">Add to the story</button>
+            <button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.newPerson('${esc(p.name)}', false)">Not this one</button></div></div>`).join("")}</section>` : ""}
+        ${this.peoplePart(s)}
         <section class="cast-part"><h3>Scenes</h3>
           ${scenes.length ? Object.keys(byChapter).map((n) => `<div class="story-chapter">
               <h3 class="cast-sub">Chapter ${Number(n)}${(s.chapter_titles || [])[n - 1] ? ": " + esc(s.chapter_titles[n - 1]) : ""}</h3>
@@ -256,7 +275,63 @@
         </details>
         <section class="cast-part"><h3>The plan <span class="cast-badge">${s.show_arc ? "shown" : "hidden"}</span></h3>
           <label class="cast-check"><input type="checkbox" ${s.show_arc ? "checked" : ""} onchange="STORIES.showArc(this.checked)"> Show me the plan (it spoils the surprises)</label>
-          ${s.show_arc && s.arc ? this.arcList(s.arc, s.arc.at) : ""}</section>`;
+          ${s.show_arc && s.arc ? this.arcList(s.arc, s.arc.at) : ""}</section>
+        <div class="cast-ask"><button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.remove()">Delete story</button></div>`;
+    },
+
+    /* The story's own people (side characters, and who you play when it's someone of your own): their cards. */
+    peoplePart(s) {
+      const people = [...(s.player ? [{...s.player, slug: "user", you: true}] : []), ...(s.sides || [])];
+      if (!people.length) return "";
+      const card = (p) => this.editing === p.slug ? `<div class="cast-outfit" data-edit="${esc(p.slug)}">
+          <div class="cast-grid"><input class="ep-input" data-f="name" value="${esc(p.name)}" aria-label="Name">
+            ${p.you ? "" : `<input class="ep-input" data-f="role" value="${esc(p.role)}" aria-label="Role">`}</div>
+          <label class="cast-field">How they look<textarea class="ep-input" data-f="appearance" rows="2">${esc(p.appearance)}</textarea></label>
+          ${p.you ? "" : `<label class="cast-field">Who they are<textarea class="ep-input" data-f="personality" rows="2">${esc(p.personality)}</textarea></label>
+          <label class="cast-field">How they talk<input class="ep-input" data-f="speech" value="${esc(p.speech)}"></label>`}
+          <p class="cast-muted">Looks they already have stay as they are; a new look follows the new description.</p>
+          <div class="cast-actions"><button type="button" class="ep-btn ep-btn-primary" onclick="STORIES.saveSide('${esc(p.slug)}', this)">Save</button>
+            <button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.editing = null; STORIES.render()">Cancel</button></div></div>`
+        : `<div class="cast-outfit"><b>${esc(p.name)}${p.you ? " (you)" : ""}</b> <span class="cast-muted">${esc(p.you ? "who you play in this story" : p.role)}</span>
+          <span>${esc(p.appearance)}</span>
+          <div class="cast-actions"><button type="button" class="ep-btn ep-btn-quiet" onclick="STORIES.editing = '${esc(p.slug)}'; STORIES.render()">Edit</button></div></div>`;
+      return `<section class="cast-part"><h3>This story's people</h3>${people.map(card).join("")}</section>`;
+    },
+
+    async saveSide(slug, btn) {
+      const box = this.root().querySelector(`[data-edit="${CSS.escape(slug)}"]`);
+      const body = {action: "story_side_edit", story_id: this.story.id, slug};
+      box.querySelectorAll("[data-f]").forEach((el) => {body[el.dataset.f] = el.value.trim();});
+      if (!body.name) {this.error = "Give them a name."; this.render(); return;}
+      btn.disabled = true;
+      await this.update(body);
+      this.editing = null; this.render();
+    },
+
+    async update(body) {
+      try {this.story = (await post(body)).story; this.error = "";}
+      catch (e) {this.error = e.message;}
+      this.render();
+    },
+
+    setMode(mode) {return this.update({action: "story_edit", story_id: this.story.id, mode});},
+    newPerson(name, add) {return this.update({action: "story_new_person", story_id: this.story.id, name, add});},
+    async catchUp(id, btn) {btn.disabled = true; btn.textContent = "Bulba is reading it…"; await this.update({action: "story_catch_up", story_id: this.story.id, episode_id: id});},
+
+    resumeOpen() {
+      VN_SCENES.story = this.packForScenes(); VN_SCENES.tab = "stage"; VN_SCENES.lastFinaleEntry = null;
+      TG.switchApp("scenes"); VN_SCENES.render();
+    },
+    async resumeDraft(id) {
+      try {
+        const data = await VN_SCENES.apiPost({action: "resume_draft", draft_id: id});
+        if (data.vn_scenes) TG.state.vn_scenes = data.vn_scenes;
+        this.resumeOpen();
+      } catch (e) {this.error = e.message; this.render();}
+    },
+    packForScenes() {
+      const s = this.story;
+      return {id: s.id, title: s.title, scenes: (s.scene_list || []).length, cast: s.cast, mode: s.mode, previously: s.previously};
     },
 
     async showArc(show) {
@@ -268,7 +343,9 @@
     play() {
       const s = this.story;
       if (!window.VN_SCENES) return;
-      VN_SCENES.playStory({id: s.id, title: s.title, scenes: (s.scene_list || []).length, cast: s.cast});
+      // a roleplay story is only planned once: after the first scene, it simply carries on
+      if (s.mode === "roleplay" && (s.scene_list || []).length) VN_SCENES.continueStory(this.packForScenes());
+      else VN_SCENES.playStory(this.packForScenes());
     },
 
     async reread(id) {

@@ -6248,7 +6248,7 @@ def vn_scenes_api(request):
 
     action = body.get("action") or ""
 
-    the_story = None
+    the_story = the_story_open = None
     if action.startswith("story_") or body.get("story_id"):
         from . import stories
         try:
@@ -6266,7 +6266,8 @@ def vn_scenes_api(request):
                 cast = [char_by_slug[s] for s in (body.get("cast") or []) if isinstance(s, str) and s in char_by_slug][:6]
                 made = stories.create(request.user, body.get("setup") if isinstance(body.get("setup"), dict) else {}, cast,
                                       setting=body.get("setting"), persona=body.get("persona"),
-                                      style=body.get("style") if isinstance(body.get("style"), dict) else None)
+                                      style=body.get("style") if isinstance(body.get("style"), dict) else None,
+                                      mode=body.get("mode") if body.get("mode") in stories.MODES else "episodes")
                 return JsonResponse({"story": stories.pack(made, full=True)})
             if action == "story_scene":  # reread one finished scene of a story
                 return JsonResponse({"scene": stories.scene_beats(request.user, str(body.get("story_scene_id") or "0"))})
@@ -6285,7 +6286,27 @@ def vn_scenes_api(request):
                     the_story.persona = {k: str(body["persona"].get(k) or "")[:1500] for k in ("mode", "name", "description")}
                 if body.get("status") in ("playing", "paused", "ended"):
                     the_story.status = body["status"]
+                if body.get("mode") in stories.MODES:
+                    the_story.mode = body["mode"]
                 the_story.save()
+                stories.sync_player(the_story)
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_side_edit":  # a side character's card, or who they play (slug "user")
+                person = the_story.player if body.get("slug") == "user" else \
+                    the_story.cast.filter(side_story=the_story, slug=str(body.get("slug") or "")).first()
+                if person is None:
+                    return JsonResponse({"error": "That isn't one of this story's own characters."}, status=400)
+                stories.edit_side(person, {k: body.get(k) for k, _ in stories.SIDE_FIELDS})
+                if person == the_story.player:  # their story persona follows the card
+                    the_story.persona = {**(the_story.persona or {}), "name": person.name,
+                                         "description": str(body.get("appearance") or the_story.persona.get("description") or "")[:1500]}
+                    the_story.save(update_fields=["persona", "updated"])
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_new_person":  # Bulba noticed someone: add them as a side character, or let them go
+                stories.take_new_person(the_story, body.get("name"), add=bool(body.get("add")))
+                return JsonResponse({"story": stories.pack(the_story, full=True)})
+            if action == "story_catch_up":  # a finished scene the story missed (Bulba's update failed)
+                stories.catch_up(request.user, the_story, str(body.get("episode_id") or ""))
                 return JsonResponse({"story": stories.pack(the_story, full=True)})
             if action == "story_delete":
                 stories.delete(the_story)
@@ -6303,6 +6324,9 @@ def vn_scenes_api(request):
             from .models import Story
             for kept in Story.objects.filter(author=request.user, pk=open_story)[:1]:
                 char_by_slug.update({c.slug: c for c in kept.cast.all()})
+                the_story_open = kept
+    in_story = the_story or the_story_open
+    story_player = in_story.player if in_story is not None and in_story.player_id else None
 
     if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
         active = vn_scenes.get_vn_state(request.user).get("active_scene") or {}
@@ -6374,7 +6398,7 @@ def vn_scenes_api(request):
 
         def member(key):
             if key == "user":
-                return None
+                return story_player  # who they play in this story, when it's someone of their own
             if key not in char_by_slug:
                 raise ValueError("Choose someone from your characters.")
             return char_by_slug[key]
@@ -6386,8 +6410,9 @@ def vn_scenes_api(request):
                     slugs = [c.slug for c in t_obj.characters.all()] if t_obj else []
                 cast = [char_by_slug[s] for s in slugs if isinstance(s, str) and s in char_by_slug]
                 people = [(c.slug, c, messenger.char_profile(c)["display_name"], episode_looks.setting_for(c)) for c in cast]
-                people.append(("user", None, messenger.user_profile(request.user).get("display_name") or "You",
-                               vn_scenes.scene_setting(cast)))
+                people.append(("user", story_player, messenger.char_profile(story_player)["display_name"] if story_player
+                               else messenger.user_profile(request.user).get("display_name") or "You",
+                               episode_looks.setting_for(story_player) if story_player else vn_scenes.scene_setting(cast)))
                 out = []
                 for key, character, name, setting in people:
                     looks = episode_looks.looks_for(request.user, character, setting)
@@ -6532,6 +6557,7 @@ def vn_scenes_api(request):
             return JsonResponse({"error": str(exc)}, status=400)
 
     if action == "start_scene":
+        from . import stories as stories_mod
         tid = body.get("thread_id")
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
         if tid and t_obj is None:
@@ -6563,6 +6589,13 @@ def vn_scenes_api(request):
         if not picked:
             return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
         hint = str(body.get("location_hint") or "").strip()
+        style = {k: body.get(k) for k in ("balance", "length", "write_out") if k in body} \
+            or ((the_story.style or {}) if the_story is not None else {})
+        interaction = body.get("interaction_mode", "mixed")
+        if the_story is not None and the_story.mode == "roleplay":  # prose turns; later scenes simply carry on
+            style, interaction = {**style, **stories_mod.roleplay_style(the_story)}, "write"
+            if not body.get("casting"):
+                hint = hint or stories_mod.continue_hint(the_story)
         try:
             scene = vn_scenes.start_scene(
                 request.user,
@@ -6572,13 +6605,12 @@ def vn_scenes_api(request):
                 looks=body.get("looks") if isinstance(body.get("looks"), dict) else None,
                 direction=str(body.get("direction") or "").strip()[:4000],
                 polish_enabled=bool(body.get("polish_enabled", False)),
-                interaction_mode=body.get("interaction_mode", "mixed"),
+                interaction_mode=interaction,
                 authoring_mode=body.get("authoring_mode", "roleplay"),
                 pulse_event=pulse_event,
                 generate_background=bool(body.get("generate_background", False)),
                 casting=body.get("casting") if isinstance(body.get("casting"), dict) else None,
-                style={k: body.get(k) for k in ("balance", "length", "write_out") if k in body}
-                      or ((the_story.style or {}) if the_story is not None else {}),
+                style=style,
                 story=the_story,
             )
         except ai_client.AIError as e:

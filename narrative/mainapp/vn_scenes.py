@@ -188,7 +188,7 @@ def scene_setting(chars):
     return "modern" if any(episode_looks.setting_for(c) == "modern" for c in chars) else "canon"
 
 
-def pick_looks(user, chars, chosen=None, director=False):
+def pick_looks(user, chars, chosen=None, director=False, me=None):
     """{slug or "user": look id} for an episode: the looks the user picked, else each one's latest look.
 
     Only the user's own looks, in the setting the episode was entered in, are accepted.
@@ -197,7 +197,7 @@ def pick_looks(user, chars, chosen=None, director=False):
     out = {}
     people = [(c.slug, c, episode_looks.setting_for(c)) for c in chars]
     if director:
-        people.append(("user", None, scene_setting(chars)))
+        people.append(("user", me, episode_looks.setting_for(me) if me else scene_setting(chars)))
     for key, character, setting in people:
         look = None
         if chosen.get(key):
@@ -283,6 +283,11 @@ VISUAL NOVEL ENGINE RULES:
      * `"user_turn"` — Pause at a natural moment so {user} can type a short action or dialogue reply (and provide 2-3 short `"choices"` {user} can click or adapt).
      * `"auto_continue"` — The character is in the middle of an unfolding action/moment; let {user} click "Continue ▶" (or interrupt if they want).
      * `"climax_ready"` — The scene has reached a memorable peak or parting moment and is ready to conclude with a full Finale CG illustration!
+5. A GOOD PLACE TO END THE SCENE: set `"scene_end"` to {{"ready": true, "why": "one short plain sentence"}} when this
+   scene has done its job: the moment it was about has landed (a decision made, something said that can't be unsaid,
+   a turning point reached), people part or are about to, or what should happen next belongs to another time or
+   place. Otherwise {{"ready": false, "why": ""}}. This only offers {user} the end; keep writing the scene as usual
+   and never wrap it up on your own.
 
 AVAILABLE MUSIC TRACKS:
 {music_list}
@@ -313,6 +318,7 @@ Return ONLY a valid JSON object matching this exact structure (no markdown fence
   "music": "Exact name of chosen music track from AVAILABLE MUSIC TRACKS",
   "handoff": "user_turn",
   "handoff_prompt": "Short 4-10 word cue for {user}, e.g. 'How do you answer Il Dottore?' or 'Scene climax reached — capture Finale CG!'",
+  "scene_end": {{"ready": false, "why": ""}},
   "choices": [
     "Short action or dialogue option 1 (under 14 words)",
     "Short action or dialogue option 2 (under 14 words)"
@@ -582,6 +588,20 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
     return boxes
 
 
+LONG_SCENE = 16  # the user's turns after which a long scene offers a cut by itself
+
+
+def end_hint(parsed, history):
+    """Why this is a good place to end the scene ('' when it isn't): the storyteller's call, or a long scene."""
+    end = parsed.get("scene_end") if isinstance(parsed.get("scene_end"), dict) else {}
+    if end.get("ready") is True or parsed.get("handoff") == "climax_ready":
+        return " ".join(str(end.get("why") or "The moment this scene was about has landed.").split())[:200]
+    turns = sum(1 for b in history if b.get("speaker_slug") in ("user", "director") and not b.get("generated", True))
+    if turns >= LONG_SCENE and turns % 4 == 0:
+        return "This scene has run long: cutting to the next one keeps the story moving."
+    return ""
+
+
 def _steer(user):
     """The same writing steer phone replies get (what to do instead of the habits they asked fixed, and the slop
     always kept out), at the very end of the request, where it's followed best."""
@@ -591,6 +611,12 @@ def _steer(user):
     except Exception:
         return ""
     return "\n" + line if line else ""
+
+
+def _story_player(user, scene):
+    from mainapp import stories
+    from mainapp.models import Story
+    return stories.player(Story.objects.filter(author=user, pk=scene.get("story_id") or 0).first()) if scene.get("story_id") else None
 
 
 def _story_note(user, scene):
@@ -641,7 +667,8 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
 
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars, user)
-    picked_looks = pick_looks(user, chars, looks, director=authoring_mode == "director")
+    me = __import__("mainapp.stories", fromlist=["player"]).player(story)  # who the user plays in a story, if their own
+    picked_looks = pick_looks(user, chars, looks, director=authoring_mode == "director", me=me)
     roster_text = _build_char_roster(chars, user, context, scene_looks(user, {"looks": picked_looks}))
 
     telechat_context = ("Earlier memory:\n" + context["memory"] + "\nThread scenario:\n" + context["scenario"]
@@ -656,7 +683,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
             "character_slugs": [c.slug for c in chars], "beats": [], "looks": picked_looks,
             "interaction_mode": interaction_mode if interaction_mode in vn_story.INTERACTIONS else "mixed",
             "authoring_mode": authoring_mode if authoring_mode in vn_story.AUTHORING else "roleplay",
-            "user_participant": vn_story.user_participant(user, context),
+            "user_participant": vn_story.user_participant(user, context, me),
             "balance": (style or {}).get("balance") if (style or {}).get("balance") in vn_story.BALANCES else "balanced",
             "length": (style or {}).get("length") if (style or {}).get("length") in vn_story.LENGTHS else "medium",
             "write_out": bool((style or {}).get("write_out", True)),
@@ -816,7 +843,15 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
             **({"note": note} if note else {}),
             "generated": False, "stage": vn_story.stage_of(scene), "stage_before": vn_story.stage_of(scene),
         }
-        history.append(user_beat)
+        paragraphs = [p.strip() for p in re.split(r"\n\s*\n", user_input.strip()) if p.strip()]
+        if scene.get("length") == "match" and len(paragraphs) > 1:  # a written part: one page per paragraph
+            group = user_beat["id"]
+            for i, para in enumerate(paragraphs[:6]):
+                history.append({**user_beat, "id": group if i == 0 else "vnb_" + uuid.uuid4().hex[:8],
+                                "block_id": group, "text": para, "stage": vn_story.stage_of(scene),
+                                "stage_before": vn_story.stage_of(scene)})
+        else:
+            history.append(user_beat)
 
     hist_lines = []
     for b in history[-40:]:
@@ -875,6 +910,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
     scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
     scene["handoff"] = parsed.get("handoff") if parsed.get("handoff") in ("user_turn", "auto_continue", "climax_ready") else "user_turn"
     scene["handoff_prompt"] = str(parsed.get("handoff_prompt") or "What do you do or say?").strip()[:140]
+    scene["end_hint"] = end_hint(parsed, history)
     scene["choices"] = [str(ch).strip()[:120] for ch in (parsed.get("choices") or []) if str(ch or "").strip()][:3]
 
     if scene.get("interaction_mode") == "write": scene["choices"] = []
@@ -996,7 +1032,9 @@ def change_look(user, beat_id, key, look_id=None, name="", outfit="", keep=False
         worn = EpisodeLook.objects.filter(author=user, pk=worn_id or 0).first()
         if look_id:
             new = EpisodeLook.objects.filter(author=user, pk=look_id).first()
-            if not new or (new.character.slug if new.character_id else "user") != key or (worn and new.setting != worn.setting):
+            me = _story_player(user, scene)
+            whose = "user" if (new and (not new.character_id or (me and new.character_id == me.pk))) else (new.character.slug if new else "")
+            if not new or whose != key or (worn and new.setting != worn.setting):
                 raise ai_client.AIError("Pick one of their own looks for this setting.")
         elif outfit.strip():
             if not worn:

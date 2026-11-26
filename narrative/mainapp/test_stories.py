@@ -24,7 +24,7 @@ SETUP = {
 }
 
 
-class StoryTests(TestCase):
+class StoryBase(TestCase):
     def setUp(self):
         media = tempfile.TemporaryDirectory()
         self.addCleanup(media.cleanup)
@@ -41,6 +41,8 @@ class StoryTests(TestCase):
     def make(self, persona=None):
         return stories.create(self.user, SETUP, [self.mira], persona=persona)
 
+
+class StoryTests(StoryBase):
     def test_bulba_proposes_and_the_setup_is_trimmed(self):
         with patch.object(messenger, "ask_json", return_value=SETUP) as bulba:
             r = self.api(action="story_propose", wishes="a flooded library", cast=[self.mira.slug, "nobody"], setting="original")
@@ -159,3 +161,98 @@ class StoryTests(TestCase):
             vn_scenes.step_scene(self.user, user_input="Sorry.")
         for call in model.call_args_list:
             self.assertIn("start each beat on the action itself", call.args[1])  # "She doesn't step back..." steered out
+
+
+class StoryPeopleTests(StoryBase):
+    def test_a_story_persona_is_drawn_from_words_and_fills_the_user_slot(self):
+        story = self.make(persona={"mode": "story", "name": "Wren", "description": "A diver, short black hair, wetsuit."})
+        self.assertEqual(story.player.name, "Wren")
+        self.assertNotIn(story.player, story.cast.all())
+        r = self.api(action="episode_looks", story_id=story.pk, character_slugs=[self.mira.slug]).json()
+        me = r["cast"][-1]
+        self.assertEqual((me["key"], me["name"], me["has_reference"]), ("user", "Wren", False))
+        from mainapp.models import EpisodeLook
+        look = EpisodeLook.objects.create(author=self.user, character=story.player, setting="canon", name="Dive",
+                                          moods={"neutral": {"raw": "a.png", "cut": ""}})
+        picked = vn_scenes.pick_looks(self.user, [self.mira], {"user": look.pk}, director=True, me=story.player)
+        self.assertEqual(picked["user"], look.pk)
+        self.api(action="story_edit", story_id=story.pk, persona={"mode": "usual"})
+        story.refresh_from_db()
+        self.assertIsNone(story.player)
+
+    def test_side_characters_can_be_edited(self):
+        story = self.make()
+        oren = Character.objects.get(side_story=story)
+        data = self.api(action="story_side_edit", story_id=story.pk, slug=oren.slug, name="Oren Hale",
+                        appearance="seventies, bald").json()["story"]
+        self.assertEqual(data["sides"][0]["name"], "Oren Hale")
+        self.assertEqual(data["sides"][0]["appearance"], "seventies, bald")
+        self.assertEqual(data["sides"][0]["speech"], "short sentences")  # untouched fields stay
+        self.assertEqual(self.api(action="story_side_edit", story_id=story.pk, slug=self.mira.slug, name="X").status_code, 400)
+
+    def test_new_people_bulba_noticed_are_offered_once(self):
+        story = self.make()
+        keeper = {"summary": "They met Kade.", "new_people": [{"name": "Kade", "role": "a smuggler", "appearance": "scar"},
+                                                             {"name": "Mira"}]}
+        with patch.object(messenger, "ask_json", return_value=keeper):
+            stories.record_scene(self.user, {"id": "vns_1", "story_id": story.pk, "beats": []}, {"summary": ""})
+        data = self.api(action="story_get", story_id=story.pk).json()["story"]
+        self.assertEqual([p["name"] for p in data["new_people"]], ["Kade"])
+        data = self.api(action="story_new_person", story_id=story.pk, name="Kade", add=True).json()["story"]
+        self.assertIn("Kade", [c["name"] for c in data["cast"]])
+        self.assertEqual(data["new_people"], [])
+
+    def test_a_scene_the_story_missed_can_be_added(self):
+        story = self.make()
+        vn_scenes.save_vn_state(self.user, {"gallery": [{"id": "vns_lost", "title": "Lost", "summary": "It happened.",
+                                                         "episode": {"id": "vns_lost", "story_id": story.pk, "beats": []}}]})
+        data = self.api(action="story_get", story_id=story.pk).json()["story"]
+        self.assertEqual([m["id"] for m in data["missing"]], ["vns_lost"])
+        with patch.object(messenger, "ask_json", return_value={"summary": "It happened."}):
+            data = self.api(action="story_catch_up", story_id=story.pk, episode_id="vns_lost").json()["story"]
+        self.assertEqual((data["missing"], data["scenes"]), ([], 1))
+
+
+class SceneEndTests(StoryBase):
+    def test_the_storyteller_offers_an_end_with_a_reason(self):
+        from mainapp import vn_scenes as vs
+        self.assertEqual(vs.end_hint({"scene_end": {"ready": True, "why": "She said yes."}}, []), "She said yes.")
+        self.assertEqual(vs.end_hint({"scene_end": {"ready": False}}, []), "")
+        long = [{"speaker_slug": "user", "generated": False}] * vs.LONG_SCENE
+        self.assertIn("run long", vs.end_hint({}, long))
+        story = self.make()
+        reply = {"title": "A", "beats": [{"speaker_slug": self.mira.slug, "text": "Yes."}],
+                 "scene_end": {"ready": True, "why": "The keys changed hands."}}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply) as model:
+            vn_scenes.start_scene(self.user, characters=[self.mira], story=story)
+            scene, _ = vn_scenes.step_scene(self.user, user_input="Thanks.")
+        self.assertEqual(scene["end_hint"], "The keys changed hands.")
+        self.assertIn("scene_end", model.call_args.args[1])
+
+
+class RoleplayModeTests(StoryBase):
+    def test_roleplay_scenes_carry_on_without_casting_and_keep_prose(self):
+        story = stories.create(self.user, SETUP, [self.mira], mode="roleplay")
+        story.bible = {**story.bible, "last": {"place": "the reading room", "time": "Day 2, 23:00", "present": ["Mira"]}}
+        story.save()
+        reply = {"title": "Night", "beats": [{"speaker_slug": self.mira.slug, "text": "Still here?"}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply) as model:
+            r = self.api(action="start_scene", story_id=story.pk, looks={})
+        scene = r.json()["scene"]
+        self.assertEqual((scene["length"], scene["interaction_mode"], scene["write_out"]), ("match", "write", False))
+        prompt = model.call_args.args[1]
+        self.assertIn("the reading room", prompt)  # carries on from where the last scene ended
+        self.assertIn("match the user", vn_scenes.vn_story.mode_rules(scene))
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply):
+            scene, _ = vn_scenes.step_scene(self.user, user_input="I close the book.\n\n\"Couldn't sleep,\" I say.")
+        mine = [b for b in scene["beats"] if b.get("speaker_slug") == "user"]
+        self.assertEqual([b["text"] for b in mine], ["I close the book.", "\"Couldn't sleep,\" I say."])  # as written
+        self.assertEqual(len({b["block_id"] for b in mine}), 1)
+
+    def test_the_story_page_knows_an_open_scene(self):
+        story = self.make()
+        reply = {"title": "Night", "beats": [{"speaker_slug": self.mira.slug, "text": "Hm."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply):
+            vn_scenes.start_scene(self.user, characters=[self.mira], story=story)
+        data = self.api(action="story_get", story_id=story.pk).json()["story"]
+        self.assertEqual(data["open_scene"]["title"], "Night")

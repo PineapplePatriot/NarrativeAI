@@ -20,6 +20,8 @@ from mainapp import ai_client, messenger
 from mainapp.models import Character, Story, StoryScene
 
 SETTINGS = ("canon", "modern", "original")
+MODES = ("episodes", "roleplay")
+SIDE_FIELDS = (("name", 80), ("role", 300), ("appearance", 600), ("personality", 600), ("speech", 300))
 MAX_SIDE = 4
 
 SETUP_PROMPT = """You are Bulba, setting up a long-form interactive visual-novel story for the user. Plain words: no
@@ -114,25 +116,92 @@ def _slug(base):
     return slug
 
 
-def create(user, setup, cast, setting="canon", persona=None, style=None):
+def create(user, setup, cast, setting="canon", persona=None, style=None, mode="episodes"):
     """The story from an applied setup: side characters become real characters of this story."""
     setup = clean_setup(setup) if isinstance(setup, dict) else clean_setup({})
     story = Story.objects.create(
         author=user, title=setup["title"], premise=setup["premise"], tone=setup["tone"],
         setting=setting if setting in SETTINGS else "canon",
         persona=persona if isinstance(persona, dict) and persona.get("mode") in ("usual", "story") else {"mode": "usual"},
-        arc=setup["arc"], style=style if isinstance(style, dict) else {},
+        arc=setup["arc"], style=style if isinstance(style, dict) else {}, mode=mode if mode in MODES else "episodes",
         bible={"world": setup["world"], "relations": setup["relations"], "threads": setup["threads"], "timeline": [],
                "opening": setup["opening"], "last": {}})
     story.cast.set(cast)
     for side in setup["side_characters"]:
-        person = Character.objects.create(
-            author=user, name=side["name"], slug=_slug(side["name"]), side_story=story,
-            description=f"{side['appearance']}\n\n{side['personality']}".strip(), personality=side["personality"],
-            scenario=f"Role in the story: {side['role']}", example_dialogue=side["speech"])
-        messenger.save_char_profile(person, {"appearance_notes": side["appearance"]})
-        story.cast.add(person)
+        story.cast.add(add_side(story, side))
+    sync_player(story)
     return story
+
+
+def add_side(story, side):
+    """A side character of this story from Bulba's (or the user's) description."""
+    side = {k: _text(side.get(k), n) for k, n in SIDE_FIELDS}
+    person = Character.objects.create(author=story.author, name=side["name"] or "Someone", slug=_slug(side["name"]),
+                                      side_story=story)
+    edit_side(person, side)
+    return person
+
+
+def edit_side(person, side):
+    """Write a side character's card from the story's fields (name, role, appearance, personality, speech)."""
+    side = {k: _text(side.get(k), n) for k, n in SIDE_FIELDS}
+    prof = messenger.char_profile(person)
+    now = {"name": person.name, "role": person.scenario.replace("Role in the story: ", "", 1),
+           "appearance": prof.get("appearance_notes") or "", "personality": person.personality,
+           "speech": person.example_dialogue}
+    new = {k: side[k] or now[k] for k, _ in SIDE_FIELDS}
+    person.name = new["name"]
+    person.description = f"{new['appearance']}\n\n{new['personality']}".strip()
+    person.personality, person.example_dialogue = new["personality"], new["speech"]
+    person.scenario = f"Role in the story: {new['role']}"
+    person.save()
+    messenger.save_char_profile(person, {"appearance_notes": new["appearance"], "display_name": new["name"]})
+    return person
+
+
+def side_card(person):
+    prof = messenger.char_profile(person)
+    return {"slug": person.slug, "name": prof["display_name"], "role": person.scenario.replace("Role in the story: ", "", 1),
+            "appearance": prof.get("appearance_notes") or "", "personality": person.personality, "speech": person.example_dialogue}
+
+
+def sync_player(story):
+    """Who the user plays in this story as a hidden character of it, when it's someone of their own (so their looks
+    are drawn from the description); none when they play their usual persona."""
+    p = story.persona or {}
+    if p.get("mode") != "story" or not _text(p.get("name"), 80):
+        if story.player_id:
+            story.player = None
+            story.save(update_fields=["player"])
+        return None
+    side = {"name": p["name"], "role": "the user's character", "appearance": p.get("description"),
+            "personality": p.get("description"), "speech": ""}
+    if story.player_id:
+        edit_side(story.player, side)
+    else:
+        story.player = add_side(story, side)
+        story.save(update_fields=["player"])
+    return story.player
+
+
+def player(story):
+    """The character standing in for the user in this story (None: their usual persona)."""
+    return story.player if story is not None and story.player_id else None
+
+
+def roleplay_style(story):
+    """A roleplay story's turns: their own paragraphs kept as they are, about as much back, no choices."""
+    return {"length": "match", "write_out": False}
+
+
+def continue_hint(story):
+    """Where a roleplay story's next scene starts when nothing is planned: right after the last one."""
+    last = (story.bible or {}).get("last") or {}
+    if not last.get("place"):
+        return ""
+    return (f"Continue the story straight on from where the last scene ended ({last['place']}"
+            + (f", {last['time']}" if last.get("time") else "") + ", with " + (", ".join(last.get("present") or []) or "the same people")
+            + "). If that moment was finished, pick up at the next thing that happens; time only moves forward.")
 
 
 def look_setting(story):
@@ -171,7 +240,8 @@ def secret_direction(story):
     return ("STORY DIRECTION (for you only: never announce it, never force it; the user's choices come first and may "
             f"change it): chapter {i + 1}, \"{ch['title']}\": {ch['goal']}"
             + (f" Next turning point to steer toward when it fits: {nxt}" if nxt else "")
-            + (f" The chapter closes when: {ch['ends_when']}" if ch.get("ends_when") else ""))
+            + (f" The chapter closes when: {ch['ends_when']}" if ch.get("ends_when") else "")
+            + " When a turning point lands, that is usually a good place to end the scene (scene_end).")
 
 
 KEEPER_PROMPT = """You keep the story bible of a long-form visual novel. A scene just ended. Update the bible with what
@@ -192,7 +262,11 @@ Return ONLY JSON:
   "last": {{"place": "where the scene ended", "time": "story time at the end", "present": ["who was there at the end"],
            "outfits": {{"<name>": "what they wore at the end"}}}},
   "arc": {{"beats_reached": <how many turning points of the current chapter are now behind>, "chapter_done": true|false}},
-  "chapter_card": "if the chapter closed: 2-3 sentences on how it ended, else ''"}}"""
+  "chapter_card": "if the chapter closed: 2-3 sentences on how it ended, else ''",
+  "new_people": [{{"name": "...", "role": "...", "appearance": "concrete and visible", "personality": "2 sentences",
+                   "speech": "how they talk"}}]}}
+new_people: only NAMED people who appeared in this scene, are not in the cast ({cast}) and will matter again; usually
+none. Describe them as the scene showed them."""
 
 
 def record_scene(user, scene, finished):
@@ -218,7 +292,8 @@ def record_scene(user, scene, finished):
     try:
         out = messenger.ask_json(user, KEEPER_PROMPT.format(
             title=story.title, premise=story.premise[:1200], bible=json.dumps(story.bible or {}, ensure_ascii=False)[:5000],
-            arc=json.dumps(arc, ensure_ascii=False)[:3000], place=kept.place, transcript=transcript[:9000]),
+            arc=json.dumps(arc, ensure_ascii=False)[:3000], place=kept.place, transcript=transcript[:9000],
+            cast=", ".join(messenger.char_profile(c)["display_name"] for c in story.cast.all())),
             need=("summary",), max_tokens=3000)
     except ai_client.AIError:
         out = {}
@@ -235,6 +310,14 @@ def record_scene(user, scene, finished):
                              "present": _list(out["last"].get("present"), 8, 80),
                              "outfits": {(_text(k, 80)): _text(v, 300) for k, v in (out["last"].get("outfits") or {}).items()}
                              if isinstance(out["last"].get("outfits"), dict) else {}}
+        known = {c.name.lower() for c in story.cast.all()} | {messenger.char_profile(c)["display_name"].lower() for c in story.cast.all()}
+        offered = [p for p in bible.get("new_people") or [] if isinstance(p, dict)]
+        for person in (out.get("new_people") if isinstance(out.get("new_people"), list) else [])[:3]:
+            person = {k: _text(person.get(k), n) for k, n in SIDE_FIELDS} if isinstance(person, dict) else {}
+            if person.get("name") and person["name"].lower() not in known | {o["name"].lower() for o in offered} \
+                    | {n.lower() for n in bible.get("declined") or []}:
+                offered.append(person)
+        bible["new_people"] = offered[-6:]
         progress = out.get("arc") if isinstance(out.get("arc"), dict) else {}
         chapters = arc.get("chapters") or []
         reached = progress.get("beats_reached")
@@ -264,8 +347,24 @@ def pack(story, full=False):
     out = {"id": story.pk, "title": story.title, "premise": story.premise, "tone": story.tone, "setting": story.setting,
            "status": story.status, "cast": cast, "persona": persona_of(story.author, story)[0],
            "chapters": len(chapters), "chapter_now": min(int(at.get("chapter") or 0) + 1, max(len(chapters), 1)),
-           "scenes": story.scenes.count(), "show_arc": story.show_arc, "updated": story.updated.isoformat()}
+           "scenes": story.scenes.count(), "show_arc": story.show_arc, "updated": story.updated.isoformat(),
+           "mode": story.mode, "persona_mode": (story.persona or {}).get("mode") or "usual",
+           "cost": round(sum(s.cost for s in story.scenes.all()), 3)}
     if full:
+        from mainapp import vn_scenes
+        state = vn_scenes.get_vn_state(story.author)
+        active = state.get("active_scene") or {}
+        out["open_scene"] = {"title": active.get("title") or "", "pages": len(active.get("beats") or [])} \
+            if active.get("story_id") == story.pk else None
+        out["drafts"] = [{"id": d["id"], "label": d.get("label") or "", "title": d.get("title") or ""}
+                         for d in state.get("drafts") or [] if (d.get("scene") or {}).get("story_id") == story.pk][-4:]
+        out["missing"] = missing(story, state)
+        out["sides"] = [side_card(c) for c in story.cast.filter(side_story=story)]
+        out["player"] = side_card(story.player) if story.player_id else None
+        out["persona_full"] = story.persona or {"mode": "usual"}
+        out["new_people"] = (story.bible or {}).get("new_people") or []
+        last = story.scenes.order_by("-number").first()
+        out["previously"] = last.summary if last else ""
         out["bible"] = story.bible or {}
         out["scene_list"] = [{"id": s.pk, "number": s.number, "chapter": s.chapter, "title": s.title, "place": s.place,
                               "summary": s.summary, "cg_url": s.cg_url, "chapter_card": s.chapter_card,
@@ -274,6 +373,45 @@ def pack(story, full=False):
         if story.show_arc:
             out["arc"] = arc
     return out
+
+
+def missing(story, state):
+    """Finished episodes of this story that never made it in (Bulba's update failed): offered again."""
+    kept = set(story.scenes.values_list("episode_id", flat=True))
+    return [{"id": g["id"], "title": g.get("title") or "", "summary": (g.get("summary") or "")[:300]}
+            for g in state.get("gallery") or []
+            if (g.get("episode") or {}).get("story_id") == story.pk and g.get("id") not in kept]
+
+
+def catch_up(user, story, episode_id):
+    """Add a finished episode the story missed, from the saved episode."""
+    from mainapp import vn_scenes
+    entry = next((g for g in vn_scenes.get_vn_state(user).get("gallery") or []
+                  if g.get("id") == episode_id and (g.get("episode") or {}).get("story_id") == story.pk), None)
+    if entry is None:
+        raise ValueError("That episode isn't one of this story's.")
+    scene = {**entry["episode"], "beats": entry.get("beats") or entry["episode"].get("beats") or []}
+    cost = entry.get("cost") if isinstance(entry.get("cost"), dict) else {"total": entry.get("cost") or 0}
+    return record_scene(user, scene, {"summary": entry.get("summary") or "", "cg_url": entry.get("cg_url") or "", "cost": cost})
+
+
+def take_new_person(story, name, add=True):
+    """Add a person Bulba noticed as a side character, or let them go (and don't offer them again)."""
+    bible = dict(story.bible or {})
+    offered = [p for p in bible.get("new_people") or [] if isinstance(p, dict)]
+    person = next((p for p in offered if p.get("name", "").lower() == str(name or "").strip().lower()), None)
+    if person is None:
+        raise ValueError("Bulba isn't offering that person any more.")
+    bible["new_people"] = [p for p in offered if p is not person]
+    made = None
+    if add:
+        made = add_side(story, person)
+        story.cast.add(made)
+    else:
+        bible["declined"] = (list(bible.get("declined") or []) + [person["name"]])[-30:]
+    story.bible = bible
+    story.save(update_fields=["bible", "updated"])
+    return made
 
 
 def scene_beats(user, scene_id):

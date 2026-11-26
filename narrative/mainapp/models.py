@@ -413,6 +413,12 @@ class Story(models.Model):
     bible = models.JSONField(default=dict, blank=True)  # {"world", "relations", "threads", "timeline"}
     style = models.JSONField(default=dict, blank=True)  # balance, length, write_out, interaction and authoring modes
     status = models.CharField(max_length=10, default="playing")  # playing, ended
+    # "episodes": every scene starts from a casting sheet, short turns with choices. "roleplay": only the first scene
+    # is cast; the user writes paragraphs and gets about as much back, and the story flows on without planning
+    mode = models.CharField(max_length=10, default="episodes")
+    # who the user plays when it's someone for this story: a hidden character of the story, so they get looks of
+    # their own drawn from the description (their usual persona's pictures aren't them)
+    player = models.ForeignKey("Character", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

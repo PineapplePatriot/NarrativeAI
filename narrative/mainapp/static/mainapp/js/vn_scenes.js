@@ -21,6 +21,28 @@
       this.story = story; this.lastFinaleEntry = null; this.tab = "stage";
       TG.switchApp("scenes"); this.render();
     },
+    /* A roleplay story's next scene: no casting, it simply carries on from where the last one ended. */
+    async continueStory(story) {
+      if (this.activeScene()) {this.notify("Save or finish the open episode first.", true); return;}
+      this.story = story; this.lastFinaleEntry = null; this.tab = "stage";
+      TG.switchApp("scenes");
+      this.showLaunchTransition(true);
+      try {
+        const data = await this.apiPost({action: "start_scene", story_id: story.id, looks: {}, direction: ""});
+        TG.state.vn_scenes = data.vn_scenes;
+        this.beatIndex = 0;
+        this.render();
+        this.syncAudioTrack(true);
+        if (TG.state.vn_scenes?.watch_on) this.runWatch();
+      } catch (e) {
+        this.notify(e.message, true);
+        this.render();
+      } finally {
+        this.showLaunchTransition(false);
+      }
+    },
+
+    keepGoing(beatId) {(this.endDismissed ||= new Set()).add(beatId); this.render();},
     backToStory(id) {this.story = null; this.lastFinaleEntry = null; this.render(); window.STORIES?.open(id);},
     leaveStory() {this.story = null; this.lastFinaleEntry = null; this.render();},
     busy: false,
@@ -210,8 +232,11 @@
       clearTimeout(this.launchStepTimer);
       if (visible) {
         document.getElementById('vnNotice').hidden = true;
-        const steps = ['Reading the casting sheet', 'Writing the opening', ...(drawing ? ['Drawing the backdrop'] : []), 'Putting everyone on stage'];
-        document.getElementById('vnLaunchDetail').innerHTML = `<ol class="ep-wait-steps">${steps.map((s, i) =>
+        const steps = [this.story && !window.CASTING?.payload() ? 'Reading the story so far' : 'Reading the casting sheet',
+          'Writing the opening', ...(drawing ? ['Drawing the backdrop'] : []), 'Putting everyone on stage'];
+        const before = this.story?.previously;
+        document.getElementById('vnLaunchDetail').innerHTML = (before ? `<div class="ep-previously"><b>Previously</b><span>${this.attr(before)}</span></div>` : '')
+          + `<ol class="ep-wait-steps">${steps.map((s, i) =>
           `<li data-step="${i}" class="${i === 0 ? 'is-now' : ''}">${s}</li>`).join('')}</ol>`;
         let at = 0;
         const tick = () => {
@@ -802,14 +827,21 @@
           `<button type="button" class="ep-choice" data-choice-index="${i}">${this.attr((!this.showOriginal && (sc.choices_shown || [])[i]) || c)}</button>`).join("")}</div>` : ""}
         <div class="ep-well">
           ${sc.interaction_mode !== "choices" ? `
+            ${sc.length === "match" ? `<textarea class="ep-input ep-prose" id="vnShortInput" rows="4" data-screen-field="reply"
+              placeholder="Write your part: one to three paragraphs. Ctrl+Enter sends."
+              onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput(this.nextElementSibling);}"></textarea>` : `
             <textarea class="ep-input" id="vnShortInput" rows="1" data-screen-field="reply"
               placeholder="${sc.authoring_mode === "director" ? "Direct the cast…" : "What you do or say…"}"
-              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); VN_SCENES.submitUserBeatInput(this.nextElementSibling);}"></textarea>
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); VN_SCENES.submitUserBeatInput(this.nextElementSibling);}"></textarea>`}
             <button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.submitUserBeatInput(this)">${sc.authoring_mode === "director" ? "Direct" : "Send"}</button>` : ""}
           <button type="button" class="ep-btn ${handoff === "auto_continue" ? "ep-btn-primary" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the scene go on without you">Continue</button>
           ${!choices.length && sc.interaction_mode !== "write" ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.suggestChoices()">Suggest options</button>` : ""}
-          ${handoff === "climax_ready" ? `<button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.openSheet('finish')">A good place to end</button>` : ""}
         </div>` : "";
+      const lastId = beats.length ? beats[beats.length - 1].id : "";
+      const endHint = isLastBeat && (sc.end_hint || handoff === "climax_ready") && !this.endDismissed?.has(lastId) ? `
+        <div class="ep-end-hint" role="status"><span>🥔 <b>A good place to end the scene.</b> ${this.attr(sc.end_hint || "")}</span>
+          <span class="ep-end-actions"><button type="button" class="ep-btn ep-btn-primary" onclick="VN_SCENES.openSheet('finish')">End the scene here</button>
+          <button type="button" class="ep-btn ep-btn-quiet" onclick="VN_SCENES.keepGoing('${this.attr(lastId)}')">Keep going</button></span></div>` : "";
 
       root.innerHTML = `
         <div class="ep-stage ${this.chromeHidden ? "ep-chrome-off" : ""} ${blockFirst.camera === "close" && cast.some((f) => f.speaking) ? "ep-close" : ""}" id="epStage">
@@ -844,7 +876,7 @@
                   ${!isLastBeat ? `<button type="button" class="ep-step" onclick="VN_SCENES.nextBeat()" aria-label="Next">${this.icon("next")}</button>
                     <button type="button" class="ep-step ep-skip" onclick="VN_SCENES.cutNext = true; VN_SCENES.beatIndex = ${beats.length - 1}; VN_SCENES.renderStageOnly();" aria-label="Skip to your turn" title="Skip to your turn">${this.icon("skip")}</button>` : ""}
                 </div>
-                ${turnEnd}
+                ${endHint}${turnEnd}
               </div>
             </div>
           </div>

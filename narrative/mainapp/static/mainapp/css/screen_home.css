@@ -90,7 +90,7 @@ body:is([data-screen-wallpaper=moonlit-library],[data-screen-wallpaper=cloud-sta
 @media(max-width:1100px) and (min-width:861px) {.screen-app-grid {grid-template-columns:repeat(4,minmax(64px,1fr));max-width:600px}}
 @media(max-width:860px) {
  .screen-hub-shell .screen-dock {justify-content:space-around;overflow:visible;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:calc(4px + env(safe-area-inset-bottom));flex-shrink:0}
- .screen-dock .dock-app-btn[data-app]:not([data-app=home]):not([data-app=messenger]):not([data-app=scenes]) {display:none}
+ .screen-dock .dock-app-btn[data-app]:not([data-app=home]):not([data-app=messenger]):not([data-app=scenes]):not([data-app=stories]) {display:none}
  .screen-dock .dock-spacer {display:none}
  .screen-home-top {align-items:flex-start;flex-wrap:wrap}.screen-wordmark {font-size:15px}
  .screen-wallpaper-label {flex-wrap:wrap}.screen-wallpaper-label select {max-width:195px;font-size:16px}

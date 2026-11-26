@@ -13,10 +13,17 @@ BALANCES = {"dialogue": "MORE DIALOGUE: let the characters talk; keep narration 
                          "dialogue where it matters."}
 LENGTHS = {"short": "TURN LENGTH: short; a few blocks, then hand over to the user.",
            "medium": "",
-           "long": "TURN LENGTH: long; let the scene unfold over many blocks before handing over."}
+           "long": "TURN LENGTH: long; let the scene unfold over many blocks before handing over.",
+           "match": "TURN LENGTH: match the user. They write their part as prose, one to three paragraphs; answer with "
+                    "about as much as they wrote (never several times more), as prose a reader follows from block to "
+                    "block, then hand over. No choices: return choices: []."}
 
 
-def user_participant(user, context):
+def user_participant(user, context, me=None):
+    """The user on stage. `me`: the character they play in a story (their usual persona's pictures aren't them, so
+    none are used; their looks come from that character)."""
+    if me is not None:
+        return {"slug": "user", "name": context["user_name"], "persona": context["persona"], "sprites": {}, "avatar_url": ""}
     pictures = {}
     for emotion in sprites.BUILT_IN:
         field = getattr(user, "persona_photo_" + emotion, None)

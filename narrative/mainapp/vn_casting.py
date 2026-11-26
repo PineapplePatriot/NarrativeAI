@@ -50,9 +50,11 @@ def context(user, thread, chars, pulse_event=None, director=False, story=None):
         scene = vn_support.scene_context(user, thread)
     people = [_person(user, c.slug, c, data) for c in chars]
     me = _person(user, "user", None, data)
-    me.update(name=scene["user_name"], setting=vn_scenes.scene_setting(chars),
+    player = __import__("mainapp.stories", fromlist=["player"]).player(story)
+    me_setting = episode_looks.setting_for(player) if player else vn_scenes.scene_setting(chars)
+    me.update(name=scene["user_name"], setting=me_setting,
               looks=[{"id": l.pk, "name": l.name, "outfit": l.outfit}
-                     for l in episode_looks.looks_for(user, None, vn_scenes.scene_setting(chars))[:8]])
+                     for l in episode_looks.looks_for(user, player, me_setting)[:8]])
     for who, row in (data.get("scene") or {}).items():
         if who.strip().lower() == scene["user_name"].lower():
             me["wearing"] = row.get("wearing") or ""
