@@ -150,3 +150,12 @@ class StoryTests(TestCase):
         story.refresh_from_db()
         self.assertEqual([(s.number, s.title) for s in story.scenes.all()], [(1, "Arrival, again")])
         self.assertEqual(story.arc["at"]["chapter"], 1)  # the chapter closed once, not twice
+
+    def test_episode_turns_get_the_writing_steer(self):
+        story = self.make()
+        reply = {"title": "Arrival", "handoff": "user_turn", "beats": [{"speaker_slug": self.mira.slug, "text": "Late."}]}
+        with patch.object(vn_scenes, "_call_vn_json", return_value=reply) as model:
+            vn_scenes.start_scene(self.user, characters=list(story.cast.all()), story=story)
+            vn_scenes.step_scene(self.user, user_input="Sorry.")
+        for call in model.call_args_list:
+            self.assertIn("start each beat on the action itself", call.args[1])  # "She doesn't step back..." steered out

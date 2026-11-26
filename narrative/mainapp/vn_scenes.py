@@ -582,6 +582,17 @@ def _enrich_beats(user, chars, raw_beats, looks=None, continuity=None, initial_s
     return boxes
 
 
+def _steer(user):
+    """The same writing steer phone replies get (what to do instead of the habits they asked fixed, and the slop
+    always kept out), at the very end of the request, where it's followed best."""
+    from mainapp.bulba import polish
+    try:
+        line = polish.avoid_line(user)
+    except Exception:
+        return ""
+    return "\n" + line if line else ""
+
+
 def _story_note(user, scene):
     """The arc's quiet direction, read fresh from the story (never kept in the scene the page sees)."""
     from mainapp import stories
@@ -671,7 +682,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", looks=None
                    + "\nUser's writing directions: " + direction,
     )
 
-    parsed = _call_vn_json(user, prompt, seed)
+    parsed = _call_vn_json(user, prompt + _steer(user), seed)
     chosen_music = _match_track(tracks, parsed.get("music_id") or parsed.get("music"))
     chosen_bg = _match_bg(bgs, parsed.get("background_id") or parsed.get("background"))
     cast_bg = (casting or {}).get("place", {}).get("background_id")
@@ -845,7 +856,7 @@ def step_scene(user, user_input="", base_scene=None, generation="normal", turn_d
     )
 
     scene["beats"] = history
-    parsed = _call_vn_json(user, prompt + "\n" + turn_direction, scene, generation)
+    parsed = _call_vn_json(user, prompt + "\n" + turn_direction + _steer(user), scene, generation)
     raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
     raw_blocks, scene["polish_error"] = vn_support.polish_blocks(
         user, raw_blocks, prompt, scene.get("polish_enabled", False))
