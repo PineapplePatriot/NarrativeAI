@@ -13,6 +13,9 @@ How a stage goes
 
 Unlocks: mailbox (a 4th order slot), plot (a 6th row), barrel (thrown tomatoes water 25% more), kitchen (dish orders,
 paid double), porch (the cottage dresses for the season; the gardeners sit out in the evening).
+The second chapter (from CHAPTER_TWO) opens new places (mainapp/tomato_garden.py AREAS): field (a second plot),
+greenhouse (everything grows 50% faster), mill (MILL_WHEAT wheat seeds a day, for bread, pizza, pasta), orchard (four
+saplings; a grown tree fruits again and again).
 Kept in TomatoScore.garden["house"]: stage (stages done), have {seed: n}, started, building_until, scene {key, at},
 bonus (stages finished under budget).
 """
@@ -33,7 +36,19 @@ STAGES = (
      "compost": 60, "hours": 24, "unlock": "kitchen", "about": "🍲 The kitchen: dish orders (several crops at once) pay double."},
     {"id": "porch", "name": "Porch", "emoji": "🪑", "needs": {}, "mutations": 3, "compost": 80, "hours": 36,
      "unlock": "porch", "about": "🪑 The porch: the cottage dresses up for the seasons, and the gardeners sit out in the evening."},
+    # --- the second chapter: the garden grows (new places: mainapp/tomato_garden.py AREAS) ---
+    {"id": "field", "name": "The far field", "emoji": "🌾", "needs": {"seed_peas": 6, "seed_beet": 6, "seed_carrot": 6},
+     "compost": 100, "hours": 24, "unlock": "field", "about": "🌾 The far field: a second plot of 40 patches, through the gate."},
+    {"id": "greenhouse", "name": "The greenhouse", "emoji": "🪟", "needs": {"seed_strawberry": 6, "seed_basil": 6, "seed_pepper": 3},
+     "compost": 140, "hours": 36, "unlock": "greenhouse", "about": "🪟 The greenhouse: 18 patches under glass, where everything grows 50% faster."},
+    {"id": "mill", "name": "The mill", "emoji": "⚙️", "needs": {"seed_sunflower": 10, "seed_pumpkin": 2, "seed_garlic": 4},
+     "compost": 180, "hours": 48, "unlock": "mill", "about": "⚙️ The mill: wheat seeds every day, and bread, pizza and pancakes to discover in the kitchen."},
+    {"id": "orchard", "name": "The orchard", "emoji": "🌳", "needs": {"seed_wheat": 8, "seed_blueberry": 4}, "mutations": 12,
+     "compost": 240, "hours": 72, "unlock": "orchard", "about": "🌳 The orchard: four fruit trees that, once grown, give fruit again and again."},
 )
+CHAPTER_TWO = 5  # the stage the second chapter starts at
+MILL_WHEAT = 2  # wheat seeds a day from the mill
+ORCHARD_TREES = ("tree_apple", "tree_pear", "tree_cherry", "tree_plum")
 D, P = BUILDER, BANKER
 SCENES = {
     "intro": [(P, "Ah. So this is the “garden”. Charming. Small. Muddy."),
@@ -63,7 +78,34 @@ SCENES = {
               (D, "Same time next year? I have plans for a mill."),
               (P, "I have plans for an audit.")],
     "bonus": [(P, "Under budget. Remarkable. Here: a hundred tomatoes. Don't tell him.")],
+    "chapter2": [(D, "It's next year. Well. It's next week. Close enough. I have plans."),
+                 (P, "You always have plans. I have a ledger."),
+                 (D, "A field! A greenhouse! A mill! An orchard! The garden must grow."),
+                 (P, "The garden may grow by one field. Then we talk."),
+                 (D, "I bought the seeds already."),
+                 (P, "…With my money.")],
+    "field": [(D, "I moved the fence. Forty new patches, and a gate that only squeaks on purpose."),
+              (P, "Why would a gate squeak on purpose?"),
+              (D, "So you know someone's coming. Security."),
+              (P, "It's a vegetable field.")],
+    "greenhouse": [(P, "Glass. So much glass. Do you know what glass costs?"),
+                   (D, "Everything grows half again as fast in there. I calculated it."),
+                   (P, "And the windows?"),
+                   (D, "Self-cleaning. Mostly by rain. Occasionally by Ribbit.")],
+    "mill": [(D, "The mill turns! It grinds! It occasionally sings, which I didn't plan."),
+             (P, "Does it make money?"),
+             (D, "It makes wheat. Two seeds a day, every day. And flour, for pizza."),
+             (P, "Pizza. Finally, something I understand.")],
+    "orchard": [(P, "Four trees. I counted. Four."),
+                (D, "Apple, pear, cherry, plum. Once they're grown they fruit again, and again, and again."),
+                (P, "Forever?"),
+                (D, "Longer than your audit, certainly."),
+                (P, "…I'll allow it.")],
 }
+
+
+# the porch's scene runs on into the second chapter ("Same time next year? I have plans for a mill.")
+SCENES["porch"] = SCENES["porch"] + SCENES.pop("chapter2")
 
 
 def _house(g):
@@ -120,8 +162,16 @@ def tick(g, m):
         h["building_until"] = 0
         _scene(g, stage["id"])
         G._log(g, f"🏡 The {stage['name'].lower()} is finished! {stage['about']}")
+        if stage["id"] == "orchard":  # four saplings for the orchard
+            for t in ORCHARD_TREES:
+                m["items"][t] = m["items"].get(t, 0) + 1
+            G._log(g, f"🌳 {BUILDER} left four saplings in the basket: apple, pear, cherry and plum. They go in the orchard.")
         if current(g):
             _start(g, m)
+    if has(g, "mill") and h.get("mill_day") != G.timezone.localdate().isoformat():  # ⚙️ the mill's wheat, daily
+        h["mill_day"] = G.timezone.localdate().isoformat()
+        m["items"]["seed_wheat"] = m["items"].get("seed_wheat", 0) + MILL_WHEAT
+        G._log(g, f"⚙️ The mill left {MILL_WHEAT} wheat seeds in the basket. It sang a little while doing it.")
 
 
 def deliver(g, seed):

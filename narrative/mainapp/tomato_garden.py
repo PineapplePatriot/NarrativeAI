@@ -52,6 +52,21 @@ CROPS = {  # seed id → what grows
     "seed_blueberry": {"name": "Blueberry", "hours": 34, "compost": 4, "plural": "blueberries"},
     "seed_watermelon": {"name": "Watermelon", "hours": 44, "compost": 6},
     "seed_mandrake": {"name": "Mandrake", "hours": 48, "compost": 8},
+    # --- from the cottage quest's second chapter: wheat (the mill) and fruit trees (the orchard only) ---
+    "seed_wheat": {"name": "Wheat sheaf", "hours": 20, "compost": 2},
+    "tree_apple": {"name": "Apple", "hours": 96, "compost": 3, "tree": True, "regrow": 24},
+    "tree_pear": {"name": "Pear", "hours": 96, "compost": 3, "tree": True, "regrow": 24},
+    "tree_cherry": {"name": "Cherry", "hours": 84, "compost": 2, "tree": True, "regrow": 20, "plural": "cherries"},
+    "tree_plum": {"name": "Plum", "hours": 90, "compost": 3, "tree": True, "regrow": 22},
+}
+# 🗺️ Places: the cottage garden, and what the cottage quest's second chapter opens (mainapp/tomato_house.py). Tiles
+# outside the cottage garden are keyed "<place>:x,y". The greenhouse grows everything faster; the orchard is for trees
+# (and trees grow nowhere else): a grown tree is picked again and again.
+AREAS = {
+    "home": {"name": "The cottage garden", "emoji": "🏡", "cols": 8},
+    "field": {"name": "The far field", "emoji": "🌾", "cols": 8, "rows": 5, "unlock": "field"},
+    "greenhouse": {"name": "The greenhouse", "emoji": "🪟", "cols": 6, "rows": 3, "unlock": "greenhouse", "grow": .5},
+    "orchard": {"name": "The orchard", "emoji": "🌳", "cols": 4, "rows": 2, "unlock": "orchard", "trees": True},
 }
 EVERYDAY = ("seed_tomato", "seed_carrot", "seed_sunflower")  # always on the order board; the rest once their seeds were had
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
@@ -134,6 +149,16 @@ MUTATIONS = {
                         ("smiling_watermelon", "😁", "A watermelon that grins", True)],
     "seed_mandrake": [("sleepy_mandrake", "😴", "A sleepy mandrake (blessedly quiet)", False), ("crowned_mandrake", "👑", "Mandrake royalty", False),
                       ("screaming_mandrake", "😱", "A mandrake that screams at harvest", True)],
+    "seed_wheat": [("golden_wheat", "🌾", "Golden wheat", False), ("blue_wheat", "🔷", "Blue wheat (the mill is confused)", False),
+                   ("singing_wheat", "🎶", "Wheat that whistles in the wind", True)],
+    "tree_apple": [("golden_apple", "🍏", "A golden apple", False), ("giant_apple", "🍎", "An apple the size of a melon", False),
+                   ("wise_apple", "🦉", "An apple that knows things", True)],
+    "tree_pear": [("glass_pear", "🔮", "A glass pear", False), ("twin_pear", "🍐", "Twin pears", False),
+                  ("singing_pear", "🎵", "A pear that hums when picked", True)],
+    "tree_cherry": [("white_cherry", "🤍", "White cherries", False), ("heart_cherry", "💞", "Cherries in pairs, in love", False),
+                    ("star_cherry", "🌟", "Star-shaped cherries", True)],
+    "tree_plum": [("blue_plum", "🫐", "Midnight plums", False), ("giant_plum", "🟣", "A plum like a fist", False),
+                  ("sleepy_plum", "😴", "A plum that dozes on the branch", True)],
 }
 MUTANT = {mid: {"id": mid, "crop": crop, "emoji": e, "name": n, "rare": r} for crop, ms in MUTATIONS.items() for mid, e, n, r in ms}
 # Seeds of the variants: they grow like their crop (seed id "seed_<mutation id>")
@@ -183,10 +208,29 @@ def _state(score):
     return g
 
 
-def _key(x, y, n_rows=ROWS):
-    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < COLS and 0 <= y < n_rows):
+def _key(x, y, n_rows=ROWS, area="home", g=None):
+    a = AREAS.get(area or "home")
+    if not a:
+        raise ValueError("No such place.")
+    if area not in ("home", None) and not (g is not None and area_open(g, area)):
+        raise ValueError(f"{a['name']} isn't built yet.")
+    cols, n = (a["cols"], n_rows) if area in ("home", None) else (a["cols"], a["rows"])
+    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < cols and 0 <= y < n):
         raise ValueError("That's outside the garden.")
-    return f"{x},{y}"
+    return f"{x},{y}" if area in ("home", None) else f"{area}:{x},{y}"
+
+
+def split_key(key):
+    """"field:3,2" → ("field", 3, 2); "3,2" → ("home", 3, 2)."""
+    area, _, xy = key.rpartition(":")
+    x, y = (int(v) for v in xy.split(","))
+    return area or "home", x, y
+
+
+def area_open(g, area):
+    from mainapp import tomato_house as H
+    a = AREAS.get(area)
+    return bool(a) and (not a.get("unlock") or H.has(g, a["unlock"]))
 
 
 CREW = 3  # gardeners working at once: they pick which, the others rest in the shed (no stacking every bonus)
@@ -219,11 +263,12 @@ def progress(tile, m, now=None):
 
 def aura(g, key, n_rows=None):
     """What the decorations around this patch (the 8 next to it) do for it."""
-    x, y = (int(v) for v in key.split(","))
+    area, x, y = split_key(key)
+    pre = "" if area == "home" else f"{area}:"
     near = set()
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
-            t = g["tiles"].get(f"{x + dx},{y + dy}")
+            t = g["tiles"].get(f"{pre}{x + dx},{y + dy}")
             if (dx or dy) and t and t.get("kind") == "decor" and t.get("id") in DECOR_EFFECT:
                 near.add(t["id"])
     out = {"grow": 0.0, "compost": 0, "extra": 0.0, "mutation": 1.0, "keep": 0.0, "by": sorted(near)}
@@ -232,6 +277,7 @@ def aura(g, key, n_rows=None):
         out[kind] = out[kind] * n if kind == "mutation" else out[kind] + n
     for k, cap in AURA_CAP.items():
         out[k] = min(cap, out[k])
+    out["grow"] += AREAS[area].get("grow", 0)  # 🪟 the greenhouse, on top
     return out
 
 
@@ -360,8 +406,12 @@ def _deliver(g, m, seed, by="", order=None):
 
 
 def _harvest(g, m, key, by="", rng=None):
-    tile = g["tiles"].pop(key)
+    tile = g["tiles"][key]
     crop = CROPS[tile["seed"]]
+    if crop.get("tree"):  # 🌳 a tree stays, and fruits again in a while
+        tile["at"], tile["boost"] = int(_now() - (crop["hours"] - crop["regrow"]) * 3600), 0
+    else:
+        g["tiles"].pop(key)
     from mainapp import tomato_kitchen as K
     near = aura(g, key)  # 🪴 the decorations around it
     got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0) + K.boost(g, "compost") + near["compost"]  # 🍞 🛒
@@ -558,13 +608,17 @@ def act(user, body):
         return _locked(user, lambda g, m: H.build(g, m))
 
     def go(g, m):
-        key = _key(body.get("x"), body.get("y"), rows(g))
+        area = str(body.get("area") or "home")
+        key = _key(body.get("x"), body.get("y"), rows(g), area, g)
         tile = g["tiles"].get(key)
         if action == "plant":
             if tile:
                 raise ValueError("Something is already there.")
             if pid not in CROPS or not m["items"].get(pid):
                 raise ValueError("You have no seeds of that kind. The Sauce-o-Matic does.")
+            if bool(CROPS[pid].get("tree")) != bool(AREAS[area].get("trees")):
+                raise ValueError("Trees go in the orchard, and only trees do." if AREAS[area].get("trees")
+                                 else "A tree needs the orchard.")
             m["items"][pid] -= 1
             g["tiles"][key] = {"kind": "plant", "seed": pid, "at": int(_now()), "boost": 0}
             _log(g, f"You planted a {CROPS[pid]['name'].lower()}.")
@@ -583,7 +637,7 @@ def act(user, body):
             if not tile or tile.get("kind") != "plant":
                 raise ValueError("No plant there.")
             g["tiles"].pop(key)
-            _log(g, f"You dug up a {CROPS[tile['seed']]['name'].lower()} before it was ready.")
+            _log(g, f"You dug up a {CROPS[tile['seed']]['name'].lower()}" + (" tree." if CROPS[tile["seed"]].get("tree") else " before it was ready."))
         elif action == "remove":
             if not tile or tile.get("kind") != "decor":
                 raise ValueError("No decoration there.")
@@ -604,8 +658,8 @@ def public(score):
     now = _now()
     tiles = []
     for key, t in g["tiles"].items():
-        x, y = (int(v) for v in key.split(","))
-        item = {"x": x, "y": y, "kind": t.get("kind")}
+        area, x, y = split_key(key)
+        item = {"x": x, "y": y, "area": area, "kind": t.get("kind")}
         if t.get("kind") == "plant":
             p = progress(t, m, now)
             crop = CROPS[t["seed"]]
@@ -620,7 +674,9 @@ def public(score):
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
     from mainapp import tomato_house as H, tomato_kitchen as K, tomato_village as V, tomato_crafts as C, tomato_fair as F
     crafts = C.public(g)
-    return {"crafts": crafts, "bouquets": crafts["vase"], "fair": F.public(g),"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
+    return {"crafts": crafts, "bouquets": crafts["vase"], "fair": F.public(g),"cols": COLS, "rows": rows(g), "tiles": tiles,
+            "areas": [{"id": k, "name": a["name"], "emoji": a["emoji"], "cols": a["cols"], "rows": a.get("rows") or rows(g),
+                       "grow": a.get("grow", 0), "trees": bool(a.get("trees"))} for k, a in AREAS.items() if area_open(g, k)], "house": H.public(g, m), "basket": basket, "compost": m["compost"],
             "kitchen": K.public(g), "village": V.public(g),
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()

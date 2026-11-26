@@ -16,7 +16,7 @@ class CropTests(SimpleTestCase):
         for c in BASE:
             with self.subTest(c):
                 self.assertIn(c, prizes)
-                self.assertIn(f"ripe_{c}:", JS)
+                self.assertTrue(f"ripe_{c}:" in JS or (G.CROPS[c].get("tree") and f"['{c}', '" in JS), "no ripe sprite")
                 self.assertRegex(JS, rf"\b{c}: '[a-zA-Z]'")  # its flower colour
                 self.assertEqual(len(G.MUTATIONS[c]), 3)
 

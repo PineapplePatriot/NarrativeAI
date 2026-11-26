@@ -142,6 +142,17 @@ PRIZES = [
      "note": "Only in the machine in summer. Wear sunscreen."},
     {"id": "jack", "tier": "legendary", "kind": "skin", "emoji": "🎃", "name": "Jack-o'-tomato", "season": "autumn",
      "note": "Only in the machine in autumn. Spooky and juicy."},
+    # --- 🏡 From the cottage quest's second chapter only (the mill and the orchard: mainapp/tomato_house.py) ---
+    {"id": "seed_wheat", "tier": "rare", "kind": "seed", "emoji": "🌾", "name": "Wheat seeds", "banner": "quest",
+     "note": "From the mill. Il Dattore says it's the same wheat as everywhere. It isn't."},
+    {"id": "tree_apple", "tier": "rare", "kind": "seed", "emoji": "🍎", "name": "Apple sapling", "banner": "quest",
+     "note": "For the orchard. Grows slowly, then never stops."},
+    {"id": "tree_pear", "tier": "rare", "kind": "seed", "emoji": "🍐", "name": "Pear sapling", "banner": "quest",
+     "note": "For the orchard. Pantaleone has already estimated the yield."},
+    {"id": "tree_cherry", "tier": "rare", "kind": "seed", "emoji": "🍒", "name": "Cherry sapling", "banner": "quest",
+     "note": "For the orchard. The crow has already reserved a branch."},
+    {"id": "tree_plum", "tier": "rare", "kind": "seed", "emoji": "🟣", "name": "Plum sapling", "banner": "quest",
+     "note": "For the orchard. Plums. Nonna Lyuba knows what to do with plums."},
     # --- 🏮 Lantern Night (the autumn banner): only from its banner, while it runs ---
     {"id": "lantern_tomato", "tier": "legendary", "kind": "skin", "emoji": "🏮", "name": "Lantern tomato", "banner": "lantern",
      "note": "Glows from the inside. Lights your way to the slow replies."},

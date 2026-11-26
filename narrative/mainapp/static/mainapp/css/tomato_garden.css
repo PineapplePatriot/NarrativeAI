@@ -179,3 +179,9 @@
 .g-contest .g-giftrow { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 .g-contest .g-giftrow select { width: 100%; }
 .g-near { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
+/* 🗺️ Places */
+.g-areas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.g-areas[hidden] { display: none; }
+.g-area { border: 1px solid rgba(127,127,127,.35); background: var(--na-surface-2, rgba(127,127,127,.08)); color: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; }
+.g-area small { opacity: .7; }
+.g-area.on { background: #f5cf3a; color: #1d1b26; border-color: #c9971a; font-weight: 600; }

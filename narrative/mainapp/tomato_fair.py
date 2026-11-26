@@ -37,7 +37,8 @@ CONTESTS = {
 # how big a crop is, for the biggest harvest (0 to 10)
 SIZE = {"seed_watermelon": 9, "seed_pumpkin": 9, "seed_mandrake": 6, "seed_eggplant": 5, "seed_sunflower": 6, "seed_pepper": 4,
         "seed_beet": 4, "seed_monster": 5, "seed_tomato": 3, "seed_carrot": 3, "seed_garlic": 3, "seed_strawberry": 2,
-        "seed_chili": 2, "seed_blueberry": 2, "seed_peas": 2, "seed_basil": 2}
+        "seed_chili": 2, "seed_blueberry": 2, "seed_peas": 2, "seed_basil": 2,
+        "seed_wheat": 3, "tree_apple": 4, "tree_pear": 4, "tree_cherry": 2, "tree_plum": 3}
 
 
 def _week(day=None):

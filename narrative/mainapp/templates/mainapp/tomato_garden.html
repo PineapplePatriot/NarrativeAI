@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=17">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=18">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="garden" %}
@@ -25,6 +25,7 @@
     <div id="gBasket"></div>
   </section>
 
+  <nav class="g-areas" id="gAreas" aria-label="Places in the garden" hidden></nav>
   <div class="g-wrap">
     <div class="g-stage">
       <canvas id="gCanvas" width="1024" height="576" aria-label="Your garden. Choose a patch to see what you can do there."></canvas>
@@ -80,6 +81,6 @@
     </section>
   </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=25"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=28"></script>
 </body>
 </html>

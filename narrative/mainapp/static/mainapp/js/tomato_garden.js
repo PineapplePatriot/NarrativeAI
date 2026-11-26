@@ -102,6 +102,16 @@
                 '......ggg.......', '......bbb.......'],
         bloom_tuft: ['.......FF.......', '......FFFF......', '.......FF.......', '.......l........', '....l..l..l.....', '.....l.l.l......',
                 '.....lgl.l......', '......lgl.......', '......ggg.......', '......bbb.......'],
+        // 🌳 Trees (the orchard) and wheat (the mill)
+        sprout_tree: ['.......l........', '......lgl.......', '.......b........', '.......b........', '......bbb.......'],
+        leafy_tree: ['.....llll.......', '...llggggll.....', '..lgggGgggGl....', '..lgGgggggGl....', '..lggGggGggl....', '...lgggGggl.....',
+                '.....llbll......', '.......b........', '.......b........', '.......B........', '......bBb.......'],
+        bloom_tree: ['.....lFll.......', '...llgFggFl.....', '..lFggGgFgGl....', '..lgGgFgggGF....', '..lFgGggGFgl....', '...lgFgGggl.....',
+                '.....llbll......', '.......b........', '.......b........', '.......B........', '......bBb.......'],
+        ripe_tree: ['.....llll.......', '...llgXggXl.....', '..lXggGgXgGl....', '..lgGXggggXl....', '..lXgGgXGggl....', '...lgggGXgl.....',
+                '.....llbll......', '.......b........', '.......b........', '.......B........', '......bBb.......'],
+        ripe_seed_wheat: ['..y...y...y.....', '.yYy.yYy.yYy....', '.yYy.yYy.yYy....', '..Y...Y...Y.....', '..h...h...h.....', '...h..h..h......',
+                '...h..h..h......', '....h.h.h.......', '.....hhh........', '......h.........', '.....bhb........'],
         // 🌱 The newer crops, ripe
         ripe_seed_peas: ['.b..........b...', '.bbbbbbbbbbbb...', '.b..lgl..lg.b...', '.b.lG.g.GlG.b...', '.b.lG.gglGl.b...',
                 '.b.lG..g.Gl.b...', '.b..l.lgl.l.b...', '.b....lgl...b...', '.b.....g....b...', '.b....bgb...b...'],
@@ -182,6 +192,8 @@
         hat_straw: ['..hhhh..', '..HHHH..', 'hhhhhhhh'],
         hat_top: ['.kkkk.', '.kkkk.', '.rrrr.', 'kkkkkk'],
     };
+    // each tree's ripe sprite: the generic tree, its fruit (X) in the tree's colour
+    [['tree_apple', 'r'], ['tree_pear', 'h'], ['tree_cherry', 'R'], ['tree_plum', 'p']].forEach(([id, c]) => { ART['ripe_' + id] = ART.ripe_tree.map(r => r.replace(/X/g, c)); });
     const LEGS = {  // two walking frames under each gardener
         gardener_farmer: [['..uu..uu..', '..BB..BB..'], ['...uu.uu..', '...BB.BB..']],
         gardener_frog: [['..uu..uu..', '.gg....gg.'], ['...uu.uu..', '..gg..gg..']],
@@ -195,13 +207,15 @@
     // Each crop's growing shape (ART <stage>_<shape>; none: the tomato's bush) and leaf colours
     const SHAPE = { seed_carrot: 'feather', seed_sunflower: 'stalk', seed_pumpkin: 'vine', seed_watermelon: 'vine', seed_monster: 'spiky',
         seed_peas: 'stake', seed_beet: 'rosette', seed_strawberry: 'rosette', seed_mandrake: 'rosette', seed_basil: 'shrub', seed_eggplant: 'shrub',
-        seed_blueberry: 'shrub', seed_garlic: 'tuft' };
+        seed_blueberry: 'shrub', seed_garlic: 'tuft', seed_wheat: 'tuft',
+        tree_apple: 'tree', tree_pear: 'tree', tree_cherry: 'tree', tree_plum: 'tree' };
     const CROP_LEAF = { seed_beet: { G: 'e' }, seed_eggplant: { G: 'P' }, seed_blueberry: { l: 'g', g: 'G', G: 'v' }, seed_garlic: { l: 'q', g: 'Q' },
         seed_mandrake: { l: 'g', g: 'G', G: 'T' }, seed_watermelon: { G: 'd' }, seed_chili: { g: 'G' }, seed_pepper: { l: 'g' },
-        seed_strawberry: { G: 'g' }, seed_basil: { G: 'l' }, seed_monster: { l: 'p', G: 'P' } };
+        seed_strawberry: { G: 'g' }, seed_basil: { G: 'l' }, seed_monster: { l: 'p', G: 'P' },
+        seed_wheat: { l: 'h', g: 'H' }, tree_pear: { G: 'd' }, tree_cherry: { G: 'e' }, tree_plum: { G: 'P' } };
     const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm', seed_peas: 'w', seed_beet: 'y',
         seed_basil: 'w', seed_garlic: 'm', seed_strawberry: 'w', seed_eggplant: 'p', seed_pepper: 'w', seed_chili: 'w', seed_blueberry: 'a',
-        seed_watermelon: 'y', seed_mandrake: 'p' };
+        seed_watermelon: 'y', seed_mandrake: 'p', seed_wheat: 'h', tree_apple: 'm', tree_pear: 'w', tree_cherry: 'a', tree_plum: 'w' };
     // 🧬 A mutation looks like one from the sprout on: its leaves tinted (leaf), its ripe crop recoloured (ripe), its
     // flower (flower), a little effect (fx: glow, sparkle, stripes, legs, wink, face, zz, hat, twin,
     // notes, smoke, crown, scream) and a size (scale)
@@ -254,6 +268,21 @@
         sleepy_mandrake: { leaf: { l: 'n', g: 'N' }, flower: 'p', ripe: { k: 'T' }, fx: 'zz' },
         crowned_mandrake: { leaf: { l: 'y' }, flower: 'y', ripe: {}, fx: 'crown' },
         screaming_mandrake: { leaf: { l: 'r', g: 'R' }, flower: 'r', ripe: {}, fx: 'scream' },
+        golden_wheat: { leaf: { l: 'y', g: 'Y' }, flower: 'y', ripe: { y: 'Y', h: 'y' }, fx: 'glow', glow: '255,214,90' },
+        blue_wheat: { leaf: { l: 'u', g: 'U' }, flower: 'u', ripe: { y: 'u', Y: 'U' } },
+        singing_wheat: { leaf: { l: 'q' }, flower: 'q', ripe: {}, fx: 'notes' },
+        golden_apple: { leaf: { l: 'y' }, flower: 'y', ripe: { r: 'y' }, fx: 'glow', glow: '255,214,90' },
+        giant_apple: { leaf: { l: 'o' }, flower: 'm', ripe: {}, scale: 1.3 },
+        wise_apple: { leaf: { l: 'n', g: 'N' }, flower: 'w', ripe: {}, fx: 'face' },
+        glass_pear: { leaf: { l: 'q', g: 'Q' }, flower: 'q', ripe: { h: 'q' }, fx: 'sparkle', alpha: .8 },
+        twin_pear: { leaf: { l: 'h' }, flower: 'w', ripe: {}, fx: 'twin' },
+        singing_pear: { leaf: { l: 'm' }, flower: 'm', ripe: {}, fx: 'notes' },
+        white_cherry: { leaf: { l: 'c' }, flower: 'w', ripe: { R: 'c' } },
+        heart_cherry: { leaf: { l: 'm' }, flower: 'm', ripe: { R: 'm' }, fx: 'hearts' },
+        star_cherry: { leaf: { l: 'y' }, flower: 'y', ripe: { R: 'y' }, fx: 'glow', glow: '255,236,150' },
+        blue_plum: { leaf: { l: 'u' }, flower: 'u', ripe: { p: 'U' } },
+        giant_plum: { leaf: { l: 'p' }, flower: 'p', ripe: {}, scale: 1.3 },
+        sleepy_plum: { leaf: { l: 'n', g: 'N' }, flower: 'p', ripe: {}, fx: 'zz' },
     };
     const HATS = { '👑': 'hat_crown', '👒': 'hat_straw', '🎩': 'hat_top' };
     const LINES = {
@@ -283,9 +312,34 @@
         if (!resp.ok) throw new Error(out.error || 'The garden did not answer. Try again in a moment.');
         return out;
     }
+    // 🗺️ Places (the cottage garden, and what the cottage quest's second chapter opens): one shown at a time
+    let view = 'home', TT = T;  // TT: a patch's size here (the orchard's are four times the room, for trees)
+    try { view = localStorage.getItem('na-garden-view') || 'home'; } catch (e) { /* this page only */ }
+    function applyView() {
+        const areas = st.areas || [{ id: 'home', cols: st.cols, rows: st.rows }];
+        if (!areas.some(a => a.id === view)) view = 'home';
+        const a = areas.find(x => x.id === view);
+        st.tiles = st.all.filter(t => (t.area || 'home') === view);
+        st.cols = a.cols; st.rows = a.rows; TT = a.trees ? T * 2 : T;
+        const tabs = $('gAreas');
+        if (tabs) {
+            tabs.hidden = areas.length < 2;
+            tabs.innerHTML = areas.map(x => `<button type="button" class="g-area${x.id === view ? ' on' : ''}" data-area="${x.id}" aria-pressed="${x.id === view}">${x.emoji} ${esc(x.name)}${x.grow ? ` <small>+${Math.round(x.grow * 100)}% growth</small>` : ''}${x.trees ? ' <small>trees only</small>' : ''}</button>`).join('');
+        }
+    }
+    $('gAreas')?.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-area]');
+        if (!b || b.dataset.area === view) return;
+        view = b.dataset.area;
+        try { localStorage.setItem('na-garden-view', view); } catch (err) { /* this page only */ }
+        sel = null; hover = null; bg = null;
+        applyView(); paintSide();
+    });
     function take(s) {
         const fresh = !st;
         st = s; gotAt = Date.now();
+        st.all = s.tiles;
+        applyView();
         syncGardeners();
         paintSide();
         if (fresh) loop();
@@ -318,7 +372,7 @@
         const plants = st.tiles.filter(t => t.kind === 'plant');
         if (plants.length && Math.random() < .55) {
             const t = plants[Math.floor(Math.random() * plants.length)];
-            w.tx = GX + t.x * T + 8 + (Math.random() < .5 ? -9 : 9); w.ty = GY + t.y * T + 15; w.goal = 'tend';
+            w.tx = GX + t.x * TT + TT / 2 + (Math.random() < .5 ? -9 : 9); w.ty = GY + t.y * TT + TT - 1; w.goal = 'tend';
         } else { w.tx = 10 + Math.random() * (W - 20); w.ty = 36 + Math.random() * (H - 42); w.goal = 'stroll'; }
     }
     const bits = [];  // droplets, notes, sparks
@@ -354,7 +408,7 @@
     }
     let bg = null, bgHour = -1;
     function background(h) {  // sky, fence, lawn and soil, redrawn when the hour changes
-        const key = h + '|' + (st ? st.rows : 5);  // (the plot grows a row with the cottage's walls)
+        const key = h + '|' + (st ? st.rows : 5) + '|' + view;  // (the plot grows a row with the cottage's walls; each place looks different)
         if (bg && bgHour === key) return bg;
         bgHour = key;
         bg = document.createElement('canvas'); bg.width = W; bg.height = H;
@@ -369,10 +423,34 @@
         b.fillRect(0, 23, W, 2); b.fillRect(0, 29, W, 2);
         b.fillStyle = '#6e4a2a'; for (let x = 2; x < W; x += 10) b.fillRect(x + 2, 20, 1, 13);
         for (let y = 0; y < (st ? st.rows : 5); y++) for (let x = 0; x < (st ? st.cols : 8); x++) {  // soil patches
-            const px = GX + x * T, py = GY + y * T;
+            const px = GX + x * TT, py = GY + y * TT;
+            if (TT > T) {  // the orchard: a ring of dug soil in the grass for each tree
+                b.fillStyle = '#4c9431'; b.fillRect(px + 2, py + 2, TT - 4, TT - 4);
+                b.fillStyle = '#6b4a2b'; b.fillRect(px + 9, py + TT - 9, TT - 18, 6); b.fillStyle = '#5a3d22'; b.fillRect(px + 9, py + TT - 9, TT - 18, 1);
+                continue;
+            }
             b.fillStyle = '#6b4a2b'; b.fillRect(px + 1, py + 1, 14, 14);
             b.fillStyle = '#5a3d22'; b.fillRect(px + 1, py + 1, 14, 2);
             b.fillStyle = '#7d5834'; for (let r = 5; r < 15; r += 4) b.fillRect(px + 3, py + r, 10, 1);
+        }
+        const pw = (st ? st.cols : 8) * TT, ph = (st ? st.rows : 5) * TT;
+        if (view === 'greenhouse') {  // glass walls and a pitched glass roof around the beds
+            b.fillStyle = 'rgba(190, 235, 255, .22)'; b.fillRect(GX - 6, GY - 22, pw + 12, ph + 26);
+            b.fillStyle = '#e8eef2';
+            for (let x = GX - 6; x <= GX + pw + 6; x += 12) b.fillRect(x, GY - 22, 1, ph + 26);
+            b.fillRect(GX - 6, GY - 22, pw + 13, 1); b.fillRect(GX - 6, GY + ph + 3, pw + 13, 1); b.fillRect(GX - 6, GY - 8, pw + 13, 1);
+            for (let i = 0; i < 6; i++) { b.fillStyle = 'rgba(255,255,255,.35)'; b.fillRect(GX + 4 + i * 16, GY - 19 + (i % 2), 6, 1); }
+            b.fillStyle = '#6b4a2b'; b.fillRect(GX + pw + 30, GY + 10, 18, 10); b.fillStyle = '#8f6331'; b.fillRect(GX + pw + 30, GY + 10, 18, 2);  // a potting bench
+            b.fillStyle = '#c96a3a'; [0, 6, 12].forEach(dx => b.fillRect(GX + pw + 32 + dx, GY + 6, 4, 4));
+        } else if (view === 'field') {  // stubble, hay bales, the gate back to the cottage
+            for (let i = 0; i < 160; i++) { b.fillStyle = i % 2 ? '#b9c25a' : '#8fae44'; b.fillRect(140 + Math.floor(rnd() * (W - 140)), 34 + Math.floor(rnd() * (H - 34)), 1, 2); }
+            [[200, 70], [222, 96], [190, 112]].forEach(([x, y]) => { b.fillStyle = '#e1c35a'; b.fillRect(x, y, 16, 10); b.fillStyle = '#b8972e'; b.fillRect(x, y + 3, 16, 1); b.fillRect(x, y + 7, 16, 1); b.fillStyle = '#f2dc85'; b.fillRect(x, y, 16, 1); });
+            b.fillStyle = '#c49155'; b.fillRect(236, 18, 14, 2); b.fillRect(236, 24, 14, 2); b.fillRect(236, 30, 14, 2); b.fillRect(236, 18, 2, 15); b.fillRect(248, 18, 2, 15);
+        } else if (view === 'orchard') {  // long grass, a ladder, a basket of fruit
+            for (let i = 0; i < 200; i++) { b.fillStyle = i % 3 ? '#4c9431' : '#7ccc55'; b.fillRect(Math.floor(rnd() * W), 34 + Math.floor(rnd() * (H - 34)), 1, 3); }
+            b.fillStyle = '#9a6b3f'; for (let y = 60; y < 120; y += 7) b.fillRect(176, y, 12, 1); b.fillRect(176, 56, 1, 66); b.fillRect(187, 56, 1, 66);
+            b.fillStyle = '#b07f45'; b.fillRect(204, 104, 22, 12); b.fillStyle = '#8f6331'; b.fillRect(204, 104, 22, 2);
+            [['#e0352b', 207], ['#e8d28a', 212], ['#9e1f17', 217], ['#8e3fb8', 221]].forEach(([c, x]) => { b.fillStyle = c; b.fillRect(x, 101, 4, 4); });
         }
         return bg;
     }
@@ -497,14 +575,14 @@
         // things on the plot, back to front
         const things = [];
         st.tiles.forEach(t => {
-            const px = GX + t.x * T, py = GY + t.y * T;
+            const px = GX + t.x * TT, py = GY + t.y * TT;
             if (t.kind === 'plant') {
                 const p = grown(t), img = plantSprite(t, p), v = VARIANT[t.variant] || null;
                 const sway = moving && stageOf(p) !== 'seed' && Math.sin(sec * 1.7 + t.x * .9 + t.y) > .55 ? 1 : 0;
-                const big = v && v.scale && stageOf(p) !== 'seed' ? 1 + (v.scale - 1) * Math.min(1, p) : 1;
-                things.push({ y: py + 16, f: () => {
+                const big = (v && v.scale && stageOf(p) !== 'seed' ? 1 + (v.scale - 1) * Math.min(1, p) : 1) * (TT / T);
+                things.push({ y: py + TT, f: () => {
                     const w = Math.round(img.width * big), hh = Math.round(img.height * big);
-                    const ix = px + (16 - w) / 2 + sway, iy = py + 16 - hh;
+                    const ix = px + (TT - w) / 2 + sway, iy = py + TT - 3 * (TT / T - 1) - hh;
                     if (v && v.alpha && stageOf(p) === 'ripe') g.globalAlpha = v.alpha;
                     if (big !== 1) g.drawImage(img, Math.round(ix), Math.round(iy), w, hh); else put(img, ix, iy);
                     g.globalAlpha = 1;
@@ -540,7 +618,7 @@
                 g.restore();
             } });
         });
-        things.push({ y: 104, f: () => cottage(sec, h, moving, sky(h)[2]) });  // the cottage sorts with the walkers
+        if (view === 'home') things.push({ y: 104, f: () => cottage(sec, h, moving, sky(h)[2]) });  // the cottage sorts with the walkers
         things.sort((a, b) => a.y - b.y).forEach(t => t.f());
         // Bulba in the corner, in their hat
         const blink = moving && (sec % 4.2) < .15;
@@ -554,11 +632,11 @@
             g.fillStyle = 'rgba(255, 236, 140, .18)'; g.strokeStyle = 'rgba(255, 236, 140, .55)';
             for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
                 const nx = deco.x + dx, ny = deco.y + dy;
-                if ((dx || dy) && nx >= 0 && ny >= 0 && nx < st.cols && ny < st.rows) { g.fillRect(GX + nx * T, GY + ny * T, 16, 16); g.strokeRect(GX + nx * T + .5, GY + ny * T + .5, 15, 15); }
+                if ((dx || dy) && nx >= 0 && ny >= 0 && nx < st.cols && ny < st.rows) { g.fillRect(GX + nx * TT, GY + ny * TT, TT, TT); g.strokeRect(GX + nx * TT + .5, GY + ny * TT + .5, TT - 1, TT - 1); }
             }
         }
         [[hover, 'rgba(255,255,255,.55)'], [sel, '#ffe066']].forEach(([s, c]) => {
-            if (!s) return; g.strokeStyle = c; g.lineWidth = 1; g.strokeRect(GX + s.x * T + .5, GY + s.y * T + .5, 15, 15);
+            if (!s) return; g.strokeStyle = c; g.lineWidth = 1; g.strokeRect(GX + s.x * TT + .5, GY + s.y * TT + .5, TT - 1, TT - 1);
         });
         // little lives: butterflies by day, fireflies and lantern light by night
         if (moving && night < .3) butterflies.forEach(bf => {
@@ -571,14 +649,14 @@
             g.globalCompositeOperation = 'lighter';
             st.tiles.filter(t => t.id === 'fairy_arch').forEach(t => {  // the fairy lights, twinkling
                 [[3, 2], [9, 1], [2, 5], [11, 3], [1, 8], [12, 7]].forEach(([lx, ly], i) => {
-                    const a = .25 + .35 * Math.abs(Math.sin(sec * 1.7 + i * 1.3)), cx = GX + t.x * T + 1 + lx, cy = GY + t.y * T + 4 + ly;
+                    const a = .25 + .35 * Math.abs(Math.sin(sec * 1.7 + i * 1.3)), cx = GX + t.x * TT + 1 + lx, cy = GY + t.y * TT + 4 + ly;
                     const rg = g.createRadialGradient(cx, cy, 0, cx, cy, 5);
                     rg.addColorStop(0, `rgba(255,236,150,${a})`); rg.addColorStop(1, 'rgba(255,236,150,0)');
                     g.fillStyle = rg; g.fillRect(cx - 5, cy - 5, 10, 10);
                 });
             });
             st.tiles.filter(t => t.id === 'lantern').forEach(t => {
-                const cx = GX + t.x * T + 8, cy = GY + t.y * T + 8, rg = g.createRadialGradient(cx, cy, 1, cx, cy, 22);
+                const cx = GX + t.x * TT + 8, cy = GY + t.y * TT + 8, rg = g.createRadialGradient(cx, cy, 1, cx, cy, 22);
                 rg.addColorStop(0, 'rgba(255,190,90,.55)'); rg.addColorStop(1, 'rgba(255,190,90,0)');
                 g.fillStyle = rg; g.fillRect(cx - 22, cy - 22, 44, 44);
             });
@@ -628,7 +706,7 @@
 
     // --- Pointing ---
     function at(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
-    function cell(p) { const x = Math.floor((p.x - GX) / T), y = Math.floor((p.y - GY) / T); return st && x >= 0 && y >= 0 && x < st.cols && y < st.rows ? { x, y } : null; }
+    function cell(p) { const x = Math.floor((p.x - GX) / TT), y = Math.floor((p.y - GY) / TT); return st && x >= 0 && y >= 0 && x < st.cols && y < st.rows ? { x, y } : null; }
     cv.addEventListener('pointermove', (e) => { hover = cell(at(e)); });
     cv.addEventListener('pointerleave', () => { hover = null; });
     cv.addEventListener('click', (e) => {
@@ -647,7 +725,7 @@
     async function putDown(id, c) {
         if (!c || tileAt(c.x, c.y)) { if (window.NADialog && c) NADialog.alert('Something is already there. Pick a free patch.'); return; }
         try {
-            take(await call({ action: st.crops[id] ? 'plant' : 'place', x: c.x, y: c.y, id }));
+            take(await call({ action: st.crops[id] ? 'plant' : 'place', x: c.x, y: c.y, area: view, id }));
             sel = c; armed = null; burstAt(c); paintSide(); paintTile();
         } catch (err) { if (window.NADialog) NADialog.alert(err.message); }
     }
@@ -728,13 +806,13 @@
         if (action === 'dig' && window.NADialog && !await NADialog.confirm('Dig it up? The seed is lost.', { title: 'Dig it up', ok: 'Dig it up', danger: true })) return;
         b.disabled = true;
         try {
-            take(await call({ action, x: sel.x, y: sel.y, id: b.dataset.id || undefined }));
+            take(await call({ action, x: sel.x, y: sel.y, area: view, id: b.dataset.id || undefined }));
             if (action === 'harvest') burstAt(sel);
             paintTile();
         } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
     });
     function burstAt(c) {
-        for (let i = 0; i < 14; i++) bits.push({ x: GX + c.x * T + 8, y: GY + c.y * T + 6, vx: (Math.random() - .5) * 30, vy: -15 - Math.random() * 20, life: 1, kind: 'spark' });
+        for (let i = 0; i < 14; i++) bits.push({ x: GX + c.x * TT + TT / 2, y: GY + c.y * TT + 6, vx: (Math.random() - .5) * 30, vy: -15 - Math.random() * 20, life: 1, kind: 'spark' });
     }
     function paintSide() {
         $('gCompost').textContent = `♻ ${st.compost} compost`;
@@ -774,7 +852,7 @@
         const head = `<div class="g-progress"><span class="g-dots">${dots}</span>
             <span>${c ? `Stage ${hs.stage + 1} of ${hs.stages.length} · <b>${c.emoji} ${esc(c.name)}</b>` : '<b>All built</b>'}</span></div>`;
         let body = '';
-        if (!c) body = `<p>${esc(hs.builder)} is already sketching a mill. ${esc(hs.banker)} is already sketching an audit.</p>`;
+        if (!c) body = `<p>${esc(hs.builder)} has built everything: the cottage, the field, the greenhouse, the mill and the orchard. ${esc(hs.banker)} is still reading the receipts.</p>`;
         else if (hs.building) body = `<p class="g-next">🔨 ${esc(hs.builder)} is building. Ready in about <b>${dur(hs.building)}</b>.</p>`;
         else {
             const missing = c.needs.some(x => x.have < x.n) || (c.mutations && c.found < c.mutations);

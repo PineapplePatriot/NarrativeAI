@@ -103,7 +103,10 @@ for _who, _likes, _dislikes in (("rosa", ["seed_basil", "pesto", "seed_strawberr
                                 ("pepper", ["seed_blueberry", "blueberry_pie", "seed_watermelon"], ["seed_mandrake"]),
                                 ("mirela", ["seed_strawberry", "strawberry_tart", "strawberry_jam"], ["chili_sauce"]),
                                 ("corvin", ["seed_blueberry", "seed_peas"], ["seed_garlic", "pesto"]),
-                                ("lyuba", ["seed_beet", "borscht", "seed_garlic", "pea_soup"], ["melon_salad"])):
+                                ("lyuba", ["seed_beet", "borscht", "seed_garlic", "pea_soup"], ["melon_salad"]),
+                                ("rosa", ["pizza", "pear_tart"], []), ("mirela", ["seed_wheat", "bread", "apple_pie"], []),
+                                ("corvin", ["tree_cherry", "cherry_jam"], []), ("pepper", ["tree_plum", "tree_pear"], []),
+                                ("lyuba", ["plum_dumplings", "tree_apple"], [])):
     NEIGHBOURS[_who]["likes"] += [x for x in _likes if x not in NEIGHBOURS[_who]["likes"]]
     NEIGHBOURS[_who]["dislikes"] += [x for x in _dislikes if x not in NEIGHBOURS[_who]["dislikes"]]
 
