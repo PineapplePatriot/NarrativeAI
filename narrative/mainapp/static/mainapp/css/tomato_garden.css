@@ -178,3 +178,4 @@
 .g-fair-box button:disabled { opacity: .45; cursor: not-allowed; }
 .g-contest .g-giftrow { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 .g-contest .g-giftrow select { width: 100%; }
+.g-near { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }

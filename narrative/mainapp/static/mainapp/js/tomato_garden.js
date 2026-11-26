@@ -549,6 +549,14 @@
         const hat = HATS[st.hat];
         if (hat) { const himg = sprite(hat, ART[hat]); put(himg, bulba.x + (12 - himg.width) / 2 + 1, bulba.y - himg.height + 1); }
         // selection
+        const deco = (sel && (tileAt(sel.x, sel.y) || {}).kind === 'decor' && sel) || (armed && !st.crops[armed] && (st.decor_effect || {})[armed] && hover);
+        if (deco) {
+            g.fillStyle = 'rgba(255, 236, 140, .18)'; g.strokeStyle = 'rgba(255, 236, 140, .55)';
+            for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+                const nx = deco.x + dx, ny = deco.y + dy;
+                if ((dx || dy) && nx >= 0 && ny >= 0 && nx < st.cols && ny < st.rows) { g.fillRect(GX + nx * T, GY + ny * T, 16, 16); g.strokeRect(GX + nx * T + .5, GY + ny * T + .5, 15, 15); }
+            }
+        }
         [[hover, 'rgba(255,255,255,.55)'], [sel, '#ffe066']].forEach(([s, c]) => {
             if (!s) return; g.strokeStyle = c; g.lineWidth = 1; g.strokeRect(GX + s.x * T + .5, GY + s.y * T + .5, 15, 15);
         });
@@ -685,17 +693,20 @@
             box.innerHTML = `<h3>An empty patch</h3>${seeds.length ? `<div class="g-small muted">Plant</div><div class="g-row">${seeds.map(k =>
                 `<button type="button" class="na-btn" data-do="plant" data-id="${k}">${cropImg(k)} ${esc(st.crops[k].name)} ×${st.basket[k]}</button>`).join('')}</div>` : ''}
                 ${decor.length ? `<div class="g-small muted">Place</div><div class="g-row">${decor.map(k =>
-                `<button type="button" class="na-btn" data-do="place" data-id="${k}">${prizePic(k)} ${esc(prizeOf(k).name)}</button>`).join('')}</div>` : ''}
+                `<button type="button" class="na-btn" data-do="place" data-id="${k}" title="${esc((st.decor_effect || {})[k] || '')}">${prizePic(k)} ${esc(prizeOf(k).name)}</button>`).join('')}</div>
+                <p class="muted g-small">A decoration helps the 8 patches around it.</p>` : ''}
                 ${!seeds.length && !decor.length ? '<p class="muted">Your basket is empty. The Sauce-o-Matic gives out seeds and decorations.</p>' : ''}`;
             return;
         }
         if (t.kind === 'decor') {
-            box.innerHTML = `<h3>${prizePic(t.id, 28)} ${esc(prizeOf(t.id).name)}</h3><div class="g-row">
+            const eff = (st.decor_effect || {})[t.id];
+            box.innerHTML = `<h3>${prizePic(t.id, 28)} ${esc(prizeOf(t.id).name)}</h3>${eff ? `<p class="g-small">${esc(eff)}</p><p class="muted g-small">It helps the 8 patches around it (lit up in the garden).</p>` : ''}<div class="g-row">
                 <button type="button" class="na-btn" data-do="remove">Back to the basket</button></div>`;
             return;
         }
-        box.innerHTML = `<h3>${prizeOf(t.seed).emoji} ${esc(t.name)}</h3>${t.variant ? `<p class="muted g-small">A mutation's seed: it comes out as itself
-            ${Math.round(st.keep[st.almanac.find(a => a.id === t.variant)?.rare ? 'rare' : 'common'] * 100)}% of the time (with its seed back), otherwise as an ordinary ${esc(prizeOf(st.crops[t.seed].base).name.replace(/ seeds$/, '').toLowerCase())}.</p>` : ''}<div id="gLive"></div>`;
+        box.innerHTML = `<h3>${cropImg(t.seed, 22)} ${esc(t.name)}</h3>${t.variant ? `<p class="muted g-small">A mutation's seed: it comes out as itself
+            ${Math.round(st.keep[st.almanac.find(a => a.id === t.variant)?.rare ? 'rare' : 'common'] * 100)}% of the time (with its seed back), otherwise as an ordinary ${esc(prizeOf(st.crops[t.seed].base).name.replace(/ seeds$/, '').toLowerCase())}.</p>` : ''}
+            ${(t.near || []).length ? `<div class="g-near"><span class="muted g-small">Helped by</span>${t.near.map(d => `<span class="g-chip" title="${esc((st.decor_effect || {})[d] || '')}">${prizePic(d, 18)} ${esc(prizeOf(d).name)}</span>`).join('')}</div>` : ''}<div id="gLive"></div>`;
         paintTileLive();
     }
     function paintTileLive() {
@@ -730,7 +741,7 @@
         const items = Object.entries(st.basket);
         $('gBasket').innerHTML = items.length ? `<div class="g-basket">${items.map(([k, n]) => `<button type="button" class="g-bitem${armed === k ? ' armed' : ''}"
                 draggable="true" data-item="${k}" title="Drag it onto a patch, or tap it and then a patch">
-                <span class="e">${st.crops[k] ? cropImg(k, 24) : prizePic(k, 26)}</span><span>${esc(st.prizes[k] ? prizeOf(k).name : st.crops[k] ? st.crops[k].name + ' seeds' : k)}</span><b>×${n}</b></button>`).join('')}</div>`
+                <span class="e" title="${esc((st.decor_effect || {})[k] || '')}">${st.crops[k] ? cropImg(k, 24) : prizePic(k, 26)}</span><span>${esc(st.prizes[k] ? prizeOf(k).name : st.crops[k] ? st.crops[k].name + ' seeds' : k)}</span><b>×${n}</b></button>`).join('')}</div>`
             : '<p class="muted g-small">Empty. Seeds and decorations come from the Sauce-o-Matic.</p>';
         $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
         const gard = (x, on) => `<div class="g-gard${on ? '' : ' resting'}"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br>

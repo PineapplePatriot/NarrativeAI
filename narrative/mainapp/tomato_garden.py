@@ -55,6 +55,25 @@ CROPS = {  # seed id → what grows
 }
 EVERYDAY = ("seed_tomato", "seed_carrot", "seed_sunflower")  # always on the order board; the rest once their seeds were had
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
+# 🪴 What a decoration does for the 8 patches around it: (kind, amount, what it says). Kinds: grow (that much faster,
+# added as it goes, never backdated), compost (+n per harvest), extra (a chance of a second crop on the shelf),
+# mutation (mutations that many times likelier), keep (a planted mutation comes out as itself that much more often).
+# Different decorations add up (up to the caps); two of the same kind next to a patch count once.
+DECOR_EFFECT = {
+    "pond": ("grow", .10, "Plants around it grow 10% faster: frogs, and water close by."),
+    "lantern": ("grow", .10, "Plants around it grow 10% faster: they keep going by its light at night."),
+    "beehive": ("grow", .15, "Plants around it grow 15% faster: the bees see to the flowers."),
+    "watering_can": ("grow", .10, "Plants around it grow 10% faster: Grandpa Pomodoro never forgets these."),
+    "sundial": ("grow", .10, "Plants around it grow 10% faster: they know what time it is."),
+    "wheelbarrow": ("compost", 1, "+1 compost from every harvest around it: it carries the scraps."),
+    "bench": ("compost", 1, "+1 compost from every harvest around it: somebody sits here and sorts the heap."),
+    "scarecrow": ("extra", .25, "Harvests around it: 1 in 4 puts a second crop on the shelf (nothing got pecked)."),
+    "birdbath": ("extra", .15, "Harvests around it: about 1 in 7 puts a second crop on the shelf (the robin eats the pests)."),
+    "gnome": ("mutation", 1.5, "Mutations around him are 50% likelier. He watches. Things get strange."),
+    "fairy_arch": ("mutation", 2.0, "Mutations around it are twice as likely. Something lives in it."),
+    "snowman": ("keep", .25, "A mutation's seed planted next to him comes out as itself more often."),
+}
+AURA_CAP = {"grow": .5, "compost": 3, "extra": .5, "mutation": 3.0, "keep": .4}
 DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman", "birdbath", "wheelbarrow", "watering_can", "sundial", "beehive",
          "fairy_arch")
 GARDENERS = {
@@ -198,6 +217,37 @@ def progress(tile, m, now=None):
     return min(1.0, grown / (crop["hours"] * 3600))
 
 
+def aura(g, key, n_rows=None):
+    """What the decorations around this patch (the 8 next to it) do for it."""
+    x, y = (int(v) for v in key.split(","))
+    near = set()
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            t = g["tiles"].get(f"{x + dx},{y + dy}")
+            if (dx or dy) and t and t.get("kind") == "decor" and t.get("id") in DECOR_EFFECT:
+                near.add(t["id"])
+    out = {"grow": 0.0, "compost": 0, "extra": 0.0, "mutation": 1.0, "keep": 0.0, "by": sorted(near)}
+    for d in near:
+        kind, n, _ = DECOR_EFFECT[d]
+        out[kind] = out[kind] * n if kind == "mutation" else out[kind] + n
+    for k, cap in AURA_CAP.items():
+        out[k] = min(cap, out[k])
+    return out
+
+
+def _aura_tick(g, m, now=None):
+    """Decorations' growth, added for the time since the last look (so moving one never backdates anything)."""
+    now = now or _now()
+    last = g.get("aura_at") or now
+    g["aura_at"] = int(now)
+    for key, t in g["tiles"].items():
+        if t.get("kind") != "plant":
+            continue
+        bonus = aura(g, key)["grow"]
+        if bonus and progress(t, m, now) < 1:
+            t["boost"] = t.get("boost", 0) + max(0, now - max(last, t.get("at", 0))) * bonus
+
+
 def stage(p):
     return next((name for limit, name in STAGES if p < limit), "ripe")
 
@@ -206,18 +256,19 @@ def _log(g, text):
     g["log"] = ([{"at": int(_now()), "text": text}] + g["log"])[:LOG]
 
 
-def _mutate(g, m, seed, rng=None):
+def _mutate(g, m, seed, rng=None, near=None):
     """1 in MUTATION_ODDS harvests: a strange variant (a rare one a quarter of the time); a planted variant comes
     out as itself KEEP of the time. Each one gives a seed of itself. Returns it or None."""
     import random
     rng = rng or random.SystemRandom()
     planted = CROPS.get(seed, {}).get("variant")
-    if planted and rng.random() < KEEP[MUTANT[planted]["rare"]]:
+    near = near or {"mutation": 1.0, "keep": 0.0}
+    if planted and rng.random() < KEEP[MUTANT[planted]["rare"]] + near["keep"]:  # ⛄ the snowman helps
         mid = planted
     else:
         variants = MUTATIONS.get(base(seed))
         from mainapp import tomato_kitchen as K  # 🍰 a dish eaten for luck makes them likelier
-        if not variants or rng.random() >= max(1, K.boost(g, "luck")) / MUTATION_ODDS:
+        if not variants or rng.random() >= max(1, K.boost(g, "luck")) * near["mutation"] / MUTATION_ODDS:  # 🗿 ✨
             return None
         common = [v for v in variants if not v[3]]
         rare = [v for v in variants if v[3]]
@@ -312,8 +363,10 @@ def _harvest(g, m, key, by="", rng=None):
     tile = g["tiles"].pop(key)
     crop = CROPS[tile["seed"]]
     from mainapp import tomato_kitchen as K
-    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0) + K.boost(g, "compost")  # 🍞 a dish eaten for compost
-    odd = _mutate(g, m, tile["seed"], rng)
+    near = aura(g, key)  # 🪴 the decorations around it
+    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0) + K.boost(g, "compost") + near["compost"]  # 🍞 🛒
+    import random
+    odd = _mutate(g, m, tile["seed"], rng, near)
     if odd and not odd["rare"]:
         got *= 3
     g["harvests"] += 1
@@ -331,6 +384,8 @@ def _harvest(g, m, key, by="", rng=None):
                                                                      else "triple compost.") + " Into the almanac, and its seed into the basket.")
     if not _shelve(g, base(tile["seed"])):
         _log(g, f"(The shelf is full of {crop['name'].lower()}s: that one went straight to the compost.)")
+    elif near["extra"] and (rng or random.SystemRandom()).random() < near["extra"] and _shelve(g, base(tile["seed"])):
+        _log(g, f"🌾 Nothing got pecked: a second {crop['name'].lower()} went on the shelf.")
     return got
 
 
@@ -415,6 +470,7 @@ def _locked(user, fn):
         m, g = M._state(score), _state(score)
         from mainapp import tomato_house as H
         H.tick(g, m)
+        _aura_tick(g, m)
         from mainapp import tomato_village as V
         V.tick(g, m)
         from mainapp import tomato_fair as F
@@ -553,8 +609,9 @@ def public(score):
         if t.get("kind") == "plant":
             p = progress(t, m, now)
             crop = CROPS[t["seed"]]
-            speed = 1.25 if _has(m, "gardener_farmer") else 1.0
-            item.update(seed=t["seed"], look=base(t["seed"]), variant=crop.get("variant", ""), name=crop["name"], progress=round(p, 4), stage=stage(p),
+            near = aura(g, key)
+            speed = (1.25 if _has(m, "gardener_farmer") else 1.0) + near["grow"]
+            item.update(near=[d for d in near["by"]], seed=t["seed"], look=base(t["seed"]), variant=crop.get("variant", ""), name=crop["name"], progress=round(p, 4), stage=stage(p),
                         left=int(max(0, (1 - p) * crop["hours"] * 3600 / speed)), rate=speed / (crop["hours"] * 3600))
         else:
             item["id"] = t.get("id")
@@ -570,6 +627,7 @@ def public(score):
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
             "water": int(WATER * (1.25 if H.has(g, "barrel") else 1)), "crops": CROPS, "now": int(now),
+            "decor_effect": {d: e[2] for d, e in DECOR_EFFECT.items()},
             "orders": [{**o, "what": describe(o["needs"]), "left": max(0, o["due"] - int(now))} for o in g["orders"]],
             "orders_max": order_slots(g), "filled": g["filled"], "shelf": g["shelf"], "shelf_max": SHELF_MAX, "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
