@@ -105,7 +105,8 @@ function proposalCard(ev) {
     const p = state.proposals.find(x => x.id === ev.id);
     if (!p) return '';
     const status = { pending: '', applied: '<span class="status ok">Applied</span>', dismissed: '<span class="status">Dismissed</span>',
-                     undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>' }[p.status] || '';
+                     undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>',
+                     expired: `<span class="status" title="${esc(p.why || '')}">No longer available</span>` }[p.status] || '';
     const off = busy ? 'disabled' : '';
     const editable = (p.editable || []).length;
     if (p.status === 'pending' && editingId === p.id && editable) return proposalEditor(p);

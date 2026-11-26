@@ -4920,7 +4920,7 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.post({"action": "expand"})
         sent = json.dumps(self.all_calls[-1]["messages"] if hasattr(self, "all_calls") else self.sent[-1]["messages"])
         self.assertIn("Point of view: first person", sent)
-        self.assertIn("Keep out of this reply", sent)
+        self.assertIn("Keep out of it", sent)
 
     def test_blocks_fire_only_on_their_kind_of_generation(self):
         from mainapp import presets as presets_mod
@@ -9052,8 +9052,8 @@ class TomatoMachineTests(TestCase):
 def quiet_garden(test):
     """No random mutations and no order board in tests about other things (OrderBoardTests covers them)."""
     from unittest import mock
-    from mainapp import tomato_garden as G, tomato_house as H
-    for mod, name, value in ((G, "MUTATION_ODDS", 10 ** 12), (G, "ORDERS_OPEN", 0), (H, "ENABLED", False)):
+    from mainapp import tomato_garden as G, tomato_house as H, tomato_village as V
+    for mod, name, value in ((G, "MUTATION_ODDS", 10 ** 12), (G, "ORDERS_OPEN", 0), (H, "ENABLED", False), (V, "ENABLED", False)):
         patcher = mock.patch.object(mod, name, value)
         patcher.start()
         test.addCleanup(patcher.stop)
