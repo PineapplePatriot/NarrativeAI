@@ -4920,7 +4920,7 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.post({"action": "expand"})
         sent = json.dumps(self.all_calls[-1]["messages"] if hasattr(self, "all_calls") else self.sent[-1]["messages"])
         self.assertIn("Point of view: first person", sent)
-        self.assertIn("Keep out of this reply", sent)
+        self.assertIn("Keep out of it", sent)
 
     def test_blocks_fire_only_on_their_kind_of_generation(self):
         from mainapp import presets as presets_mod

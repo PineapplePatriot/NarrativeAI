@@ -116,7 +116,7 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
     opacity: 0.75;
 }
 
-.proposal.replaced {
+.proposal.replaced, .proposal.expired {
     opacity: 0.55;
 }
 

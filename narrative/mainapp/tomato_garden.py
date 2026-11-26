@@ -479,7 +479,10 @@ def _orders(g, m, rng=None, today=None):
     crops = list(EVERYDAY) + [c for c in CROPS if c not in EVERYDAY and not CROPS[c].get("base") and (c in m["items"] or c in g["shelf"])]
     dish = None
     if H.has(g, "kitchen") and rng.random() < .5:  # 🍲 with the kitchen: half the new orders are dishes, paid double
-        dishes = [d for d in DISHES if all(k in crops for k in d["needs"])]
+        from mainapp import tomato_kitchen as K  # (plus the secret dishes already found, once all their crops grow here)
+        found = [{"name": r["name"], "emoji": r["emoji"], "needs": r["needs"]} for rid, r in K.RECIPES.items()
+                 if r.get("secret") and rid in (g.get("book") or {})]
+        dishes = [d for d in list(DISHES) + found if all(k in crops for k in d["needs"])]
         dish = rng.choice(dishes) if dishes else None
     if dish:
         needs = dict(dish["needs"])

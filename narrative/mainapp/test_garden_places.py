@@ -77,3 +77,19 @@ class PlacesTests(TestCase):
         self.assertEqual(H.STAGES[H.CHAPTER_TWO]["id"], "field")
         self.assertIn("I have plans", " ".join(t for _, t in H.SCENES["porch"]))
         self.assertTrue(all(a.get("unlock") in {s["unlock"] for s in H.STAGES} for a in G.AREAS.values() if a.get("unlock")))
+
+
+class FoundDishOrderTests(TestCase):
+    def test_a_found_secret_dish_can_be_ordered(self):
+        import random
+        from mainapp import tomato_kitchen as K
+        g = {"orders": [], "order_seq": 0, "filled": 0, "shelf": {}, "log": [], "book": {"pizza": 1}, "house": {"stage": 9, "begun": 1, "have": {}}, "tiles": {}}
+        m = {"items": {"seed_wheat": 1, "seed_basil": 1}}
+        seen = set()
+        with mock.patch.object(H, "ENABLED", True):
+            for i in range(60):
+                g.update(orders=[], order_day=None)
+                G._orders(g, m, rng=random.Random(i))
+                seen |= {o.get("dish") for o in g["orders"]}
+        self.assertIn(K.RECIPES["pizza"]["name"], seen)
+        self.assertNotIn(K.RECIPES["apple_pie"]["name"], seen)  # not found yet
