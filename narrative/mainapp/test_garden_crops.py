@@ -73,6 +73,6 @@ class DecorationTests(SimpleTestCase):
             with self.subTest(d):
                 self.assertEqual(by_id[d]["kind"], "decor")
                 self.assertRegex(JS, rf"\n\s+{d}: \[")  # the pixel sprite on the canvas
-        for d in ("birdbath", "wheelbarrow", "watering_can", "sundial", "beehive", "fairy_arch"):
+        for d in G.DECOR:
             img = by_id[d]["img"]
             self.assertTrue((root / img.lstrip("/")).is_file(), img)  # the picture in the machine
