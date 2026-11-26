@@ -36,3 +36,23 @@ class SteerTests(TestCase):
         data = {"notices": [{"label": "same_shape", "kind": "pattern", "status": "new", "at": 10}]}
         with mock.patch.object(polish, "approved", return_value=[]), mock.patch.object(watch, "chat_data", return_value=data):
             self.assertIn("Build this reply differently", polish.avoid_line(self.user, object(), alike, 12))
+
+
+class NegatedActionTests(TestCase):
+    """"She doesn't step back. She tips her chin up instead.": what didn't happen, before what did."""
+    def test_spotted_for_free(self):
+        hit = polish.DETECTORS["negated_action"].search
+        for text in ("She doesn't step back. She tips her chin up instead — the better to look him over.",
+                     "Mira doesn't answer. Mira just looks at the door.",
+                     "Вона не відступає. Вона піднімає підборіддя.", "Він не відповідає. Натомість дивиться у вікно."):
+            self.assertTrue(hit(text), text)
+        for text in ('"I don\'t know. I think so," she says.', "He doesn't know the way, so she leads.",
+                     "She opens the door and steps out into the rain."):
+            self.assertFalse(hit(text), text)
+
+    def test_known_slop_steered_in_every_reply_and_write_for_me(self):
+        user = get_user_model().objects.create_user(username="negated", password="pw12345!")
+        self.assertIn("negated_action", watch.KNOWN_FIX)
+        self.assertIn("negated_action", watch.LABELS)
+        with mock.patch.object(polish, "approved", return_value=[]):
+            self.assertIn("start each beat on the action itself", polish.avoid_line(user))
