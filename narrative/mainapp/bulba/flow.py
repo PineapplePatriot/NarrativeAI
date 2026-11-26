@@ -72,8 +72,37 @@ APPLY_RULES = (
     "step on a change that isn't applied.")
 
 
+def expire_unreachable(session):
+    """A proposal still waiting for Apply that can't be reached any more goes grey ("expired"): its card is gone from
+    the conversation (a failed message removed, a fresh start), or the chat message it would fix has changed since.
+    Then it neither counts as waiting nor gets reminded about. Returns whether anything changed (the caller saves).
+    Only between turns (the page's state): during one, a new proposal's card isn't in session.events yet."""
+    shown = {e.get("id") for e in session.events or [] if isinstance(e, dict) and e.get("type") == "proposal"}
+    messages, changed = None, False
+    for p in session.proposals or []:
+        if not isinstance(p, dict) or p.get("status") != "pending":
+            continue
+        why = ""
+        if p.get("id") not in shown:
+            why = "Its place in this conversation is gone."
+        elif p.get("kind") == "message_fix":
+            if messages is None:
+                from mainapp import chats
+                chat = getattr(session, "chat", None)
+                messages = (chats.read(chat).get("messages") or []) if chat else []
+            data = p.get("payload") or {}
+            i = data.get("index", -1)
+            if not (isinstance(i, int) and 0 <= i < len(messages)) or messages[i][2] != data.get("original"):
+                why = "That chat message has changed since."
+        if why:
+            p["status"], p["why"], changed = "expired", why, True
+    return changed
+
+
 def proposals_section(session):
-    """The proposals so far for the system prompt, with the ones still waiting for Apply called out."""
+    """The proposals so far for the system prompt, with the ones still waiting for Apply called out. (Ones nobody
+    can reach were already greyed when the page last got its state: not here, since mid-turn a fresh proposal's card
+    isn't in the conversation yet.)"""
     rows = [p for p in session.proposals or [] if isinstance(p, dict)]
     if not rows:
         return APPLY_RULES

@@ -97,3 +97,91 @@
 .g-gard > div { min-width: 0; flex: 1; }
 .g-gard .g-crew { max-width: 100%; white-space: normal; text-align: left; }
 .g-gard .g-crew-why { display: block; margin-top: 4px; font-size: .75rem; }
+
+/* 🍲 the kitchen */
+.g-pot { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.g-pot .e { font-size: 1.8rem; }
+.g-pot.cooking .e { animation: g-bubble 1.4s ease-in-out infinite; }
+.g-pot.ready { border: 1px solid rgba(250, 204, 21, .5); }
+.g-pot small { display: block; }
+.g-pot button { margin-left: auto; }
+@keyframes g-bubble { 50% { transform: translateY(-2px) rotate(-4deg); } }
+.g-potpick { display: grid; gap: 4px; margin: 6px 0 8px; }
+.g-potrow { display: grid; grid-template-columns: 26px 1fr 32px 22px 32px; align-items: center; gap: 6px; }
+.g-potrow .na-btn { padding: 2px 0; min-width: 0; }
+.g-potrow b { text-align: center; }
+.g-sub { font-size: .9rem; margin: 12px 0 6px; }
+.g-pantry, .g-book { display: grid; gap: 6px; }
+.g-dish, .g-recipe { display: flex; gap: 8px; align-items: center; }
+.g-dish .e, .g-recipe .e { font-size: 1.3rem; width: 28px; text-align: center; }
+.g-dish small, .g-recipe small { display: block; }
+.g-dish button { margin-left: auto; }
+.g-book { margin-top: 10px; }
+.g-book summary { cursor: pointer; font-weight: 600; margin-bottom: 6px; }
+.g-recipe.unknown { opacity: .6; }
+
+/* 🏘️ the neighbours */
+.g-visitor { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; margin-bottom: 10px;
+    background: rgba(250, 204, 21, .08); border: 1px solid rgba(250, 204, 21, .35); }
+.g-visitor.done { opacity: .75; border-color: rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .03); }
+.g-visitor .e, .g-person .e { font-size: 1.7rem; width: 34px; text-align: center; flex: 0 0 auto; }
+.g-visitor small { display: block; }
+.g-visitor button { margin-left: auto; }
+.g-people { display: grid; gap: 10px; }
+.g-person { display: flex; gap: 10px; align-items: flex-start; }
+.g-person-main { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.g-hearts { font-size: .75rem; letter-spacing: -1px; }
+.g-giftrow { display: flex; gap: 6px; margin-top: 4px; }
+.g-giftrow select { flex: 1; min-width: 0; }
+.g-letters { margin-top: 12px; }
+.g-letters summary { cursor: pointer; font-weight: 600; }
+.g-letter { margin: 8px 0; padding: 10px 12px; border-radius: 10px; background: #f6efe2; color: #3a2e22; }
+.g-letter small { color: #7a6a58; }
+.g-letter p { margin: 6px 0 0; font-family: Georgia, serif; line-height: 1.5; }
+.g-visitor button:disabled, .g-kitchen-box button:disabled, .g-village-box button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }
+/* 💐 Bouquets and the postcard */
+.g-craft-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 720px) { .g-craft-cols { grid-template-columns: 1fr; } }
+.g-wraps { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; font-size: .9em; }
+.g-bq-preview { min-height: 20px; display: flex; justify-content: center; }
+.g-arrange input[type=text] { width: 100%; margin: 6px 0; }
+.g-bqs { display: flex; flex-wrap: wrap; gap: 10px; }
+.g-bq { margin: 0; width: 104px; text-align: center; background: var(--na-surface-2, rgba(127,127,127,.08)); border-radius: 10px; padding: 6px 4px; }
+.g-bq figcaption { display: flex; flex-direction: column; font-size: .82em; line-height: 1.25; }
+.g-stars { color: #d9a400; letter-spacing: 1px; }
+.g-craft-box button:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }
+.g-postcard-row { margin-top: 12px; }
+.g-postcard { max-width: min(980px, 96vw); border: none; border-radius: 14px; padding: 18px; background: var(--na-surface, #fff); color: inherit; }
+.g-postcard::backdrop { background: rgba(0,0,0,.55); }
+.g-postcard canvas { width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.2); }
+.g-pc-fields { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin: 10px 0; }
+.g-pc-fields label { display: flex; flex-direction: column; gap: 4px; font-size: .9em; }
+@media (max-width: 640px) { .g-pc-fields { grid-template-columns: 1fr; } }
+.g-pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* crops shown as their own pixel pictures */
+.g-ci { image-rendering: pixelated; vertical-align: middle; object-fit: contain; }
+.g-pi { vertical-align: middle; object-fit: contain; }
+/* 🎪 The fair */
+.g-contests { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .g-contests { grid-template-columns: 1fr; } }
+.g-contest { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 10px; background: var(--na-surface-2, rgba(127,127,127,.08)); }
+.g-contest select { max-width: 100%; }
+.g-results { margin-top: 12px; }
+.g-results summary { cursor: pointer; font-weight: 600; }
+.g-result { padding: 8px 0; border-top: 1px solid rgba(127,127,127,.2); }
+.g-result-head { display: flex; gap: 10px; align-items: center; }
+.g-result-head small { display: block; }
+.g-board { margin: 6px 0; padding-left: 22px; font-size: .9em; }
+.g-board li.you { font-weight: 700; }
+.g-trophies { display: flex; flex-wrap: wrap; gap: 4px; }
+.g-trophy { display: inline-flex; }
+.g-fair-box button:disabled { opacity: .45; cursor: not-allowed; }
+.g-contest .g-giftrow { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.g-contest .g-giftrow select { width: 100%; }
+.g-near { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
+/* 🗺️ Places */
+.g-areas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.g-areas[hidden] { display: none; }
+.g-area { border: 1px solid rgba(127,127,127,.35); background: var(--na-surface-2, rgba(127,127,127,.08)); color: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; }
+.g-area small { opacity: .7; }
+.g-area.on { background: #f5cf3a; color: #1d1b26; border-color: #c9971a; font-weight: 600; }

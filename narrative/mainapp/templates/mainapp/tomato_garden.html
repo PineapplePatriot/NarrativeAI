@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=9">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=18">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="garden" %}
@@ -25,6 +25,7 @@
     <div id="gBasket"></div>
   </section>
 
+  <nav class="g-areas" id="gAreas" aria-label="Places in the garden" hidden></nav>
   <div class="g-wrap">
     <div class="g-stage">
       <canvas id="gCanvas" width="1024" height="576" aria-label="Your garden. Choose a patch to see what you can do there."></canvas>
@@ -50,6 +51,22 @@
       <div class="pit-box-head"><h2>🏡 The cottage</h2><span class="muted">built by Il Dattore, paid for by Pantaleone</span></div>
       <div id="gCottage"></div>
     </section>
+    <section class="pit-box g-village-box" aria-label="Neighbours">
+      <div class="pit-box-head"><h2>🏘️ The neighbours</h2><span class="muted" id="gLetterCount"></span></div>
+      <div id="gVillage"></div>
+    </section>
+    <section class="pit-box g-fair-box" aria-label="The village fair">
+      <div class="pit-box-head"><h2>🎪 The village fair</h2><span class="muted" id="gFairNote"></span></div>
+      <div id="gFair"></div>
+    </section>
+    <section class="pit-box g-craft-box" aria-label="Bouquets and postcards">
+      <div class="pit-box-head"><h2>💐 Bouquets &amp; postcards</h2></div>
+      <div id="gCrafts"></div>
+    </section>
+    <section class="pit-box g-kitchen-box" aria-label="Kitchen">
+      <div class="pit-box-head"><h2>🍲 The kitchen</h2><span class="muted" id="gBoosts"></span></div>
+      <div id="gKitchen"></div>
+    </section>
     <section class="pit-box" aria-label="Shelf">
       <div class="pit-box-head"><h2>🧺 The shelf</h2></div>
       <div id="gShelf"></div>
@@ -64,6 +81,6 @@
     </section>
   </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=13"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=28"></script>
 </body>
 </html>

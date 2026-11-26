@@ -2003,7 +2003,8 @@ def chat(request, slug):
                     texture_note = texture.for_reply(request.user, [m[2] for m in plain[-4:]])  # 🧵 real specifics
                     built = {**built, "messages": fresh_details.add_before_note(built["messages"], texture_note)}
                     from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
-                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(request.user))}
+                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(
+                        request.user, chat_obj, [m[2] for m in plain if m[0] == "assistant"], len(messages)))}
                     english = translation.english_note(request.user)  # read in another language: written in English
                     if english:
                         built = {**built, "messages": built["messages"] + [english]}
@@ -3963,7 +3964,9 @@ def _has_chatted(user):
 
 
 def _bulba_state(session):
-    from .bulba import agent, editing, lore, progress
+    from .bulba import agent, editing, lore, progress, flow
+    if flow.expire_unreachable(session) and session.pk:  # ⏳ a waiting proposal nobody can reach goes grey
+        session.save(update_fields=["proposals"])
     profile = agent.target_profile(session)
     character = lore.target_character(session)
     return {
@@ -3979,7 +3982,7 @@ def _bulba_state(session):
         "chat_with": session.chat.character.name if session.mode == "chat" and session.chat_id else "",
         "model": agent.shown_name(profile) if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
-        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited")},
+        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited", "why")},
                        "summary": _shown_summary(session, p), "editable": editing.fields(p),
                        **({"preview": _theme_preview(p)} if p["kind"] == "theme" else {})} for p in session.proposals],
     }

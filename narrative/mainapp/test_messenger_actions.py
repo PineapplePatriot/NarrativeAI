@@ -1195,14 +1195,14 @@ class StoriesTests(MessengerActionTests):
         from mainapp import ai_client, messenger
         from mainapp.models import MessengerThread
         self.rose.messenger_profile = {"status_habit": "rarely", "stories": [
-            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 4 * 86400}]}
         self.rose.save()
         self.assertTrue(messenger.status_due(self.rose))
         self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [{"id": "s0", "text": "x", "ts": time.time() - 20 * 3600}]}
         self.rose.save()
         self.assertFalse(messenger.status_due(self.rose))  # "rarely": not again after 20 hours
         self.rose.messenger_profile = {**self.rose.messenger_profile, "stories": [
-            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 3 * 86400}]}
+            {"id": "s0", "emoji": "☕", "text": "Coffee. Again. Productivity is a choice.", "ts": time.time() - 4 * 86400}]}
         self.rose.save()
         tid = self.thread()
         thread = MessengerThread.objects.get(id=tid)

@@ -40,9 +40,57 @@ CROPS = {  # seed id → what grows
     "seed_sunflower": {"name": "Sunflower", "hours": 30, "compost": 3},
     "seed_pumpkin": {"name": "Pumpkin", "hours": 48, "compost": 6},
     "seed_monster": {"name": "Monstrous flower", "hours": 40, "compost": 8},
+    # --- vegetables, fruit and berries, herbs and odd ones ---
+    "seed_peas": {"name": "Pea pod", "hours": 16, "compost": 2},
+    "seed_beet": {"name": "Beetroot", "hours": 20, "compost": 2},
+    "seed_basil": {"name": "Basil", "hours": 14, "compost": 1, "plural": "bunches of basil", "one": "bunch of basil"},
+    "seed_garlic": {"name": "Garlic bulb", "hours": 22, "compost": 2},
+    "seed_strawberry": {"name": "Strawberry", "hours": 20, "compost": 2, "plural": "strawberries"},
+    "seed_eggplant": {"name": "Eggplant", "hours": 36, "compost": 4},
+    "seed_pepper": {"name": "Bell pepper", "hours": 30, "compost": 3},
+    "seed_chili": {"name": "Chili", "hours": 28, "compost": 3, "plural": "chillies"},
+    "seed_blueberry": {"name": "Blueberry", "hours": 34, "compost": 4, "plural": "blueberries"},
+    "seed_watermelon": {"name": "Watermelon", "hours": 44, "compost": 6},
+    "seed_mandrake": {"name": "Mandrake", "hours": 48, "compost": 8},
+    # --- from the cottage quest's second chapter: wheat (the mill) and fruit trees (the orchard only) ---
+    "seed_wheat": {"name": "Wheat sheaf", "hours": 20, "compost": 2},
+    "tree_apple": {"name": "Apple", "hours": 96, "compost": 3, "tree": True, "regrow": 24},
+    "tree_pear": {"name": "Pear", "hours": 96, "compost": 3, "tree": True, "regrow": 24},
+    "tree_cherry": {"name": "Cherry", "hours": 84, "compost": 2, "tree": True, "regrow": 20, "plural": "cherries"},
+    "tree_plum": {"name": "Plum", "hours": 90, "compost": 3, "tree": True, "regrow": 22},
 }
+# 🗺️ Places: the cottage garden, and what the cottage quest's second chapter opens (mainapp/tomato_house.py). Tiles
+# outside the cottage garden are keyed "<place>:x,y". The greenhouse grows everything faster; the orchard is for trees
+# (and trees grow nowhere else): a grown tree is picked again and again.
+AREAS = {
+    "home": {"name": "The cottage garden", "emoji": "🏡", "cols": 8},
+    "field": {"name": "The far field", "emoji": "🌾", "cols": 8, "rows": 5, "unlock": "field"},
+    "greenhouse": {"name": "The greenhouse", "emoji": "🪟", "cols": 6, "rows": 3, "unlock": "greenhouse", "grow": .5},
+    "orchard": {"name": "The orchard", "emoji": "🌳", "cols": 4, "rows": 2, "unlock": "orchard", "trees": True},
+}
+EVERYDAY = ("seed_tomato", "seed_carrot", "seed_sunflower")  # always on the order board; the rest once their seeds were had
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
-DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman")
+# 🪴 What a decoration does for the 8 patches around it: (kind, amount, what it says). Kinds: grow (that much faster,
+# added as it goes, never backdated), compost (+n per harvest), extra (a chance of a second crop on the shelf),
+# mutation (mutations that many times likelier), keep (a planted mutation comes out as itself that much more often).
+# Different decorations add up (up to the caps); two of the same kind next to a patch count once.
+DECOR_EFFECT = {
+    "pond": ("grow", .10, "Plants around it grow 10% faster: frogs, and water close by."),
+    "lantern": ("grow", .10, "Plants around it grow 10% faster: they keep going by its light at night."),
+    "beehive": ("grow", .15, "Plants around it grow 15% faster: the bees see to the flowers."),
+    "watering_can": ("grow", .10, "Plants around it grow 10% faster: Grandpa Pomodoro never forgets these."),
+    "sundial": ("grow", .10, "Plants around it grow 10% faster: they know what time it is."),
+    "wheelbarrow": ("compost", 1, "+1 compost from every harvest around it: it carries the scraps."),
+    "bench": ("compost", 1, "+1 compost from every harvest around it: somebody sits here and sorts the heap."),
+    "scarecrow": ("extra", .25, "Harvests around it: 1 in 4 puts a second crop on the shelf (nothing got pecked)."),
+    "birdbath": ("extra", .15, "Harvests around it: about 1 in 7 puts a second crop on the shelf (the robin eats the pests)."),
+    "gnome": ("mutation", 1.5, "Mutations around him are 50% likelier. He watches. Things get strange."),
+    "fairy_arch": ("mutation", 2.0, "Mutations around it are twice as likely. Something lives in it."),
+    "snowman": ("keep", .25, "A mutation's seed planted next to him comes out as itself more often."),
+}
+AURA_CAP = {"grow": .5, "compost": 3, "extra": .5, "mutation": 3.0, "keep": .4}
+DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman", "birdbath", "wheelbarrow", "watering_can", "sundial", "beehive",
+         "fairy_arch")
 GARDENERS = {
     "gardener_farmer": "Plants grow 25% faster: he waters everything, including things that aren't plants.",
     "gardener_frog": "+1 compost on every harvest: he carries the basket.",
@@ -61,6 +109,8 @@ DISHES = (
     {"name": "Carrot cake", "emoji": "🍰", "needs": {"seed_carrot": 3, "seed_sunflower": 1}},
     {"name": "Pumpkin risotto", "emoji": "🍚", "needs": {"seed_pumpkin": 1, "seed_tomato": 2}},
     {"name": "Monstrous salad (it bites back)", "emoji": "🥗", "needs": {"seed_monster": 1, "seed_carrot": 2}},
+    {"name": "Ratatouille", "emoji": "🥘", "needs": {"seed_eggplant": 1, "seed_pepper": 1, "seed_tomato": 1}},
+    {"name": "Strawberry tart", "emoji": "🍓", "needs": {"seed_strawberry": 3, "seed_sunflower": 1}},
 )
 NEIGHBOURS = ("Signora Rosa", "the bakery", "Old Man Pepper", "the pizzeria", "Bulba (suspicious)", "the soup kitchen",
               "a very polite crow", "the village fair")
@@ -77,6 +127,38 @@ MUTATIONS = {
                      ("glass_pumpkin", "🔮", "Glass pumpkin", True)],
     "seed_monster": [("glowing_monster", "✨", "Glowing monstrous flower", False), ("sleepy_monster", "😴", "Sleepy monstrous flower", False),
                      ("polite_monster", "🎩", "A very polite monstrous flower", True)],
+    "seed_peas": [("giant_peas", "🫛", "A pea pod the length of a forearm", False), ("rainbow_peas", "🌈", "Rainbow peas", False),
+                  ("chatty_peas", "💬", "Peas that gossip in their pod", True)],
+    "seed_beet": [("heart_beet", "💗", "Heart-shaped beetroot", False), ("golden_beet", "🟡", "Golden beetroot", False),
+                  ("vampire_beet", "🧛", "A beetroot that only comes out at night", True)],
+    "seed_basil": [("purple_basil", "🟣", "Purple basil", False), ("giant_basil", "🌳", "Basil the size of a shrub", False),
+                   ("singing_basil", "🎵", "Basil that hums (Basil the witch is flattered)", True)],
+    "seed_garlic": [("twin_garlic", "🧄", "Garlic twins", False), ("black_garlic", "⚫", "Black garlic", False),
+                    ("ward_garlic", "🛡️", "Garlic of warding (Sir Corvin keeps his distance)", True)],
+    "seed_strawberry": [("giant_strawberry", "🍓", "A strawberry the size of a fist", False), ("white_strawberry", "🤍", "White strawberries", False),
+                        ("heart_strawberry", "💘", "A strawberry in love", True)],
+    "seed_eggplant": [("stripy_eggplant", "🦓", "Striped eggplant", False), ("white_eggplant", "🥚", "White eggplant, like an egg", False),
+                      ("smug_eggplant", "😏", "A smug eggplant", True)],
+    "seed_pepper": [("rainbow_pepper", "🌈", "A pepper of every colour", False), ("tiny_pepper", "🤏", "A tiny pepper", False),
+                    ("lantern_pepper", "🏮", "A pepper that glows like a lantern", True)],
+    "seed_chili": [("ghost_chili", "👻", "Ghost chili", False), ("blue_chili", "🔵", "Blue chili", False),
+                   ("dragon_chili", "🐉", "Dragon chili (it smokes a little)", True)],
+    "seed_blueberry": [("giant_blueberry", "🫐", "Blueberries the size of plums", False), ("pink_blueberry", "🩷", "Pink blueberries (it's confused)", False),
+                       ("starry_blueberry", "✨", "Blueberries with stars inside", True)],
+    "seed_watermelon": [("yellow_watermelon", "🟨", "Yellow watermelon", False), ("giant_watermelon", "🍉", "A prize-winning watermelon", False),
+                        ("smiling_watermelon", "😁", "A watermelon that grins", True)],
+    "seed_mandrake": [("sleepy_mandrake", "😴", "A sleepy mandrake (blessedly quiet)", False), ("crowned_mandrake", "👑", "Mandrake royalty", False),
+                      ("screaming_mandrake", "😱", "A mandrake that screams at harvest", True)],
+    "seed_wheat": [("golden_wheat", "🌾", "Golden wheat", False), ("blue_wheat", "🔷", "Blue wheat (the mill is confused)", False),
+                   ("singing_wheat", "🎶", "Wheat that whistles in the wind", True)],
+    "tree_apple": [("golden_apple", "🍏", "A golden apple", False), ("giant_apple", "🍎", "An apple the size of a melon", False),
+                   ("wise_apple", "🦉", "An apple that knows things", True)],
+    "tree_pear": [("glass_pear", "🔮", "A glass pear", False), ("twin_pear", "🍐", "Twin pears", False),
+                  ("singing_pear", "🎵", "A pear that hums when picked", True)],
+    "tree_cherry": [("white_cherry", "🤍", "White cherries", False), ("heart_cherry", "💞", "Cherries in pairs, in love", False),
+                    ("star_cherry", "🌟", "Star-shaped cherries", True)],
+    "tree_plum": [("blue_plum", "🫐", "Midnight plums", False), ("giant_plum", "🟣", "A plum like a fist", False),
+                  ("sleepy_plum", "😴", "A plum that dozes on the branch", True)],
 }
 MUTANT = {mid: {"id": mid, "crop": crop, "emoji": e, "name": n, "rare": r} for crop, ms in MUTATIONS.items() for mid, e, n, r in ms}
 # Seeds of the variants: they grow like their crop (seed id "seed_<mutation id>")
@@ -126,10 +208,29 @@ def _state(score):
     return g
 
 
-def _key(x, y, n_rows=ROWS):
-    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < COLS and 0 <= y < n_rows):
+def _key(x, y, n_rows=ROWS, area="home", g=None):
+    a = AREAS.get(area or "home")
+    if not a:
+        raise ValueError("No such place.")
+    if area not in ("home", None) and not (g is not None and area_open(g, area)):
+        raise ValueError(f"{a['name']} isn't built yet.")
+    cols, n = (a["cols"], n_rows) if area in ("home", None) else (a["cols"], a["rows"])
+    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < cols and 0 <= y < n):
         raise ValueError("That's outside the garden.")
-    return f"{x},{y}"
+    return f"{x},{y}" if area in ("home", None) else f"{area}:{x},{y}"
+
+
+def split_key(key):
+    """"field:3,2" → ("field", 3, 2); "3,2" → ("home", 3, 2)."""
+    area, _, xy = key.rpartition(":")
+    x, y = (int(v) for v in xy.split(","))
+    return area or "home", x, y
+
+
+def area_open(g, area):
+    from mainapp import tomato_house as H
+    a = AREAS.get(area)
+    return bool(a) and (not a.get("unlock") or H.has(g, a["unlock"]))
 
 
 CREW = 3  # gardeners working at once: they pick which, the others rest in the shed (no stacking every bonus)
@@ -160,6 +261,39 @@ def progress(tile, m, now=None):
     return min(1.0, grown / (crop["hours"] * 3600))
 
 
+def aura(g, key, n_rows=None):
+    """What the decorations around this patch (the 8 next to it) do for it."""
+    area, x, y = split_key(key)
+    pre = "" if area == "home" else f"{area}:"
+    near = set()
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            t = g["tiles"].get(f"{pre}{x + dx},{y + dy}")
+            if (dx or dy) and t and t.get("kind") == "decor" and t.get("id") in DECOR_EFFECT:
+                near.add(t["id"])
+    out = {"grow": 0.0, "compost": 0, "extra": 0.0, "mutation": 1.0, "keep": 0.0, "by": sorted(near)}
+    for d in near:
+        kind, n, _ = DECOR_EFFECT[d]
+        out[kind] = out[kind] * n if kind == "mutation" else out[kind] + n
+    for k, cap in AURA_CAP.items():
+        out[k] = min(cap, out[k])
+    out["grow"] += AREAS[area].get("grow", 0)  # 🪟 the greenhouse, on top
+    return out
+
+
+def _aura_tick(g, m, now=None):
+    """Decorations' growth, added for the time since the last look (so moving one never backdates anything)."""
+    now = now or _now()
+    last = g.get("aura_at") or now
+    g["aura_at"] = int(now)
+    for key, t in g["tiles"].items():
+        if t.get("kind") != "plant":
+            continue
+        bonus = aura(g, key)["grow"]
+        if bonus and progress(t, m, now) < 1:
+            t["boost"] = t.get("boost", 0) + max(0, now - max(last, t.get("at", 0))) * bonus
+
+
 def stage(p):
     return next((name for limit, name in STAGES if p < limit), "ripe")
 
@@ -168,17 +302,19 @@ def _log(g, text):
     g["log"] = ([{"at": int(_now()), "text": text}] + g["log"])[:LOG]
 
 
-def _mutate(g, m, seed, rng=None):
+def _mutate(g, m, seed, rng=None, near=None):
     """1 in MUTATION_ODDS harvests: a strange variant (a rare one a quarter of the time); a planted variant comes
     out as itself KEEP of the time. Each one gives a seed of itself. Returns it or None."""
     import random
     rng = rng or random.SystemRandom()
     planted = CROPS.get(seed, {}).get("variant")
-    if planted and rng.random() < KEEP[MUTANT[planted]["rare"]]:
+    near = near or {"mutation": 1.0, "keep": 0.0}
+    if planted and rng.random() < KEEP[MUTANT[planted]["rare"]] + near["keep"]:  # ⛄ the snowman helps
         mid = planted
     else:
         variants = MUTATIONS.get(base(seed))
-        if not variants or rng.random() >= 1 / MUTATION_ODDS:
+        from mainapp import tomato_kitchen as K  # 🍰 a dish eaten for luck makes them likelier
+        if not variants or rng.random() >= max(1, K.boost(g, "luck")) * near["mutation"] / MUTATION_ODDS:  # 🗿 ✨
             return None
         common = [v for v in variants if not v[3]]
         rare = [v for v in variants if v[3]]
@@ -194,8 +330,11 @@ def _mutate(g, m, seed, rng=None):
 def describe(needs):
     """{"seed_carrot": 2, "seed_tomato": 1} → "2 carrots and 1 tomato"."""
     def name(k, n):
-        word = CROPS[k]["name"].lower()
-        return word if n == 1 else word + ("es" if word.endswith("o") else "s")
+        c = CROPS[k]
+        word = c["name"].lower()
+        if n == 1:
+            return c.get("one") or word
+        return c.get("plural") or word + ("es" if word.endswith("o") else "s")
     parts = [f"{n} {name(k, n)}" for k, n in needs.items()]
     return " and ".join(parts) if len(parts) < 3 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
@@ -225,6 +364,18 @@ def give(g, m, target):
         order = next((o for o in g["orders"] if str(o["id"]) == str(target)), None)
         if order is None:
             raise ValueError("That order is gone.")
+        from mainapp import tomato_kitchen as K
+        rid = K.for_order(g, order)
+        if rid:  # 🍲 a dish order takes the cooked dish whole
+            g["pantry"][rid] -= 1
+            g["pantry"] = {k: v for k, v in g["pantry"].items() if v > 0}
+            order["have"] = dict(order["needs"])
+            g["orders"].remove(order)
+            m["earned"] = int(m.get("earned") or 0) + order["reward"]
+            g["filled"] += 1
+            _log(g, f"📋 You brought {order['from']} the {order['dish'].lower()} straight from the pantry. "
+                    f"🍅 +{order['reward']} tomatoes toward your next spin.")
+            return 1
         for seed in list(order["needs"]):
             while g["shelf"].get(seed, 0) > 0 and order in g["orders"] and order["have"].get(seed, 0) < order["needs"][seed]:
                 g["shelf"][seed] -= 1
@@ -255,10 +406,17 @@ def _deliver(g, m, seed, by="", order=None):
 
 
 def _harvest(g, m, key, by="", rng=None):
-    tile = g["tiles"].pop(key)
+    tile = g["tiles"][key]
     crop = CROPS[tile["seed"]]
-    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0)
-    odd = _mutate(g, m, tile["seed"], rng)
+    if crop.get("tree"):  # 🌳 a tree stays, and fruits again in a while
+        tile["at"], tile["boost"] = int(_now() - (crop["hours"] - crop["regrow"]) * 3600), 0
+    else:
+        g["tiles"].pop(key)
+    from mainapp import tomato_kitchen as K
+    near = aura(g, key)  # 🪴 the decorations around it
+    got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0) + K.boost(g, "compost") + near["compost"]  # 🍞 🛒
+    import random
+    odd = _mutate(g, m, tile["seed"], rng, near)
     if odd and not odd["rare"]:
         got *= 3
     g["harvests"] += 1
@@ -276,6 +434,8 @@ def _harvest(g, m, key, by="", rng=None):
                                                                      else "triple compost.") + " Into the almanac, and its seed into the basket.")
     if not _shelve(g, base(tile["seed"])):
         _log(g, f"(The shelf is full of {crop['name'].lower()}s: that one went straight to the compost.)")
+    elif near["extra"] and (rng or random.SystemRandom()).random() < near["extra"] and _shelve(g, base(tile["seed"])):
+        _log(g, f"🌾 Nothing got pecked: a second {crop['name'].lower()} went on the shelf.")
     return got
 
 
@@ -316,10 +476,13 @@ def _orders(g, m, rng=None, today=None):
     if g.get("order_day") == day or len(g["orders"]) >= order_slots(g):
         return None
     # Crops they can grow: everyday ones always, the rarer ones once they've had their seeds
-    crops = ["seed_tomato", "seed_carrot", "seed_sunflower"] + [c for c in ("seed_pumpkin", "seed_monster") if c in m["items"]]
+    crops = list(EVERYDAY) + [c for c in CROPS if c not in EVERYDAY and not CROPS[c].get("base") and (c in m["items"] or c in g["shelf"])]
     dish = None
     if H.has(g, "kitchen") and rng.random() < .5:  # 🍲 with the kitchen: half the new orders are dishes, paid double
-        dishes = [d for d in DISHES if all(k in crops for k in d["needs"])]
+        from mainapp import tomato_kitchen as K  # (plus the secret dishes already found, once all their crops grow here)
+        found = [{"name": r["name"], "emoji": r["emoji"], "needs": r["needs"]} for rid, r in K.RECIPES.items()
+                 if r.get("secret") and rid in (g.get("book") or {})]
+        dishes = [d for d in list(DISHES) + found if all(k in crops for k in d["needs"])]
         dish = rng.choice(dishes) if dishes else None
     if dish:
         needs = dict(dish["needs"])
@@ -360,6 +523,11 @@ def _locked(user, fn):
         m, g = M._state(score), _state(score)
         from mainapp import tomato_house as H
         H.tick(g, m)
+        _aura_tick(g, m)
+        from mainapp import tomato_village as V
+        V.tick(g, m)
+        from mainapp import tomato_fair as F
+        F.tick(g, m)
         fn(g, m)
         H.tick(g, m)
         _orders(g, m)
@@ -379,7 +547,8 @@ def water(score, n):
     if not plants:
         return
     from mainapp import tomato_house as H
-    each = WATER * (1.25 if H.has(g, "barrel") else 1)  # 🛢️ the cottage's rain barrel
+    from mainapp import tomato_kitchen as K
+    each = WATER * (1.25 if H.has(g, "barrel") else 1) * max(1, K.boost(g, "water"))  # 🛢️ the rain barrel, 🥫 ketchup
     for t in plants:
         t["boost"] = t.get("boost", 0) + n * each
     g["watered"] += n
@@ -412,18 +581,47 @@ def act(user, body):
         return _locked(user, shift)
     if action == "give":  # 🧺 crops from the shelf to an order or to the cottage
         return _locked(user, lambda g, m: give(g, m, body.get("to")))
+    if action in ("gift", "help_visitor", "read_letters"):  # 🏘️ the neighbours (mainapp/tomato_village.py)
+        from mainapp import tomato_village as V
+        if action == "gift":
+            return _locked(user, lambda g, m: V.gift(g, m, str(body.get("to") or ""), str(body.get("kind") or ""),
+                                                     str(body.get("item") or "")))
+        if action == "help_visitor":
+            return _locked(user, lambda g, m: V.help_visitor(g, m))
+        return _locked(user, lambda g, m: V.read_letters(g))
+    if action in ("cook", "collect", "eat"):  # 🍲 the kitchen (mainapp/tomato_kitchen.py)
+        from mainapp import tomato_kitchen as K
+        if action == "cook":
+            return _locked(user, lambda g, m: K.cook(g, m, body.get("needs") if isinstance(body.get("needs"), dict) else {}))
+        if action == "collect":
+            return _locked(user, lambda g, m: K.collect(g, m))
+        return _locked(user, lambda g, m: K.eat(g, m, str(body.get("id") or "")))
+    if action in ("fair_enter", "fair_read"):  # 🎪 the village fair (mainapp/tomato_fair.py)
+        from mainapp import tomato_fair as F
+        if action == "fair_read":
+            return _locked(user, lambda g, m: F.read(g))
+        return _locked(user, lambda g, m: F.enter(g, m, str(body.get("contest") or ""), str(body.get("kind") or ""),
+                                                  str(body.get("item") if body.get("item") is not None else "")))
+    if action == "arrange":  # 💐 a bouquet from the shelf (mainapp/tomato_crafts.py)
+        from mainapp import tomato_crafts as C
+        return _locked(user, lambda g, m: C.arrange(g, m, body.get("stems") if isinstance(body.get("stems"), dict) else {},
+                                                    str(body.get("wrap") or ""), str(body.get("name") or "")))
     if action == "build":  # 🏡 pay the compost and let Il Dattore build the next stage of the cottage
         from mainapp import tomato_house as H
         return _locked(user, lambda g, m: H.build(g, m))
 
     def go(g, m):
-        key = _key(body.get("x"), body.get("y"), rows(g))
+        area = str(body.get("area") or "home")
+        key = _key(body.get("x"), body.get("y"), rows(g), area, g)
         tile = g["tiles"].get(key)
         if action == "plant":
             if tile:
                 raise ValueError("Something is already there.")
             if pid not in CROPS or not m["items"].get(pid):
                 raise ValueError("You have no seeds of that kind. The Sauce-o-Matic does.")
+            if bool(CROPS[pid].get("tree")) != bool(AREAS[area].get("trees")):
+                raise ValueError("Trees go in the orchard, and only trees do." if AREAS[area].get("trees")
+                                 else "A tree needs the orchard.")
             m["items"][pid] -= 1
             g["tiles"][key] = {"kind": "plant", "seed": pid, "at": int(_now()), "boost": 0}
             _log(g, f"You planted a {CROPS[pid]['name'].lower()}.")
@@ -442,7 +640,7 @@ def act(user, body):
             if not tile or tile.get("kind") != "plant":
                 raise ValueError("No plant there.")
             g["tiles"].pop(key)
-            _log(g, f"You dug up a {CROPS[tile['seed']]['name'].lower()} before it was ready.")
+            _log(g, f"You dug up a {CROPS[tile['seed']]['name'].lower()}" + (" tree." if CROPS[tile["seed"]].get("tree") else " before it was ready."))
         elif action == "remove":
             if not tile or tile.get("kind") != "decor":
                 raise ValueError("No decoration there.")
@@ -463,30 +661,36 @@ def public(score):
     now = _now()
     tiles = []
     for key, t in g["tiles"].items():
-        x, y = (int(v) for v in key.split(","))
-        item = {"x": x, "y": y, "kind": t.get("kind")}
+        area, x, y = split_key(key)
+        item = {"x": x, "y": y, "area": area, "kind": t.get("kind")}
         if t.get("kind") == "plant":
             p = progress(t, m, now)
             crop = CROPS[t["seed"]]
-            speed = 1.25 if _has(m, "gardener_farmer") else 1.0
-            item.update(seed=t["seed"], look=base(t["seed"]), variant=crop.get("variant", ""), name=crop["name"], progress=round(p, 4), stage=stage(p),
+            near = aura(g, key)
+            speed = (1.25 if _has(m, "gardener_farmer") else 1.0) + near["grow"]
+            item.update(near=[d for d in near["by"]], seed=t["seed"], look=base(t["seed"]), variant=crop.get("variant", ""), name=crop["name"], progress=round(p, 4), stage=stage(p),
                         left=int(max(0, (1 - p) * crop["hours"] * 3600 / speed)), rate=speed / (crop["hours"] * 3600))
         else:
             item["id"] = t.get("id")
         tiles.append(item)
     basket = {pid: n for pid, n in m["items"].items() if pid in CROPS and n > 0}
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
-    from mainapp import tomato_house as H
-    return {"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
+    from mainapp import tomato_house as H, tomato_kitchen as K, tomato_village as V, tomato_crafts as C, tomato_fair as F
+    crafts = C.public(g)
+    return {"crafts": crafts, "bouquets": crafts["vase"], "fair": F.public(g),"cols": COLS, "rows": rows(g), "tiles": tiles,
+            "areas": [{"id": k, "name": a["name"], "emoji": a["emoji"], "cols": a["cols"], "rows": a.get("rows") or rows(g),
+                       "grow": a.get("grow", 0), "trees": bool(a.get("trees"))} for k, a in AREAS.items() if area_open(g, k)], "house": H.public(g, m), "basket": basket, "compost": m["compost"],
+            "kitchen": K.public(g), "village": V.public(g),
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
             "water": int(WATER * (1.25 if H.has(g, "barrel") else 1)), "crops": CROPS, "now": int(now),
+            "decor_effect": {d: e[2] for d, e in DECOR_EFFECT.items()},
             "orders": [{**o, "what": describe(o["needs"]), "left": max(0, o["due"] - int(now))} for o in g["orders"]],
             "orders_max": order_slots(g), "filled": g["filled"], "shelf": g["shelf"], "shelf_max": SHELF_MAX, "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
-            "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
+            "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"], "img": p.get("img", "")} for p in M.PRIZES
                           if p["kind"] in ("seed", "decor", "gardener")},
                        **{sid: {"name": f"{MUTANT[mid]['name']} seeds", "emoji": MUTANT[mid]["emoji"]} for sid, mid in VARIANT_SEEDS.items()}},
             "keep": {"common": KEEP[False], "rare": KEEP[True]}}
