@@ -83,6 +83,9 @@ document.addEventListener("click", (event) => {
         case "regen":  // ↻ on the last reply: a new version of it (the old one stays as a swipe)
             regenerateReply();
             break;
+        case "cut":  // ✂️ on the last reply: keep it up to a sentence, then (maybe) continue from there
+            startCut(btn.closest('.message'));
+            break;
         case "edit":
             if (index !== null) editMessage(index);
             break;
@@ -780,7 +783,7 @@ function sendMessage(noteOnly = false) {
     clearSwipeNav();
     if (message) {
         addMessage('user', message, window.USER_AVATAR);
-        messageInput.value = '';
+        messageInput.value = ''; if (typeof syncMoreBtn === 'function') syncMoreBtn();
         messageInput.style.height = 'auto';
         document.dispatchEvent(new CustomEvent('na-sent'));  // a custom look's sound (chat_look.js)
     }
@@ -898,6 +901,11 @@ function updateMessageIndices() {
             b.type = 'button'; b.className = 'message-btn regen'; b.dataset.action = 'regen';
             b.title = 'Regenerate: a new version of this reply (the old one stays, ‹ › to flip)'; b.textContent = '↻';
             actions.prepend(b);
+            const c = document.createElement('button');
+            c.type = 'button'; c.className = 'message-btn regen cut-btn'; c.dataset.action = 'cut';
+            c.title = 'Cut & continue: keep this reply up to a sentence you pick, then let it go on from there (the whole one stays, ‹ to flip back)';
+            c.textContent = '✂️';
+            b.after(c);
         }
     }
     if (window.Summary) Summary.messagesChanged(messages.length);
@@ -1285,9 +1293,10 @@ function generateSummary(mode, auto = false) {
 
 // Write my message (impersonate): the AI writes your next message, or fleshes out your draft, following the
 // preset, lore and summary. Nothing is sent: it lands in the box for you to edit.
-async function expandInput() {
+async function expandInput(more = false) {
     if (isBusy(true)) return;
     const draft = messageInput.value;
+    if (more && !draft.trim()) return;
     const btn = document.getElementById('expandBtn');
     if (btn) btn.disabled = true;
     // While it writes, the box is locked: a placeholder says so (nothing to erase), on one line on phones
@@ -1296,12 +1305,12 @@ async function expandInput() {
     messageInput.value = '';
     messageInput.readOnly = true;
     messageInput.classList.add('writing');
-    messageInput.placeholder = narrow ? '✍️ Writing…' : (draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
+    messageInput.placeholder = narrow ? '✍️ Writing…' : (more ? '✍️ Writing more…' : draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
     messageInput.style.height = 'auto';
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-            body: JSON.stringify({ action: 'expand', text: draft }),
+            body: JSON.stringify({ action: 'expand', text: draft, more }),
         });
         const d = await resp.json();
         takeDraft();  // it's in the box now: the server can forget it
@@ -1318,8 +1327,15 @@ async function expandInput() {
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
         messageInput.focus();
+        syncMoreBtn();
     }
 }
+// ➕ Write more: shown while there's something in the box to carry on from
+function syncMoreBtn() {
+    const more = document.getElementById('moreBtn');
+    if (more) more.hidden = !messageInput.value.trim();
+}
+messageInput.addEventListener('input', syncMoreBtn);
 
 // "Write my message" is kept on the server until it's in the box (they may leave the page while it writes)
 function takeDraft() {
@@ -1362,7 +1378,77 @@ function spellcheckInput() {
         .then(r => r.json()).then(d => { if (d.success) messageInput.value = d.text; });
 }
 
-function continueGeneration() {
+// ✂️ Cut & continue (the latest reply): tap a sentence to keep the reply up to it (what follows dims), add a note on
+// where it goes if you like, then Cut, or Cut & continue. The cut version is a new swipe: ‹ brings the whole one back.
+// Works on the text the model wrote (the English, when they read a translation).
+function startCut(messageEl) {
+    if (!messageEl || isBusy(true) || document.querySelector('.cut-view')) return;
+    const textDiv = messageEl.querySelector('.message-text');
+    const raw = decodeURIComponent(textDiv.dataset.original || textDiv.getAttribute('data-raw') || '');
+    if (!raw.trim()) return;
+    // sentences (and line breaks), each with where it ends in the text
+    const parts = [], re = /[^.!?…\n]+(?:[.!?…]+["”»’'*_)\]]*)?[ \t]*|\n+/g;
+    let m;
+    while ((m = re.exec(raw))) parts.push({ text: m[0], end: m.index + m[0].length });
+    const view = document.createElement('div');
+    view.className = 'cut-view';
+    view.innerHTML = parts.map((p, i) => /^\n+$/.test(p.text) ? '<br>'.repeat(Math.min(2, p.text.length))
+        : `<span class="cut-s" data-i="${i}" tabindex="0">${escapeHtml(p.text)}</span>`).join('');
+    const bar = document.createElement('div');
+    bar.className = 'cut-bar';
+    bar.innerHTML = `<span class="cut-hint">✂️ Tap the last sentence to keep.</span>
+        <input type="text" class="tool-input cut-note" maxlength="600" placeholder="Where it goes from here (optional): she says no, skip to the evening…">
+        <span class="cut-acts"><button type="button" class="icon-btn" data-cut="cut" disabled>Cut</button>
+        <button type="button" class="icon-btn primary" data-cut="go" disabled>Cut & continue</button>
+        <button type="button" class="icon-btn" data-cut="cancel">Cancel</button></span>`;
+    textDiv.hidden = true;
+    textDiv.after(view);
+    view.after(bar);
+    let end = 0;
+    const pick = (i) => {
+        end = parts[i].end;
+        view.querySelectorAll('.cut-s').forEach(s => s.classList.toggle('cut-off', Number(s.dataset.i) > i));
+        view.querySelectorAll('.cut-s').forEach(s => s.classList.toggle('cut-last', Number(s.dataset.i) === i));
+        const after = raw.slice(end).trim().split(/\s+/).filter(Boolean).length;
+        bar.querySelector('.cut-hint').textContent = after ? `✂️ ${after} word${after === 1 ? '' : 's'} after it go.` : '✂️ That\'s the end: pick an earlier sentence.';
+        bar.querySelectorAll('[data-cut=cut],[data-cut=go]').forEach(b => { b.disabled = !after; });
+    };
+    view.addEventListener('click', (e) => { const s = e.target.closest('.cut-s'); if (s) pick(Number(s.dataset.i)); });
+    view.addEventListener('keydown', (e) => { const s = e.target.closest('.cut-s'); if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(Number(s.dataset.i)); } });
+    const close = () => { view.remove(); bar.remove(); textDiv.hidden = false; };
+    bar.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-cut]');
+        if (!b) return;
+        if (b.dataset.cut === 'cancel') return close();
+        const direction = bar.querySelector('.cut-note').value.trim();
+        bar.querySelectorAll('button').forEach(x => { x.disabled = true; });
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'cut', keep: raw.slice(0, end) }),
+            });
+            const d = await resp.json();
+            if (!d.success) {
+                showChatNotice(d.error || 'Could not cut it.');
+                if (d.resync) setTimeout(() => window.location.reload(), 900);
+                bar.querySelectorAll('button').forEach(x => { x.disabled = false; });
+                return;
+            }
+            close();
+            textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
+            textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
+            const area = messageEl.querySelector('.edit-textarea');
+            if (area) area.value = d.reply;
+            setPolish(messageEl, null);
+            setOriginal(messageEl, null);
+            setSwipes(d.swipes);
+            if (b.dataset.cut === 'go') continueGeneration(direction);
+        } catch (err) { showChatNotice(err.message); bar.querySelectorAll('button').forEach(x => { x.disabled = false; }); }
+    });
+    view.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function continueGeneration(direction) {
     if (isBusy(true)) return;
     const msgs = document.querySelectorAll('.message:not(#typingMessage)');
     // Ensure the last message is from the assistant
@@ -1377,7 +1463,7 @@ function continueGeneration() {
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'continue' })
+        body: JSON.stringify({ action: 'continue', direction: typeof direction === 'string' ? direction : '' })
     })
         .then(res => res.json())
         .then(data => {

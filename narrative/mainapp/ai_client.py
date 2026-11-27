@@ -724,6 +724,9 @@ def stream(user, task, messages, timeout=None, **params):
                         yield Reasoning(thought)
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
+        if wrote and _blocking_stop(stop):  # cut off partway by the provider's filter: the reply is shorter than written
+            _diagnostic(profile, payload, task, operation, "cut_by_filter", resp, {"choices": [{"finish_reason": stop}]})
+            logging.getLogger(__name__).warning("%s: %s cut the reply off partway (stop reason %s)", label, model, stop)
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
             _diagnostic(profile, payload, task, operation, "blocked_stream", resp,
                         {"choices": [{"finish_reason": stop}]})

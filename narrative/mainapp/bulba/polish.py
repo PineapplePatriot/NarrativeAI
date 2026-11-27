@@ -28,6 +28,8 @@ PROTECTED = re.compile(r"\[\[extra \d+\]\]|<[^>]{1,80}>|\{\{(?:char|user)\}\}")
 MEANING = {
     "same_openings": "sentence after sentence starts the same way (he… he… he…)",
     "staccato": "drama made of fragments (\"The key. His hand. Still.\"): join them into complete sentences",
+    "negated_action": "telling what a character doesn't do before what they do (\"She doesn't step back. She tips her "
+                      "chin up instead.\"): keep only what they do",
     "corrective_contrast": "feelings defined by what they're not (\"It wasn't anger. It was something older.\"): say it directly",
     "ending_formula": "the reply ending on a stock question, cliffhanger or one-liner: end on the scene's own last beat",
     "leaked_markup": "the model's machinery in the story: written tool calls like note_milestone(...), thinking or "
@@ -110,7 +112,7 @@ def due(user, chat_obj, messages):
 
 # 🛡 Prevention: what the reply itself is asked to avoid (cheaper than fixing it afterwards). The witty-writing
 # family always; the habits they asked polish to fix, too
-ALWAYS_AVOID = ("theme_saturation", "quiet_menace", "absolutes", "epigram", "quip_loop")
+ALWAYS_AVOID = ("theme_saturation", "quiet_menace", "absolutes", "epigram", "quip_loop", "negated_action")
 
 
 # 🧭 Habits a "don't" doesn't cure (models, Gemini and MiMo especially, drift back to what they're told to avoid, and
@@ -126,6 +128,10 @@ STEER = {
     "decorative_stacking": "One precise description per thing, then move on.",
     "ending_formula": "End on the scene's own last beat, not on a question or a cliffhanger line.",
     "same_openings": "Vary how sentences begin: not two in a row starting with the same word or name.",
+    "apart_scene": "Keep the story where the person's character is: if the characters are apart, bring them together "
+                   "or skip ahead to when they meet, rather than narrating a long stretch of someone on their own.",
+    "negated_action": "Describe what each character does, start each beat on the action itself; leave out what "
+                      "they don't do or hold back from doing.",
 }
 STEER_MAX = 4
 FLAGGED_FOR = 20  # replies a habit Watch caught in this chat keeps being steered against
@@ -144,19 +150,20 @@ def _flagged(chat_obj, at):
                               and n.get("at", -1) >= at - FLAGGED_FOR))
 
 
-SHAPE_HINTS = {  # what to ask for, by what the recent replies keep doing
+SHAPE_HINTS = {  # what to ask for, by what the recent replies keep doing (the build only: never the length, that's
+    # their preset's choice)
     "a": "open with a line of dialogue rather than an action",
     "d": "open in the middle of an action rather than with dialogue",
     "n": "open with dialogue or an action rather than scene-setting",
     "q": "end on an action or a statement, not a question",
-    "long": "keep it to one or two paragraphs this time",
-    "short": "let it breathe a little more than the last few",
+    "order": "put the dialogue and the action in a different order than the last few replies",
 }
 
 
 def shape_hint(replies):
     """For "every reply built the same way": a different build from the one the recent replies share (from their
-    paragraph shapes, worked out in code), so the model can't just copy the last one."""
+    paragraph shapes, worked out in code), so the model can't just copy the last one. Never asks for a different
+    length: how long a reply is stays the preset's call."""
     shapes = [watch.shape(t) for t in replies[-3:] if t]
     if len(shapes) < 2:
         return ""
@@ -165,12 +172,19 @@ def shape_hint(replies):
         hints.append(SHAPE_HINTS[shapes[-1][0]])
     if all(sh and sh[-1] == "q" for sh in shapes):
         hints.append(SHAPE_HINTS["q"])
-    counts = [len([k for k in sh if k != "q"]) for sh in shapes]
-    if len(set(counts)) == 1:
-        hints.append(SHAPE_HINTS["long" if counts[0] >= 3 else "short"])
-    if not hints:  # alike some other way: change the length of it
-        hints.append(SHAPE_HINTS["long" if counts[-1] >= 3 else "short"])
-    return "Build this reply differently from the last ones: " + "; ".join(hints[:2]) + "."
+    if not hints:
+        hints.append(SHAPE_HINTS["order"])
+    return "Build this reply differently from the last ones (same length as usual): " + "; ".join(hints[:2]) + "."
+
+
+def model_steer(user):
+    """Habits their chat model is known for that every reply is steered against (its profile's style "steer")."""
+    from mainapp import model_profiles
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.AIError:
+        return []
+    return [h for h in ((model_profiles.for_style(model) or {}).get("style") or {}).get("steer") or [] if h in STEER]
 
 
 def avoid_line(user, chat_obj=None, replies=None, at=None):
@@ -182,7 +196,11 @@ def avoid_line(user, chat_obj=None, replies=None, at=None):
     except Exception:
         mine, muted = [], set()
     flagged = _flagged(chat_obj, at if at is not None else 0) if chat_obj is not None and at is not None else []
-    wanted = [h for h in dict.fromkeys((*ALWAYS_AVOID, *mine, *flagged)) if h not in muted and h != MODEL_KNOWN]
+    try:
+        known = model_steer(user)
+    except Exception:
+        known = []
+    wanted = [h for h in dict.fromkeys((*known, *ALWAYS_AVOID, *mine, *flagged)) if h not in muted and h != MODEL_KNOWN]
     steer = [STEER[h] for h in wanted if h in STEER][:STEER_MAX]
     if "same_shape" in wanted and replies:
         hint = shape_hint(replies)
@@ -218,6 +236,14 @@ DETECTORS = {
     "corrective_contrast": re.compile(
         r"\b(?:it|this|that) (?:wasn't|was not|isn't|is not)\b[^.!?\n]{1,60}[.,;:—-]\s*(?:it|this|that) (?:was|is)\b|"
         r"\bnot (?:a|an) \w+[,;—-]\s*(?:but )?(?:a|an) \w+\b|\bце (?:не|була не)\b[^.!?\n]{1,60}[.,—-]\s*це\b", _I),
+    # "She doesn't step back. She tips her chin up instead." (a short "doesn't" beat, then the same person acting; or
+    # anything followed by "instead"), and the Ukrainian forms
+    "negated_action": re.compile(
+        r"(?:^|(?<=[.!?…\"”*_])\s+|\n)(she|he|they|[A-Z][a-z]+) (?:doesn't|does not|didn't|did not|won't|never) "
+        r"(?:\w+[ ,]?){1,4}[.!?]\s+\1\b|"
+        r"\b(?:doesn't|does not|didn't|did not|won't|don't|do not)\s[^.!?\n]{1,60}[.!?]\s+[^.!?\n]{1,120}\binstead\b|"
+        r"\b([Вв]она|[Вв]ін|[Вв]они) не (?:\w+ ?){1,3}[.!?]\s+\2\b|\b[Нн]е \w+[^.!?\n]{0,40}[.!?]\s+[^.!?\n]{0,80}\b(?i:натомість|замість цього)\b",
+        re.U),
     "quiet_menace": re.compile(
         r"\b((?:didn't|doesn't|does not|never|did not) raise (?:his|her|their) voice|(?:voice|tone) (?:went|goes|"
         r"dropped|drops|turned) (?:quiet|soft|low|cold|very quiet)|dangerous(?:ly)? (?:calm|quiet|soft)|"

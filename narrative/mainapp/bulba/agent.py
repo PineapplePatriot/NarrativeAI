@@ -1082,6 +1082,7 @@ HANDLERS = {
     "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
                                                   [{"type": "preset_upload"}]),
     "read_block": doctor.tool_read_block, "propose_preset_edit": doctor.tool_propose_preset_edit,
+    **__import__("mainapp.bulba.shelf", fromlist=["HANDLERS"]).HANDLERS,
     "propose_basics": doctor.tool_propose_basics,
 }
 

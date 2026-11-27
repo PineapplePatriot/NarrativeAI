@@ -783,7 +783,17 @@ document.addEventListener('click', (e) => {
     $('attachBtn').onclick = () => { form.hidden = !form.hidden; if (!form.hidden && !picked.length) $('pictureFile').click(); };
     $('pictureAdd').onclick = () => $('pictureFile').click();
     $('pictureFile').addEventListener('change', () => {
-        [...$('pictureFile').files].forEach(file => picked.push({ file, ...guess(), url: URL.createObjectURL(file) }));
+        // 📚 a preset file (.json, .docx, .txt, .md) goes straight to Bulba: saved, not switched on, to switch or mix
+        const files = [...$('pictureFile').files];
+        const docs = files.filter(f => /\.(json|docx|txt|md)$/i.test(f.name));
+        docs.forEach(file => {
+            const body = new FormData();
+            body.append('preset_file', file);
+            body.append('text', $('pictureText').value.trim());
+            form.hidden = !picked.length && docs.length === files.length;
+            run(body, 'Reading your preset…');
+        });
+        files.filter(f => !docs.includes(f)).forEach(file => picked.push({ file, ...guess(), url: URL.createObjectURL(file) }));
         $('pictureFile').value = '';
         draw();
     });

@@ -438,13 +438,32 @@ def _link_chat(user, other, how):
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
 
 
+def write_mine_length(theirs):
+    """How long "Write for me" should write: about as long as their own recent messages (a full paragraph or two
+    when there are none yet), never a line where they usually write a paragraph."""
+    import statistics
+    counts = [len(str(t).split()) for t in theirs[-6:] if str(t).strip()]
+    if len(counts) >= 2:
+        words = max(40, int(statistics.median(counts)))
+        return (f"Length: about {words} words, like {{{{user}}}}'s usual messages in this story; not shorter.")
+    return "Length: a full message, a paragraph or two (about 120 words), not a single line."
+
+
 def _write_mine(request, data, character, chat_obj, chat_state, messages, text_rules):
     """Write my message: the AI writes their next message, or writes out their draft. A dict for the page."""
     draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
+    more = bool(data.get("more")) and bool(draft)  # ➕ Write more: carry their message on from where it ends
     preset = presets.normalize(presets.get_active(request.user).data)
     ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
     preset = control.for_impersonation(preset)  # its "never write for {{user}}" rules don't apply here
-    if draft:
+    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
+    if more:
+        ask += ("\n\n[{{user}}'s message so far is below. Continue it from exactly where it ends, in the same voice "
+                "and point of view, for as long as the moment needs. Keep their intent; don't add other characters' "
+                "reactions or outcomes. Write only the new part, without repeating what's there.]\n" + draft)
+    elif not draft:  # their usual length (a written message that's too short makes the replies shorter too)
+        ask += "\n\n[" + write_mine_length(theirs) + "]"
+    if draft and not more:
         ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
                 "story's language and style and about as long as their earlier messages: what they say, "
                 "and how they say and do it (tone, gesture, a small detail of the moment). Keep their intent "
@@ -455,7 +474,6 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
     yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
     if yours:  # story colours: their lines in their own colour
         ask += "\n\n" + yours
-    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
     ask += "\n\n" + control.pov_note(control.pov_of(theirs, names["user"]), names["user"])  # their own point of view
     avoid = polish.avoid_line(request.user)  # 🛡 the same habits kept out of their message
     if avoid:
@@ -483,7 +501,15 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         why = ("The model used up the reply length thinking. Raise the reply length limit (Samplers) or "
                "ask Bulba." if thought or message.get("reasoning") else "The model sent back nothing. Try again.")
         return {"success": False, "error": why, "text": draft, "spending": ai_client.spending(request.user)}
-    if draft and written.strip() == draft.strip():
+    if more:  # the new part, after what's in the box (a model that repeats the start: only what's new)
+        new = written.strip()
+        if new.startswith(draft.strip()[:80]):
+            new = new[len(draft.strip()):].strip() if new.startswith(draft.strip()) else new
+        if not new:
+            return {"success": False, "error": "The model had nothing to add. Try again.", "text": draft,
+                    "spending": ai_client.spending(request.user)}
+        written = new  # polished on its own below (their words stay theirs), then put after what's in the box
+    if draft and not more and written.strip() == draft.strip():
         return {"success": False, "error": "The model gave your draft back unchanged. Try again, "
                 "or add a word about what you want.", "text": draft, "spending": ai_client.spending(request.user)}
     # Bulba's polish: the habits they asked to have fixed, in their written-out message too
@@ -503,6 +529,8 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         except ai_client.AIError as e:
             return {"success": False, "error": f"Written, but not translated: {e}",
                     "text": draft, "spending": ai_client.spending(request.user)}
+    if more:
+        written = draft.rstrip() + "\n\n" + written.strip()
     return {"success": True, "text": written, "polished": len(fixed), "spending": ai_client.spending(request.user)}
 
 
@@ -1723,6 +1751,21 @@ def chat(request, slug):
                 and ai_client.get_task_setting(request.user, "trackers").mode == ai_client.get_task_setting(request.user, "trackers").MODE_AUTO,
             })
 
+        # --- ✂️ CUT: the latest reply kept up to a point they picked (a new swipe: the whole one stays one ‹ away) ---
+        elif action == "cut":
+            if not messages or messages[-1][0] != "assistant" or chats.is_note(messages[-1]):
+                return JsonResponse({"success": False, "error": "Only the AI's latest reply can be cut."})
+            text, keep = messages[-1][2], str(data.get("keep") or "")
+            if not keep.strip() or not text.startswith(keep):
+                return JsonResponse({"success": False, "resync": True,
+                                     "error": "That reply changed since the page loaded. Reloading it."})
+            keep = keep.rstrip()
+            if len(keep) >= len(text.rstrip()):
+                return JsonResponse({"success": False, "error": "Pick a sentence before the end: that's the whole reply."})
+            last = messages[-1]
+            messages[-1] = chats.add_version(last, (last[0], last[1], keep, last[3], len(keep)))
+            save_messages(messages)
+            return JsonResponse({"success": True, "reply": keep, "swipes": chats.version_info(messages)})
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
         elif action == "continue":
             if not messages or messages[-1][0] != "assistant":
@@ -1742,6 +1785,9 @@ def chat(request, slug):
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
+                direction = str(data.get("direction") or "").strip()[:600]  # ✂️ Cut & continue's note, if they wrote one
+                if direction:
+                    nudge += f"\n[Where it goes from here: {direction}]"
                 # Gemini and the newest Claude don't continue a reply the request ends on (OpenRouter moves system
                 # messages out): they write a new one. A user turn asks them plainly.
                 nudge_role = "user" if str(chat_model).startswith(("google/", "anthropic/")) else "system"
@@ -4438,6 +4484,8 @@ def _bulba_api(request):
         return _bulba_card_upload(request)
     if request.FILES.get("preset"):  # a preset they already have (SillyTavern or ours), from the upload box
         return _bulba_preset_upload(request)
+    if request.FILES.get("preset_file"):  # 📚 a preset sent with the 📎: saved, not switched on (to switch or mix)
+        return _bulba_preset_file(request)
     if request.FILES.get("picture"):  # the character's picture, a mood, or a background
         return _bulba_picture_upload(request)
     try:
@@ -4820,6 +4868,36 @@ def _bulba_preset_upload(request):
             "fights what they told you (or their model's known habits), and offer to tailor it with "
             "propose_preset_edit: their taste, their length, the habits they hate. Small changes; they can say no.")
     events += agent.run_turn(session, None, action_note=f"Imported {obj.name}", model_note=note)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_preset_file(request):
+    """A preset sent in Bulba's 📎 (setup or a chat): .json (ours or SillyTavern), .docx, .txt or .md. Saved but not
+    switched on; Bulba looks at it with them, to switch to it or mix parts of it into the active one."""
+    from .bulba import agent, doctor, shelf
+    session = _bulba_for_request(request, restart=False)
+    if session is None:
+        return JsonResponse({"error": "Open Bulba first."}, status=400)
+    upload = request.FILES["preset_file"]
+    if upload.size > MAX_PRESET_BYTES:
+        return JsonResponse({"error": "That file is over 5 MB, too big for a preset."}, status=400)
+    try:
+        obj = shelf.save_file(request.user, upload.name, upload.read())
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    said = str(request.POST.get("text") or "").strip()[:2000]
+    events = [{"type": "action", "text": f"📄 Sent a preset: {obj.name} (saved, not switched on)"}]
+    session.events += events
+    note = (f"They sent a preset file, saved as “{obj.name}” (not active; their active one is "
+            f"“{presets.get_active(request.user).name}”). Its outline:\n{doctor._preset_outline(presets.normalize(obj.data))}"
+            + (f"\nWhat they said with it: {said}" if said else "")
+            + "\n\nRead what matters in it (read_preset), say in two or three lines what it does well and how it "
+              "differs from their active preset, then ask what they want: switch to it (propose_preset_switch), or "
+              "mix parts of it into the active one (propose_preset_edit with from_preset + from_block, one or two "
+              "blocks at a time). Don't switch or mix before they say which.")
+    events += agent.run_turn(session, None, action_note=f"Sent a preset: {obj.name}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

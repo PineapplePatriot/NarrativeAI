@@ -38,6 +38,12 @@ note nothing for it. Never invent a slip to have something to say.
   short line for a real jolt is fine; the slip is the habit.
 - **corrective_contrast**: feelings or moments defined by what they're not ("It wasn't anger. It was something
   older. Not a wound, but a reckoning."). A real misunderstanding being corrected is fine.
+- **apart_scene**: the reply follows a character somewhere the person's character isn't, for a long stretch
+  (walking home alone, a scene elsewhere), so the story splits and they're left waiting. Quote where it moves away.
+  Not a slip when they asked for it, or in a story told from outside (director or book mode).
+- **negated_action**: a beat that opens with what a character does NOT do before what they do ("She doesn't
+  step back. She tips her chin up instead."; "He doesn't answer. He just looks at her."). Quote the "doesn't"
+  sentence. Not a slip when not doing something IS the event (a refusal, a promise kept, a door left shut on purpose).
 - **ending_formula**: the reply ends the same kind of way every time: a question to them, a cliffhanger, an
   interruption, or a profound one-liner ("You're either very brave or very cruel"). Quote the ending.
 - **pet_phrase**: one of this model's known stock phrases or habits (listed below), or any phrase

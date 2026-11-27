@@ -2589,7 +2589,8 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .linked-warn { color: #fbbf24 !important; }
 
 .new-chat-box { display: grid; gap: 6px; margin-bottom: 10px; }
-.new-chat-box label { display: flex; gap: 6px; align-items: center; }
+.new-chat-box label { display: flex; gap: 8px; align-items: center; justify-content: flex-start; text-align: left; cursor: pointer; }
+.new-chat-box label input[type=radio] { width: auto; flex: 0 0 auto; margin: 0; min-height: 0; }
 .new-chat-actions { display: flex; gap: 6px; justify-content: flex-end; }
 
 /* 💞 relationship milestones: a line under the reply's bubble, not inside it */
@@ -2614,3 +2615,15 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .fav-text.open { max-height: none; -webkit-mask-image: none; mask-image: none; }
 .fav-acts { display: flex; gap: 10px; flex-wrap: wrap; }
 .message.fav-flash .message-content { box-shadow: 0 0 0 2px #facc15, 0 0 24px rgba(250, 204, 21, .45); transition: box-shadow .3s; }
+/* ✂️ Cut & continue */
+.cut-view { line-height: 1.6; padding: 4px 0; }
+.cut-s { cursor: pointer; border-radius: 4px; transition: background .12s; }
+.cut-s:hover, .cut-s:focus { background: rgba(255, 224, 102, .18); outline: none; }
+.cut-s.cut-last { background: rgba(255, 224, 102, .28); box-shadow: inset 0 -2px 0 #e8b923; }
+.cut-s.cut-off { opacity: .35; text-decoration: line-through; text-decoration-color: rgba(214, 70, 58, .7); }
+.cut-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; padding: 8px; border-radius: 10px;
+    background: rgba(127, 127, 127, .12); }
+.cut-bar .cut-hint { flex: 1 1 100%; font-size: .9em; opacity: .85; }
+.cut-bar .cut-note { flex: 1 1 220px; min-width: 0; }
+.cut-bar .cut-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.cut-bar .icon-btn.primary { font-weight: 600; }

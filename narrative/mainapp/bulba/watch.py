@@ -75,11 +75,13 @@ LABELS = {
     "long_thinking": "Very long thinking before every reply",
     "staccato": "Chopped, fragment-by-fragment sentences",
     "corrective_contrast": "Feelings defined by what they're not",
+    "negated_action": "Telling what they don't do before what they do",
+    "apart_scene": "The story drifting away from your character",
     "ending_formula": "The same kind of ending every time",
 }
 CAUSES = ("model", "setup", "their_messages")
 # Known AI slop, whoever the reader is: rewritten out of new replies by default (fix_known, polish.approved)
-KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "staccato",
+KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "negated_action", "staccato",
              "theme_saturation", "quiet_menace", "absolutes", "epigram", "catchphrase_seed")
 # What each one looks like, in plain words (Bulba's notebook page)
 ABOUT = {
@@ -111,6 +113,10 @@ ABOUT = {
                      "Checked for free.",
     "staccato": "\"The key. His hand. Still. Waiting.\": fragments used for drama all the time.",
     "corrective_contrast": "\"It wasn't anger. It was something older.\": a contrast as emotional punctuation.",
+    "apart_scene": "Long stretches of a character on their own, somewhere your character isn't: the story splits "
+                   "and you're left waiting.",
+    "negated_action": "\"She doesn't step back. She tips her chin up instead.\": a beat opened with what didn't happen, "
+                      "empty words before the real action.",
     "ending_formula": "Every reply ends on a question, a cliffhanger or a profound one-liner.",
     "theme_saturation": "Every motive turned into the character's job or world: prices, ledgers, debts, leverage, "
                         "gambles for a banker; experiments and data for a scientist. A caricature.",

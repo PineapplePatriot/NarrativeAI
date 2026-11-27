@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
-from mainapp.bulba import analyst, compare, control, flow, library, lore, memory, polish, rules, tune
+from mainapp.bulba import analyst, compare, control, flow, library, lore, memory, polish, rules, shelf, tune
 from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -305,6 +305,16 @@ def tool_propose_preset_edit(session, args):
     edits = [e for e in (args.get("edits") or []) if isinstance(e, dict)][:6]
     if not edits:
         return {"error": "No edits."}, []
+    active = presets.normalize(presets.get_active(session.user).data)
+    for e in edits:  # 📚 a block from another of their presets, word for word
+        if e.get("from_preset"):
+            try:
+                name, text = shelf.block_from(session.user, e["from_preset"], e.get("from_block") or e.get("block"))
+            except ValueError as err:
+                return {"error": str(err)}, []
+            mine = str(e.get("block") or name).strip()
+            exists = any(b["name"] == mine for b in active["blocks"])
+            e.update(action="replace" if exists else "add", block=mine, content=text)
     for e in edits:  # a library block goes in word for word
         if e.get("from_library"):
             block = library.get(e["from_library"])
@@ -555,12 +565,17 @@ PRESET_EDIT_TOOLS = [
                       "utility: the key)"},
             "content": {"type": "string", "description": "New text (replace/append/add)"},
             "from_library": {"type": "string", "description": "Instead of content: add this library block "
-                             "word for word when requested and permitted (exact name from find_practice). Normally use content to express the relevant principle."}},
+                             "word for word when requested and permitted (exact name from find_practice). Normally use content to express the relevant principle."},
+            "from_preset": {"type": "string", "description": "Mixing: another of their presets (list_presets) to take "
+                            "a block from, word for word, with from_block. Added as a new block, or replacing the "
+                            "active preset's block of the same name"},
+            "from_block": {"type": "string", "description": "With from_preset: that preset's block name"}},
             "required": ["action"]}},
          "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
                         "about their taste into the preset: the exact learned lines it covers"},
          "why": STR}, ["edits", "why"]),
 ]
+PRESET_EDIT_TOOLS += shelf.tool_defs(_fn)  # 📚 their other presets: list, read, switch (mixing: from_preset above)
 
 
 def tools():
@@ -588,7 +603,7 @@ def tools():
     ]
 
 
-HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit,
+HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **shelf.HANDLERS,
             "propose_basics": tool_propose_basics, **lore.HANDLERS,
             **tune.HANDLERS,
             **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
