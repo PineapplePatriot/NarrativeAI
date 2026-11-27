@@ -103,6 +103,7 @@
     "probes": [
       "Should affection make them easier to deal with, or should some of their difficult habits remain?"
     ],
+    "steer": ["apart_scene"],
     "watch_for": [
       "Fourth-wall leaks",
       "Spatial mistakes in physical scenes",

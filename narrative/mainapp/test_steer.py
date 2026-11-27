@@ -59,3 +59,21 @@ class NegatedActionTests(TestCase):
         self.assertIn("negated_action", watch.LABELS)
         with mock.patch.object(polish, "approved", return_value=[]):
             self.assertIn("start each beat on the action itself", polish.avoid_line(user))
+
+
+class WriteMineAndModelSteerTests(TestCase):
+    def test_write_for_me_keeps_their_usual_length(self):
+        from mainapp.views import write_mine_length
+        self.assertIn("about 150 words", write_mine_length(["word " * 150, "word " * 140, "word " * 160]))
+        self.assertIn("about 40 words", write_mine_length(["hi", "ok then"]))  # never a line
+        self.assertIn("a paragraph or two", write_mine_length([]))
+
+    def test_mimo_is_kept_with_their_character(self):
+        user = get_user_model().objects.create_user(username="mimo", password="pw12345!")
+        with mock.patch.object(polish, "approved", return_value=[]), \
+             mock.patch("mainapp.ai_client.resolve", return_value=(None, "xiaomi/mimo-v2.6-pro")):
+            self.assertIn("Keep the story where the person's character is", polish.avoid_line(user))
+        with mock.patch.object(polish, "approved", return_value=[]), \
+             mock.patch("mainapp.ai_client.resolve", return_value=(None, "anthropic/claude-opus-5-5")):
+            self.assertNotIn("Keep the story where", polish.avoid_line(user))
+        self.assertIn("apart_scene", watch.LABELS)

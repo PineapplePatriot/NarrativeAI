@@ -76,6 +76,7 @@ LABELS = {
     "staccato": "Chopped, fragment-by-fragment sentences",
     "corrective_contrast": "Feelings defined by what they're not",
     "negated_action": "Telling what they don't do before what they do",
+    "apart_scene": "The story drifting away from your character",
     "ending_formula": "The same kind of ending every time",
 }
 CAUSES = ("model", "setup", "their_messages")
@@ -112,6 +113,8 @@ ABOUT = {
                      "Checked for free.",
     "staccato": "\"The key. His hand. Still. Waiting.\": fragments used for drama all the time.",
     "corrective_contrast": "\"It wasn't anger. It was something older.\": a contrast as emotional punctuation.",
+    "apart_scene": "Long stretches of a character on their own, somewhere your character isn't: the story splits "
+                   "and you're left waiting.",
     "negated_action": "\"She doesn't step back. She tips her chin up instead.\": a beat opened with what didn't happen, "
                       "empty words before the real action.",
     "ending_formula": "Every reply ends on a question, a cliffhanger or a profound one-liner.",

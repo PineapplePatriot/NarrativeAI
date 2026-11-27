@@ -438,13 +438,32 @@ def _link_chat(user, other, how):
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
 
 
+def write_mine_length(theirs):
+    """How long "Write for me" should write: about as long as their own recent messages (a full paragraph or two
+    when there are none yet), never a line where they usually write a paragraph."""
+    import statistics
+    counts = [len(str(t).split()) for t in theirs[-6:] if str(t).strip()]
+    if len(counts) >= 2:
+        words = max(40, int(statistics.median(counts)))
+        return (f"Length: about {words} words, like {{{{user}}}}'s usual messages in this story; not shorter.")
+    return "Length: a full message, a paragraph or two (about 120 words), not a single line."
+
+
 def _write_mine(request, data, character, chat_obj, chat_state, messages, text_rules):
     """Write my message: the AI writes their next message, or writes out their draft. A dict for the page."""
     draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
+    more = bool(data.get("more")) and bool(draft)  # ➕ Write more: carry their message on from where it ends
     preset = presets.normalize(presets.get_active(request.user).data)
     ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
     preset = control.for_impersonation(preset)  # its "never write for {{user}}" rules don't apply here
-    if draft:
+    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
+    if more:
+        ask += ("\n\n[{{user}}'s message so far is below. Continue it from exactly where it ends, in the same voice "
+                "and point of view: one more paragraph of what they say and do. Keep their intent; don't add other "
+                "characters' reactions or outcomes. Write only the new part, without repeating what's there.]\n" + draft)
+    elif not draft:  # their usual length (a written message that's too short makes the replies shorter too)
+        ask += "\n\n[" + write_mine_length(theirs) + "]"
+    if draft and not more:
         ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
                 "story's language and style and about as long as their earlier messages: what they say, "
                 "and how they say and do it (tone, gesture, a small detail of the moment). Keep their intent "
@@ -455,7 +474,6 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
     yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
     if yours:  # story colours: their lines in their own colour
         ask += "\n\n" + yours
-    theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
     ask += "\n\n" + control.pov_note(control.pov_of(theirs, names["user"]), names["user"])  # their own point of view
     avoid = polish.avoid_line(request.user)  # 🛡 the same habits kept out of their message
     if avoid:
@@ -483,7 +501,15 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         why = ("The model used up the reply length thinking. Raise the reply length limit (Samplers) or "
                "ask Bulba." if thought or message.get("reasoning") else "The model sent back nothing. Try again.")
         return {"success": False, "error": why, "text": draft, "spending": ai_client.spending(request.user)}
-    if draft and written.strip() == draft.strip():
+    if more:  # the new part, after what's in the box (a model that repeats the start: only what's new)
+        new = written.strip()
+        if new.startswith(draft.strip()[:80]):
+            new = new[len(draft.strip()):].strip() if new.startswith(draft.strip()) else new
+        if not new:
+            return {"success": False, "error": "The model had nothing to add. Try again.", "text": draft,
+                    "spending": ai_client.spending(request.user)}
+        written = new  # polished on its own below (their words stay theirs), then put after what's in the box
+    if draft and not more and written.strip() == draft.strip():
         return {"success": False, "error": "The model gave your draft back unchanged. Try again, "
                 "or add a word about what you want.", "text": draft, "spending": ai_client.spending(request.user)}
     # Bulba's polish: the habits they asked to have fixed, in their written-out message too
@@ -503,6 +529,8 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         except ai_client.AIError as e:
             return {"success": False, "error": f"Written, but not translated: {e}",
                     "text": draft, "spending": ai_client.spending(request.user)}
+    if more:
+        written = draft.rstrip() + "\n\n" + written.strip()
     return {"success": True, "text": written, "polished": len(fixed), "spending": ai_client.spending(request.user)}
 
 

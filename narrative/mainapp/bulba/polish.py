@@ -128,6 +128,8 @@ STEER = {
     "decorative_stacking": "One precise description per thing, then move on.",
     "ending_formula": "End on the scene's own last beat, not on a question or a cliffhanger line.",
     "same_openings": "Vary how sentences begin: not two in a row starting with the same word or name.",
+    "apart_scene": "Keep the story where the person's character is: if the characters are apart, bring them together "
+                   "or skip ahead to when they meet, rather than narrating a long stretch of someone on their own.",
     "negated_action": "Describe what each character does, start each beat on the action itself; leave out what "
                       "they don't do or hold back from doing.",
 }
@@ -175,6 +177,16 @@ def shape_hint(replies):
     return "Build this reply differently from the last ones (same length as usual): " + "; ".join(hints[:2]) + "."
 
 
+def model_steer(user):
+    """Habits their chat model is known for that every reply is steered against (its profile's style "steer")."""
+    from mainapp import model_profiles
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.AIError:
+        return []
+    return [h for h in ((model_profiles.for_style(model) or {}).get("style") or {}).get("steer") or [] if h in STEER]
+
+
 def avoid_line(user, chat_obj=None, replies=None, at=None):
     """A short line for the end of every reply request: what to do instead for the habits that need steering
     (asked to be fixed, or caught by Watch in this chat lately), and the rest to keep out of this reply."""
@@ -184,7 +196,11 @@ def avoid_line(user, chat_obj=None, replies=None, at=None):
     except Exception:
         mine, muted = [], set()
     flagged = _flagged(chat_obj, at if at is not None else 0) if chat_obj is not None and at is not None else []
-    wanted = [h for h in dict.fromkeys((*ALWAYS_AVOID, *mine, *flagged)) if h not in muted and h != MODEL_KNOWN]
+    try:
+        known = model_steer(user)
+    except Exception:
+        known = []
+    wanted = [h for h in dict.fromkeys((*known, *ALWAYS_AVOID, *mine, *flagged)) if h not in muted and h != MODEL_KNOWN]
     steer = [STEER[h] for h in wanted if h in STEER][:STEER_MAX]
     if "same_shape" in wanted and replies:
         hint = shape_hint(replies)

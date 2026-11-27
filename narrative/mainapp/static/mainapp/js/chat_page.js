@@ -780,7 +780,7 @@ function sendMessage(noteOnly = false) {
     clearSwipeNav();
     if (message) {
         addMessage('user', message, window.USER_AVATAR);
-        messageInput.value = '';
+        messageInput.value = ''; if (typeof syncMoreBtn === 'function') syncMoreBtn();
         messageInput.style.height = 'auto';
         document.dispatchEvent(new CustomEvent('na-sent'));  // a custom look's sound (chat_look.js)
     }
@@ -1285,9 +1285,10 @@ function generateSummary(mode, auto = false) {
 
 // Write my message (impersonate): the AI writes your next message, or fleshes out your draft, following the
 // preset, lore and summary. Nothing is sent: it lands in the box for you to edit.
-async function expandInput() {
+async function expandInput(more = false) {
     if (isBusy(true)) return;
     const draft = messageInput.value;
+    if (more && !draft.trim()) return;
     const btn = document.getElementById('expandBtn');
     if (btn) btn.disabled = true;
     // While it writes, the box is locked: a placeholder says so (nothing to erase), on one line on phones
@@ -1296,12 +1297,12 @@ async function expandInput() {
     messageInput.value = '';
     messageInput.readOnly = true;
     messageInput.classList.add('writing');
-    messageInput.placeholder = narrow ? '✍️ Writing…' : (draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
+    messageInput.placeholder = narrow ? '✍️ Writing…' : (more ? '✍️ Writing more…' : draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
     messageInput.style.height = 'auto';
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-            body: JSON.stringify({ action: 'expand', text: draft }),
+            body: JSON.stringify({ action: 'expand', text: draft, more }),
         });
         const d = await resp.json();
         takeDraft();  // it's in the box now: the server can forget it
@@ -1318,8 +1319,15 @@ async function expandInput() {
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
         messageInput.focus();
+        syncMoreBtn();
     }
 }
+// ➕ Write more: shown while there's something in the box to carry on from
+function syncMoreBtn() {
+    const more = document.getElementById('moreBtn');
+    if (more) more.hidden = !messageInput.value.trim();
+}
+messageInput.addEventListener('input', syncMoreBtn);
 
 // "Write my message" is kept on the server until it's in the box (they may leave the page while it writes)
 function takeDraft() {
