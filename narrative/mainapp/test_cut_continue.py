@@ -1,0 +1,36 @@
+"""✂️ Cut & continue: the latest reply kept up to a sentence (a new swipe), then continued, with a note if any."""
+import json
+
+from mainapp import tests as base
+
+
+class CutContinueTests(base.ChatPromptTests):
+    def test_cut_keeps_the_whole_reply_one_swipe_away(self):
+        self.post({"action": "chat", "message": "Tell me."})
+        msgs = self.saved_messages()
+        from mainapp import chats
+        msgs[-1] = chats.set_text(msgs[-1], "She smiles. She opens the door. She leaves.")
+        data = chats.read(self.character.chats.first())
+        data["messages"] = msgs
+        chats.write(self.character.chats.first(), data)
+        r = self.post({"action": "cut", "keep": "She smiles. She opens the door. "}).json()
+        self.assertTrue(r["success"], r)
+        self.assertEqual(r["reply"], "She smiles. She opens the door.")
+        self.assertEqual(r["swipes"], {"count": 2, "current": 1})
+        self.assertEqual(self.saved_messages()[-1][2], "She smiles. She opens the door.")
+        # not a start of the reply (it changed since) / the whole reply / not the last reply: refused
+        self.assertTrue(self.post({"action": "cut", "keep": "Something else."}).json().get("resync"))
+        self.assertFalse(self.post({"action": "cut", "keep": "She smiles. She opens the door."}).json()["success"])
+
+    def test_continue_takes_their_note(self):
+        self.post({"action": "chat", "message": "Tell me."})
+        self.post({"action": "continue", "direction": "she says no"})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Where it goes from here: she says no", sent)
+        self.post({"action": "continue"})
+        self.assertNotIn("Where it goes from here", json.dumps(self.sent[-1]["messages"]))
+
+
+
+for _name in [n for n in vars(base.ChatPromptTests) if n.startswith("test_")]:  # the inherited ones run in their own class
+    setattr(CutContinueTests, _name, None)

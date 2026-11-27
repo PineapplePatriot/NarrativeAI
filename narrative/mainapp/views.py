@@ -1751,6 +1751,21 @@ def chat(request, slug):
                 and ai_client.get_task_setting(request.user, "trackers").mode == ai_client.get_task_setting(request.user, "trackers").MODE_AUTO,
             })
 
+        # --- ✂️ CUT: the latest reply kept up to a point they picked (a new swipe: the whole one stays one ‹ away) ---
+        elif action == "cut":
+            if not messages or messages[-1][0] != "assistant" or chats.is_note(messages[-1]):
+                return JsonResponse({"success": False, "error": "Only the AI's latest reply can be cut."})
+            text, keep = messages[-1][2], str(data.get("keep") or "")
+            if not keep.strip() or not text.startswith(keep):
+                return JsonResponse({"success": False, "resync": True,
+                                     "error": "That reply changed since the page loaded. Reloading it."})
+            keep = keep.rstrip()
+            if len(keep) >= len(text.rstrip()):
+                return JsonResponse({"success": False, "error": "Pick a sentence before the end: that's the whole reply."})
+            last = messages[-1]
+            messages[-1] = chats.add_version(last, (last[0], last[1], keep, last[3], len(keep)))
+            save_messages(messages)
+            return JsonResponse({"success": True, "reply": keep, "swipes": chats.version_info(messages)})
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
         elif action == "continue":
             if not messages or messages[-1][0] != "assistant":
@@ -1770,6 +1785,9 @@ def chat(request, slug):
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
+                direction = str(data.get("direction") or "").strip()[:600]  # ✂️ Cut & continue's note, if they wrote one
+                if direction:
+                    nudge += f"\n[Where it goes from here: {direction}]"
                 # Gemini and the newest Claude don't continue a reply the request ends on (OpenRouter moves system
                 # messages out): they write a new one. A user turn asks them plainly.
                 nudge_role = "user" if str(chat_model).startswith(("google/", "anthropic/")) else "system"
