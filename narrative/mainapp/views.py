@@ -459,8 +459,8 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
     theirs = [m[2] for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and m[0] == "user" and not chats.is_note(m)]
     if more:
         ask += ("\n\n[{{user}}'s message so far is below. Continue it from exactly where it ends, in the same voice "
-                "and point of view: one more paragraph of what they say and do. Keep their intent; don't add other "
-                "characters' reactions or outcomes. Write only the new part, without repeating what's there.]\n" + draft)
+                "and point of view, for as long as the moment needs. Keep their intent; don't add other characters' "
+                "reactions or outcomes. Write only the new part, without repeating what's there.]\n" + draft)
     elif not draft:  # their usual length (a written message that's too short makes the replies shorter too)
         ask += "\n\n[" + write_mine_length(theirs) + "]"
     if draft and not more:
