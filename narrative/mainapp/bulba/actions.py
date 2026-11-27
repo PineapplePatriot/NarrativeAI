@@ -164,6 +164,12 @@ def apply(session, pid):
             note = memory.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] == "preset_switch":  # 📚 another of their presets becomes the active one
+        from mainapp.bulba import shelf
+        try:
+            note = shelf.apply_switch(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] in ("message_fix", "auto_fix"):  # Bulba's polish, asked for in a chat
         from mainapp.bulba import polish
         try:
@@ -256,6 +262,9 @@ def undo(session, pid):
     elif p["kind"] in ("texting_profile", "texting_chat", "texting_look"):
         from mainapp.bulba import texting
         texting.undo(session, p)
+    elif p["kind"] == "preset_switch":
+        from mainapp.bulba import shelf
+        shelf.undo_switch(session, p)
     elif p["kind"] in ("message_fix", "auto_fix"):
         from mainapp.bulba import polish
         polish.undo(session, p)

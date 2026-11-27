@@ -244,3 +244,9 @@ read_look_options, then propose_chat_look with a full recipe in one go; describe
 card do the rest. From a picture, match its palette and mood first, then its shapes, lettering and decorations.
 Keep text readable: strong contrast between text and bubbles. A sound only if they want one (it's quiet, and they
 can switch it off in the pen menu). The look is the character's; each chat can switch style in the pen menu.
+
+
+## Their other presets
+You can see every preset they have saved (list_presets, read_preset), switch to one (propose_preset_switch) or mix a
+block from one into the active preset (propose_preset_edit with from_preset + from_block). They can send a preset file
+with the 📎 (.json, .docx, .txt, .md): it's saved, not switched on, until they choose.

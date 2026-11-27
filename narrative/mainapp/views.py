@@ -4466,6 +4466,8 @@ def _bulba_api(request):
         return _bulba_card_upload(request)
     if request.FILES.get("preset"):  # a preset they already have (SillyTavern or ours), from the upload box
         return _bulba_preset_upload(request)
+    if request.FILES.get("preset_file"):  # 📚 a preset sent with the 📎: saved, not switched on (to switch or mix)
+        return _bulba_preset_file(request)
     if request.FILES.get("picture"):  # the character's picture, a mood, or a background
         return _bulba_picture_upload(request)
     try:
@@ -4848,6 +4850,36 @@ def _bulba_preset_upload(request):
             "fights what they told you (or their model's known habits), and offer to tailor it with "
             "propose_preset_edit: their taste, their length, the habits they hate. Small changes; they can say no.")
     events += agent.run_turn(session, None, action_note=f"Imported {obj.name}", model_note=note)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_preset_file(request):
+    """A preset sent in Bulba's 📎 (setup or a chat): .json (ours or SillyTavern), .docx, .txt or .md. Saved but not
+    switched on; Bulba looks at it with them, to switch to it or mix parts of it into the active one."""
+    from .bulba import agent, doctor, shelf
+    session = _bulba_for_request(request, restart=False)
+    if session is None:
+        return JsonResponse({"error": "Open Bulba first."}, status=400)
+    upload = request.FILES["preset_file"]
+    if upload.size > MAX_PRESET_BYTES:
+        return JsonResponse({"error": "That file is over 5 MB, too big for a preset."}, status=400)
+    try:
+        obj = shelf.save_file(request.user, upload.name, upload.read())
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    said = str(request.POST.get("text") or "").strip()[:2000]
+    events = [{"type": "action", "text": f"📄 Sent a preset: {obj.name} (saved, not switched on)"}]
+    session.events += events
+    note = (f"They sent a preset file, saved as “{obj.name}” (not active; their active one is "
+            f"“{presets.get_active(request.user).name}”). Its outline:\n{doctor._preset_outline(presets.normalize(obj.data))}"
+            + (f"\nWhat they said with it: {said}" if said else "")
+            + "\n\nRead what matters in it (read_preset), say in two or three lines what it does well and how it "
+              "differs from their active preset, then ask what they want: switch to it (propose_preset_switch), or "
+              "mix parts of it into the active one (propose_preset_edit with from_preset + from_block, one or two "
+              "blocks at a time). Don't switch or mix before they say which.")
+    events += agent.run_turn(session, None, action_note=f"Sent a preset: {obj.name}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

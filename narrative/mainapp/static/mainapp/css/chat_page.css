@@ -2589,7 +2589,8 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .linked-warn { color: #fbbf24 !important; }
 
 .new-chat-box { display: grid; gap: 6px; margin-bottom: 10px; }
-.new-chat-box label { display: flex; gap: 6px; align-items: center; }
+.new-chat-box label { display: flex; gap: 8px; align-items: center; justify-content: flex-start; text-align: left; cursor: pointer; }
+.new-chat-box label input[type=radio] { width: auto; flex: 0 0 auto; margin: 0; min-height: 0; }
 .new-chat-actions { display: flex; gap: 6px; justify-content: flex-end; }
 
 /* 💞 relationship milestones: a line under the reply's bubble, not inside it */
