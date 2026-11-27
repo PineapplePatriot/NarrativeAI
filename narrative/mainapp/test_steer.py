@@ -33,6 +33,9 @@ class SteerTests(TestCase):
         hint = polish.shape_hint(alike)
         self.assertIn("open with a line of dialogue", hint)
         self.assertIn("not a question", hint)
+        self.assertNotIn("paragraph", hint)  # never a different length: that's the preset's call
+        four = ['*A.*\n\n"B."\n\n*C.*\n\n"D."'.replace("\\n", "\n")] * 3
+        self.assertNotIn("one or two", polish.shape_hint(four))
         data = {"notices": [{"label": "same_shape", "kind": "pattern", "status": "new", "at": 10}]}
         with mock.patch.object(polish, "approved", return_value=[]), mock.patch.object(watch, "chat_data", return_value=data):
             self.assertIn("Build this reply differently", polish.avoid_line(self.user, object(), alike, 12))

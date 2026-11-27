@@ -148,19 +148,20 @@ def _flagged(chat_obj, at):
                               and n.get("at", -1) >= at - FLAGGED_FOR))
 
 
-SHAPE_HINTS = {  # what to ask for, by what the recent replies keep doing
+SHAPE_HINTS = {  # what to ask for, by what the recent replies keep doing (the build only: never the length, that's
+    # their preset's choice)
     "a": "open with a line of dialogue rather than an action",
     "d": "open in the middle of an action rather than with dialogue",
     "n": "open with dialogue or an action rather than scene-setting",
     "q": "end on an action or a statement, not a question",
-    "long": "keep it to one or two paragraphs this time",
-    "short": "let it breathe a little more than the last few",
+    "order": "put the dialogue and the action in a different order than the last few replies",
 }
 
 
 def shape_hint(replies):
     """For "every reply built the same way": a different build from the one the recent replies share (from their
-    paragraph shapes, worked out in code), so the model can't just copy the last one."""
+    paragraph shapes, worked out in code), so the model can't just copy the last one. Never asks for a different
+    length: how long a reply is stays the preset's call."""
     shapes = [watch.shape(t) for t in replies[-3:] if t]
     if len(shapes) < 2:
         return ""
@@ -169,12 +170,9 @@ def shape_hint(replies):
         hints.append(SHAPE_HINTS[shapes[-1][0]])
     if all(sh and sh[-1] == "q" for sh in shapes):
         hints.append(SHAPE_HINTS["q"])
-    counts = [len([k for k in sh if k != "q"]) for sh in shapes]
-    if len(set(counts)) == 1:
-        hints.append(SHAPE_HINTS["long" if counts[0] >= 3 else "short"])
-    if not hints:  # alike some other way: change the length of it
-        hints.append(SHAPE_HINTS["long" if counts[-1] >= 3 else "short"])
-    return "Build this reply differently from the last ones: " + "; ".join(hints[:2]) + "."
+    if not hints:
+        hints.append(SHAPE_HINTS["order"])
+    return "Build this reply differently from the last ones (same length as usual): " + "; ".join(hints[:2]) + "."
 
 
 def avoid_line(user, chat_obj=None, replies=None, at=None):
