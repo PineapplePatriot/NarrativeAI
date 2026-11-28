@@ -40,14 +40,17 @@ CHECK_FROM = 300  # characters of English before the length check means anything
 
 def _instructions(user, base):
     """The translator's instructions; with mature content on in their preset, a calm line saying it's adult
-    fiction."""
+    fiction; and their preset's own "Translator note" (utility translation_note), if they wrote one."""
     if user is None:
         return base
     try:
         from mainapp import mature, presets
-        return base + (ADULT_LINE if mature.is_on(presets.normalize(presets.get_active(user).data)) else "")
+        preset = presets.normalize(presets.get_active(user).data)
     except Exception:  # no preset yet: the plain instructions
         return base
+    # macros as in a block ({{// comments}} and {{trim}} gone); no names here: the translator gets them as a glossary
+    note = presets.expand(preset["utility"].get("translation_note") or "", presets.MacroContext({})).strip()
+    return base + (ADULT_LINE if mature.is_on(preset) else "") + (f"\n\n{note}" if note else "")
 
 
 def check(text, translated, target):

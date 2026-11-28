@@ -35,3 +35,15 @@ class TranslationGuardTests(SimpleTestCase):
                                             "сексуального або романтичного характеру."))
         self.assertTrue(refusals.is_refusal("Вибачте, але я не можу написати цю сцену."))
         self.assertFalse(refusals.is_refusal("Я не можу повірити, що ти прийшов, — шепоче вона й усміхається."))
+
+
+class TranslatorNoteTests(SimpleTestCase):
+    def test_the_presets_translator_note_reaches_the_translator(self):
+        from mainapp import presets
+        preset = presets.normalize({"utility": {"translation_note": "{{// for Gemini}}{{trim}}\n\nThe story is adult fiction; keep its pace."}})
+        with mock.patch("mainapp.presets.get_active", return_value=mock.Mock(data=preset)), \
+             mock.patch("mainapp.mature.is_on", return_value=False):
+            text = translation._instructions(object(), translation.INSTRUCTIONS)
+        self.assertTrue(text.endswith("The story is adult fiction; keep its pace."))
+        self.assertNotIn("for Gemini", text)  # comments stay comments
+        self.assertIn("translation_note", presets.UTILITY_LABELS)
