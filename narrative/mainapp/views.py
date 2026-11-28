@@ -5976,213 +5976,99 @@ def messenger_api(request):
 
 @login_required
 def subtext_api(request):
-    """JSON endpoint for Subtext / Chirp (Public posts, Locked Burners, AITA threads, and Forward-to-TeleChat DMs)."""
-    import time
-    from django.utils import timezone
+    """JSON endpoint for Subtext: the feed, posting and replying, burner followers, "knows" ticks, sending to a DM."""
     from . import messenger, subtext
     from .models import MessengerThread
 
     chars = _user_characters(request.user)
     char_by_slug = {c.slug: c for c in chars}
-
     if request.method == "GET":
-        return JsonResponse({"subtext": subtext.get_subtext_state(request.user, chars)})
-
+        return JsonResponse({"subtext": subtext.payload(request.user, chars)})
     if request.method != "POST":
         return JsonResponse({"error": "POST required."}, status=405)
-
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
     except ValueError:
         return JsonResponse({"error": "Invalid JSON."}, status=400)
-
+    if not isinstance(body, dict):
+        return JsonResponse({"error": "Expected a JSON object."}, status=400)
     action = body.get("action") or ""
+    picked = [char_by_slug[s] for s in body.get("character_slugs") or [] if isinstance(s, str) and s in char_by_slug]
 
-    if action == "generate_wave":
-        slugs = body.get("character_slugs") or []
-        picked = [char_by_slug[s] for s in slugs] or chars[:4]
-        mode = body.get("mode") if body.get("mode") in ("mix", "burner", "aita", "subtweet") else "mix"
-        topic = str(body.get("topic") or "").strip()
-        try:
-            new_posts = subtext.generate_wave(request.user, picked, mode=mode, topic_hint=topic)
-        except ai_client.AIError as e:
-            return JsonResponse({"error": str(e)}, status=400)
-        return JsonResponse({
-            "new_posts": new_posts,
-            "subtext": subtext.get_subtext_state(request.user, chars),
-        })
+    def done(state, **extra):
+        return JsonResponse({"subtext": subtext.payload(request.user, chars, state), **extra})
 
-    if action == "create_post":
-        text = str(body.get("text") or "").strip()
-        if not text:
-            return JsonResponse({"error": "Write something to post first."}, status=400)
-        vis = body.get("visibility") if body.get("visibility") in ("public", "burner", "aita") else "public"
-        title = str(body.get("title") or "").strip()
-        ask_replies = bool(body.get("ask_replies", True))
-        slugs = body.get("character_slugs") or []
-        picked = ([char_by_slug[s] for s in slugs if s in char_by_slug] or chars[:3]) if ask_replies else []
-        post = subtext.create_user_post(request.user, text, visibility=vis, title=title, chars_for_replies=picked)
-        return JsonResponse({
-            "post": post,
-            "subtext": subtext.get_subtext_state(request.user, chars),
-        })
-
-    if action == "add_comment":
-        pid = body.get("post_id")
-        text = str(body.get("text") or "").strip()
-        if not text:
-            return JsonResponse({"error": "Comment cannot be empty."}, status=400)
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        u_prof = messenger.user_profile(request.user)
-        now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
-        verdict = str(body.get("verdict") or "").strip().upper()
-        if verdict not in ("NTA", "YTA", "ESH"):
-            verdict = ""
-        if post.get("visibility") == "aita" and verdict:
-            votes = post.setdefault("aita_votes", {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""})
-            v_key = verdict.lower()
-            votes[v_key] = votes.get(v_key, 0) + 1
-            votes["user_vote"] = verdict
-        user_c = {
-            "id": "stc_" + uuid.uuid4().hex[:8],
-            "author_slug": "user",
-            "author_name": u_prof.get("display_name") or request.user.username,
-            "author_avatar": u_prof.get("avatar_url") or "",
-            "handle": u_prof.get("handle") or "@you",
-            "is_burner": False,
-            "verdict": verdict,
-            "text": text[:600],
-            "time": now_hm,
-            "ts": time.time(),
-        }
-        post.setdefault("comments", []).append(user_c)
-        if body.get("ask_replies", True) and chars:
-            author_char = char_by_slug.get(post.get("author_slug"))
-            reply_pool = [author_char] if author_char else []
-            for c in chars:
-                if c not in reply_pool and len(reply_pool) < 3:
-                    reply_pool.append(c)
-            try:
-                subtext.generate_replies_for_post(request.user, post, reply_pool)
-            except Exception:
-                pass
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"post": post, "subtext": state})
-
-    if action == "generate_replies":
-        pid = body.get("post_id")
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        slugs = body.get("character_slugs") or []
-        picked = [char_by_slug[s] for s in slugs if s in char_by_slug] or chars[:3]
-        try:
-            added = subtext.generate_replies_for_post(request.user, post, picked)
-        except ai_client.AIError as e:
-            return JsonResponse({"error": str(e)}, status=400)
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"post": post, "added_comments": added, "subtext": state})
-
-    if action == "react_post":
-        pid = body.get("post_id")
-        emo = str(body.get("emoji") or "❤️").strip()[:8]
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        u_name = messenger.user_profile(request.user).get("display_name") or request.user.username
-        reacts = dict(post.get("reactions") or {})
-        lst = list(reacts.get(emo) or [])
-        if u_name in lst:
-            lst.remove(u_name)
+    try:
+        if action == "generate_wave":  # new posts from the picked characters (or the first few)
+            made = subtext.generate_wave(request.user, picked or chars[:4], mode=body.get("mode") or "any",
+                                         topic=str(body.get("topic") or "")[:400])
+            return done(None, new_posts=[p["id"] for p in made])
+        if action == "create_post":
+            post, state = subtext.post_as_user(request.user, body.get("text"), body.get("account") or "main", body.get("title"))
+            if body.get("ask_replies", True):
+                try:
+                    subtext.generate_replies(request.user, post, picked or chars[:4], state)
+                    subtext.save(request.user, state)
+                except ai_client.AIError:
+                    pass  # posted; nobody who can see it answered
+            return done(state, post_id=post["id"])
+        state = subtext.load(request.user)
+        if action == "set_followers":  # who follows a locked account
+            owner = str(body.get("owner") or "")
+            valid = {"user", *char_by_slug}
+            if owner not in valid:
+                return JsonResponse({"error": "Unknown account."}, status=400)
+            subtext.set_followers(state, owner, body.get("followers") or [], valid)
+            subtext.save(request.user, state)
+            return done(state)
+        post = subtext.find(state, str(body.get("post_id") or ""))
+        if action == "add_comment":
+            subtext.comment_as_user(request.user, state, post, body.get("text"), body.get("verdict"))
+            if body.get("ask_replies", True):
+                try:
+                    subtext.generate_replies(request.user, post, picked or chars, state)
+                except ai_client.AIError:
+                    pass
+        elif action == "generate_replies":
+            subtext.generate_replies(request.user, post, picked or chars, state)
+        elif action == "react_post":
+            subtext.react(post, str(body.get("emoji") or ""))
+        elif action == "vote_aita":
+            if post.get("account") != "aita" or str(body.get("verdict") or "").upper() not in subtext.VERDICTS:
+                return JsonResponse({"error": "Pick NTA, YTA or ESH on an AITA thread."}, status=400)
+            subtext.vote(post, str(body["verdict"]).upper())
+        elif action == "set_knows":  # ✓ knows because of the story
+            if body.get("key") not in char_by_slug and body.get("key") != "user":
+                return JsonResponse({"error": "Pick one of your characters."}, status=400)
+            subtext.set_knows(state, post, body["key"], bool(body.get("knows", True)), body.get("how"))
+        elif action == "generate_photo":
+            c_obj = char_by_slug.get(post.get("author"))
+            if c_obj is None:
+                return JsonResponse({"error": "Only a character's post can have their photo drawn."}, status=400)
+            prompt = str(body.get("prompt") or (post.get("photo") or {}).get("prompt") or post.get("text") or "").strip()
+            url, cost = messenger.generate_messenger_photo(request.user, c_obj, description=prompt, kind="casual")
+            post["photo"] = {"prompt": prompt[:400], "url": url}
+            subtext.save(request.user, state)
+            return done(state, cost=cost)
+        elif action == "delete_post":
+            state["posts"] = [p for p in state["posts"] if p is not post]
+        elif action == "forward_to_telechat":
+            c_obj = char_by_slug.get(body.get("char_slug")) or char_by_slug.get(post.get("author"))
+            if c_obj is None:
+                return JsonResponse({"error": "Pick who to send it to."}, status=400)
+            thread, msg, turn = subtext.forward(request.user, state, post, c_obj, chars, str(body.get("comment") or "")[:600])
+            return done(state, thread=messenger.serialize_thread_full(thread, request.user),
+                        threads=[messenger.serialize_thread_summary(t) for t in
+                                 MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+                        user_message=msg, turn=turn)
         else:
-            lst.append(u_name)
-        if lst:
-            reacts[emo] = lst
-        else:
-            reacts.pop(emo, None)
-        post["reactions"] = reacts
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"post": post, "reactions": reacts})
-
-    if action == "vote_aita":
-        pid = body.get("post_id")
-        verdict = str(body.get("verdict") or "").strip().upper()
-        if verdict not in ("NTA", "YTA", "ESH"):
-            return JsonResponse({"error": "Invalid verdict."}, status=400)
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        votes = post.setdefault("aita_votes", {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""})
-        prev = votes.get("user_vote") or ""
-        if prev and prev.lower() in votes:
-            votes[prev.lower()] = max(0, int(votes[prev.lower()]) - 1)
-        v_key = verdict.lower()
-        votes[v_key] = int(votes.get(v_key) or 0) + 1
-        votes["user_vote"] = verdict
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"post": post, "aita_votes": votes})
-
-    if action == "generate_photo":
-        pid = body.get("post_id")
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        c_obj = char_by_slug.get(post.get("author_slug")) or (chars[0] if chars else None)
-        if not c_obj:
-            return JsonResponse({"error": "Character not found."}, status=404)
-        p_info = dict(post.get("photo") or {})
-        prompt_desc = str(body.get("prompt") or p_info.get("prompt") or post.get("text") or "").strip()
-        try:
-            img_url, cost = messenger.generate_messenger_photo(request.user, c_obj, description=prompt_desc, kind="casual")
-        except ai_client.AIError as e:
-            return JsonResponse({"error": str(e)}, status=400)
-        p_info["prompt"] = prompt_desc
-        p_info["url"] = img_url
-        post["photo"] = p_info
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"post": post, "url": img_url, "cost": cost})
-
-    if action == "forward_to_telechat":
-        pid = body.get("post_id")
-        comment = str(body.get("comment") or "").strip()
-        state = subtext.get_subtext_state(request.user, chars)
-        post = next((p for p in state["posts"] if p.get("id") == pid), None)
-        if not post:
-            return JsonResponse({"error": "Post not found."}, status=404)
-        target_slug = body.get("char_slug") or post.get("author_slug")
-        c_obj = char_by_slug.get(target_slug) or (chars[0] if chars else None)
-        if not c_obj:
-            return JsonResponse({"error": "Pick a character to DM this post to."}, status=400)
-        try:
-            thread, user_msg, turn = subtext.forward_post_to_telechat(request.user, post, c_obj, user_comment=comment)
-        except ai_client.AIError as e:
-            return JsonResponse({"error": str(e)}, status=400)
-        all_threads = [
-            messenger.serialize_thread_summary(t)
-            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
-        ]
-        return JsonResponse({
-            "thread": messenger.serialize_thread_full(thread, request.user),
-            "threads": all_threads,
-            "user_message": user_msg,
-            "turn": turn,
-        })
-
-    if action == "delete_post":
-        pid = body.get("post_id")
-        state = subtext.get_subtext_state(request.user, chars)
-        state["posts"] = [p for p in state["posts"] if p.get("id") != pid]
-        subtext.save_subtext_state(request.user, {"posts": state["posts"]})
-        return JsonResponse({"subtext": state})
-
-    return JsonResponse({"error": f"Unknown subtext action '{action}'."}, status=400)
+            return JsonResponse({"error": f"Unknown subtext action '{action}'."}, status=400)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except ai_client.AIError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    subtext.save(request.user, state)
+    return done(state)
 
 
 @login_required

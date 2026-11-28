@@ -1,588 +1,556 @@
 """
-Subtext / Chirp — Micro-Community, Locked Burner Accounts & AITA Social Feed for the Digital Screen Hub.
+Subtext: the cast's social feed on the Screen, fed by the same story as the phone chats.
 
-Connects directly to TeleChat (`mainapp/messenger.py`):
-- Reads recent TeleChat conversations and the real-time clock so characters subtweet what just happened in chat.
-- Supports 3 post types:
-  * 🌐 Public Main (`public`) — the character's public @handle
-  * 🔒 Locked Burner / Close Friends (`burner`) — unfiltered 2 AM thoughts, petty subtweets, vulnerable rants (`@handle_priv`)
-  * ⚖️ AITA & Confessions (`aita`) — "AITA for..." threads with NTA / YTA / ESH voting & cross-character comment wars
-- Includes "✈️ Slide into DMs (Forward to TeleChat)" so the user can forward any post or burner subtweet straight into a TeleChat DM and confront or tease the character.
+Every person (each character, and you) has a main account and a locked burner. Three kinds of post:
+- main: public; everyone on Subtext sees it.
+- burner: locked; only its followers (chosen per burner) and its owner see it.
+- aita: an anonymous "AITA for…" thread; everyone sees it, but only the author knows who wrote it.
+
+Who has seen what is the point: characters only react to, comment on, or bring up in the phone chats the posts they
+could have seen. The user can tick a character as knowing a post "because of the story" (someone showed them, they
+found the account): from then on that character counts as having seen it. Forwarding a post into a DM does the same.
+
+The status updates (Moments) show here too, as a strip; they're still edited where they always were.
+State lives in the user's ChatSettings.appearance["subtext"]: {"posts": [...], "burners": {key: {"followers": [...]}}}.
 """
-
-import json
 import logging
-import re
 import time
+from datetime import datetime
 import uuid
 
 from django.utils import timezone
 
 from mainapp import ai_client, messenger
-from mainapp.models import Character, ChatSettings, MessengerThread
+from mainapp.models import ChatSettings, MessengerThread
 
 log = logging.getLogger(__name__)
 
-SUBTEXT_REACTIONS = ["❤️", "🔥", "💀", "👀", "🤡", "💔"]
+REACTIONS = ["❤️", "🔥", "💀", "👀", "🤡", "💔"]
+SUBTEXT_REACTIONS = REACTIONS  # the old name, still imported elsewhere
+ACCOUNTS = ("main", "burner", "aita")
+VERDICTS = ("NTA", "YTA", "ESH")
+MAX_POSTS = 150
 
 
-def _get_settings_obj(user):
-    settings_obj, _ = ChatSettings.objects.get_or_create(author=user)
-    if not isinstance(settings_obj.appearance, dict):
-        settings_obj.appearance = {}
-    return settings_obj
+# ---------------------------------------------------------------------------------------------------------------
+# State
+# ---------------------------------------------------------------------------------------------------------------
 
+def _settings(user):
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    if not isinstance(obj.appearance, dict):
+        obj.appearance = {}
+    return obj
+
+
+def _upgrade(p):
+    """Posts written by the first version (author_slug/visibility/names baked in) in today's shape."""
+    if "author" in p and "account" in p:
+        return p
+    vis = p.get("visibility")
+    p = {**p, "author": p.get("author_slug") or "user",
+         "account": {"public": "main", "burner": "burner", "aita": "aita"}.get(vis, "main")}
+    votes = p.get("aita_votes") or {}
+    p.setdefault("votes", {k: int(votes.get(k) or 0) for k in ("nta", "yta", "esh")})
+    p.setdefault("user_vote", votes.get("user_vote") or "")
+    p["comments"] = [{**c, "author": c.get("author") or c.get("author_slug") or "user",
+                      "account": c.get("account") or ("burner" if c.get("is_burner") else "main")}
+                     for c in p.get("comments") or [] if isinstance(c, dict)]
+    p.setdefault("knows", {})
+    return p
+
+
+def load(user):
+    raw = (_settings(user).appearance or {}).get("subtext")
+    raw = raw if isinstance(raw, dict) else {}
+    posts = [_upgrade(p) for p in raw.get("posts") or [] if isinstance(p, dict)]
+    burners = raw.get("burners") if isinstance(raw.get("burners"), dict) else {}
+    return {"posts": posts[:MAX_POSTS], "burners": burners}
+
+
+def save(user, state):
+    obj = _settings(user)
+    app = dict(obj.appearance or {})
+    app["subtext"] = {"posts": state["posts"][:MAX_POSTS], "burners": state.get("burners") or {}}
+    obj.appearance = app
+    obj.save(update_fields=["appearance"])
+
+
+def find(state, post_id):
+    post = next((p for p in state["posts"] if p.get("id") == post_id), None)
+    if post is None:
+        raise ValueError("That post isn't on Subtext any more.")
+    return post
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# People and accounts
+# ---------------------------------------------------------------------------------------------------------------
 
 def burner_handle_for(character):
-    """Return a character's locked burner handle (e.g. `@dr_zandik_priv`)."""
-    prof = messenger.char_profile(character)
+    """A character's locked burner handle (e.g. `@dr_zandik_priv`)."""
     custom = str((character.messenger_profile or {}).get("burner_handle") or "").strip()
     if custom:
         return custom if custom.startswith("@") else f"@{custom}"
-    base = prof.get("handle", "@character").lstrip("@")
-    return f"@{base}_priv"
+    return "@" + messenger.char_profile(character).get("handle", "@character").lstrip("@") + "_priv"
+
+
+def people(user, chars):
+    """{key: {name, handle, burner, avatar}} for you and every character."""
+    me = messenger.user_profile(user)
+    from mainapp.cards import user_name
+    handle = me.get("handle") or "@you"
+    out = {"user": {"key": "user", "name": me.get("display_name") or user_name(user), "handle": handle,
+                    "burner": "@" + handle.lstrip("@") + "_priv", "avatar": me.get("avatar_url") or ""}}
+    for c in chars:
+        p = messenger.char_profile(c)
+        out[c.slug] = {"key": c.slug, "name": p["display_name"], "handle": p.get("handle") or "@" + c.slug,
+                       "burner": burner_handle_for(c), "avatar": p.get("avatar_url") or ""}
+    return out
+
+
+def followers(state, owner):
+    return [k for k in ((state.get("burners") or {}).get(owner) or {}).get("followers") or [] if isinstance(k, str)]
+
+
+def can_see(state, post, key):
+    """Whether `key` (a character slug or "user") has seen this post in the story."""
+    if post.get("author") == key or post.get("account") in ("main", "aita"):
+        return True
+    return key in followers(state, post.get("author")) or key in (post.get("knows") or {})
+
+
+def knows_author(state, post, key):
+    """For an anonymous AITA thread: whether `key` knows who wrote it."""
+    return post.get("account") != "aita" or post.get("author") == key or key in (post.get("knows") or {})
+
+
+def seen_by(state, post, keys):
+    return [k for k in keys if can_see(state, post, k)]
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# For the page
+# ---------------------------------------------------------------------------------------------------------------
+
+def _when(ts):
+    if not ts:
+        return ""
+    local = timezone.localtime(datetime.fromtimestamp(ts, tz=timezone.get_current_timezone()))
+    now = timezone.localtime(timezone.now())
+    return local.strftime("%H:%M") if local.date() == now.date() else local.strftime("%d %b, %H:%M")
+
+
+def statuses(user, chars):
+    """The status updates (Moments), newest first, for the strip at the top of the feed."""
+    out = []
+    me = messenger.user_profile(user)
+    for s in me.get("stories") or []:
+        out.append({"key": "user", "text": s.get("text") or "", "emoji": s.get("emoji") or me.get("status_emoji") or "",
+                    "image": s.get("image_url") or "", "ts": s.get("ts") or 0})
+    for c in chars:
+        p = messenger.char_profile(c)
+        for s in p.get("stories") or []:
+            out.append({"key": c.slug, "text": s.get("text") or "", "emoji": s.get("emoji") or p.get("status_emoji") or "",
+                        "image": s.get("image_url") or "", "ts": s.get("ts") or 0})
+    out.sort(key=lambda s: s["ts"] or 0, reverse=True)
+    return [{**s, "when": _when(s["ts"])} for s in out[:24]]
+
+
+def payload(user, chars, state=None):
+    state = state or load(user)
+    keys = [c.slug for c in chars]
+    posts = []
+    for p in state["posts"]:
+        p = dict(p)
+        p["when"] = _when(p.get("ts"))
+        p["seen_by"] = seen_by(state, p, keys)
+        p["followers"] = followers(state, p.get("author")) if p.get("account") == "burner" else []
+        p["you_see"] = can_see(state, p, "user")
+        posts.append(p)
+    return {"posts": posts, "people": people(user, chars), "statuses": statuses(user, chars),
+            "burners": {k: {"followers": followers(state, k)} for k in ["user", *keys]}, "reactions": REACTIONS}
 
 
 def get_subtext_state(user, characters=None):
-    """Return `{posts: [...], burner_handles: {slug: handle}}` for the user."""
-    settings_obj = _get_settings_obj(user)
-    raw = (settings_obj.appearance or {}).get("subtext")
-    if not isinstance(raw, dict):
-        raw = {}
-    posts = [p for p in (raw.get("posts") or []) if isinstance(p, dict)]
-
-    # Seed an initial welcome post from the user's first character if the feed is completely empty
-    if not posts and characters:
-        c0 = characters[0]
-        p0 = messenger.char_profile(c0)
-        now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
-        seed_post = {
-            "id": "st_" + uuid.uuid4().hex[:8],
-            "author_slug": c0.slug,
-            "author_name": p0["display_name"],
-            "author_avatar": p0["avatar_url"],
-            "status_emoji": p0["status_emoji"],
-            "handle": burner_handle_for(c0),
-            "visibility": "burner",
-            "title": "",
-            "text": p0.get("bio") or f"Set up this account so fewer people bother me during work hours.",
-            "subtweet_note": "Locked Close-Friends Burner",
-            "photo": None,
-            "aita_votes": {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""},
-            "reactions": {"👀": [p0["display_name"]]},
-            "comments": [],
-            "time": now_hm,
-            "ts": time.time(),
-        }
-        posts = [seed_post]
-        save_subtext_state(user, {"posts": posts})
-
-    burner_map = {}
-    for c in (characters or []):
-        burner_map[c.slug] = burner_handle_for(c)
-
-    return {
-        "posts": posts[:80],
-        "burner_handles": burner_map,
-        "reactions_palette": SUBTEXT_REACTIONS,
-    }
+    """The whole feed for the page (the Screen's first load reads it too)."""
+    return payload(user, list(characters or []))
 
 
-def save_subtext_state(user, state_updates):
-    settings_obj = _get_settings_obj(user)
-    app = dict(settings_obj.appearance or {})
-    cur = dict(app.get("subtext") or {})
-    cur.update(state_updates)
-    if "posts" in cur and isinstance(cur["posts"], list):
-        cur["posts"] = cur["posts"][:80]
-    app["subtext"] = cur
-    settings_obj.appearance = app
-    settings_obj.save(update_fields=["appearance"])
-    return cur
+# ---------------------------------------------------------------------------------------------------------------
+# What the cast has seen, for the phone chats
+# ---------------------------------------------------------------------------------------------------------------
 
-
-def recent_telechat_digest(user, chars):
-    """
-    Build a concise digest of recent TeleChat messages involving `chars` so Subtext posts
-    can subtweet, complain about, or reference what just happened in chat.
-    """
-    slug_set = {c.slug for c in chars}
-    threads = list(MessengerThread.objects.filter(user=user).prefetch_related("characters")[:8])
-    snippets = []
-    for t in threads:
-        t_chars = list(t.characters.all())
-        if not any(c.slug in slug_set for c in t_chars):
+def seen_block(user, chars, limit=8):
+    """SUBTEXT lately, for a phone chat: the recent posts its characters could have seen, each marked with who saw it,
+    so nobody brings up a post they never saw."""
+    if not chars:
+        return ""
+    state = load(user)
+    ppl = people(user, chars)
+    keys = [c.slug for c in chars]
+    lines = []
+    for p in state["posts"][:40]:
+        who = seen_by(state, p, keys)
+        if not who:
             continue
-        td = messenger.thread_data(t)
-        msgs = (td.get("messages") or [])[-6:]
-        if not msgs:
-            continue
-        lines = []
-        for m in msgs:
-            if m.get("role") == "system":
-                continue
-            sender = m.get("sender_name") or ("User" if m.get("role") == "user" else "Character")
-            txt = (m.get("text") or "").strip()
-            if m.get("photo"):
-                txt += f" [sent photo: {m['photo'].get('caption') or m['photo'].get('prompt') or 'photo'}]"
-            if txt:
-                lines.append(f"  - [{m.get('time', '')}] {sender}: {txt[:160]}")
-        if lines:
-            rt = messenger.real_time_context(t)
-            snippets.append(
-                f"Recent TeleChat thread '{t.title}' (last activity: {rt['elapsed_text']}):\n" + "\n".join(lines)
-            )
-    return "\n\n".join(snippets[:3]) if snippets else "No recent TeleChat messages yet."
+        author = ppl.get(p.get("author"), {"name": "someone", "handle": "@someone", "burner": "@someone_priv"})
+        where = {"main": f"{author['name']} ({author['handle']}) posted",
+                 "burner": f"{author['name']} posted on their LOCKED account {author['burner']}",
+                 "aita": "an anonymous AITA thread was posted"}[p.get("account", "main")]
+        if p.get("account") == "aita":
+            in_on = [ppl[k]["name"] for k in who if knows_author(state, p, k) and k in ppl]
+            if in_on:
+                where += f" (written by {author['name']}; only {', '.join(in_on)} know that)"
+        text = (p.get("title") + ": " if p.get("title") else "") + str(p.get("text") or "")
+        replies = "; ".join(f"{ppl.get(c.get('author'), {}).get('name', 'someone')}: {str(c.get('text'))[:120]}"
+                            for c in (p.get("comments") or [])[-3:])
+        lines.append(f"- {_when(p.get('ts'))}, {where}: \"{text[:280]}\"" + (f" Replies: {replies}" if replies else "")
+                     + f" [seen by: {', '.join(ppl[k]['name'] for k in who if k in ppl)}]")
+        if len(lines) >= limit:
+            break
+    if not lines:
+        return ""
+    return ("ON SUBTEXT LATELY (the social app; a character knows only the posts marked as seen by them, and brings "
+            "them up only if it would come up naturally):\n" + "\n".join(lines))
 
 
-SUBTEXT_SAFEGUARDS = """SUBTEXT SOCIAL FEED & FRANKENWIRE SAFEGUARDS:
-1. METHOD ACTING & AUTHENTIC INTERNET VOICE:
-   - [Embody_Before_Posting]: Lock onto each character's actual pride, pettiness, dry humour, current mood, and relationship with {user} and the other characters before writing.
-   - NO CORPORATE / AI INFLUENCER SLOP: Never write generic hashtags (#blessed, #livingmylife, #grindset), motivational quotes, or therapy-speak ("Reminder that your feelings are valid!").
-   - NO STAGE DIRECTIONS: Never write third-person narration or actions in asterisks (*sighs and types*, *rolls eyes*). Write ONLY the actual post text and comment text.
-   - DISTINCT ACCOUNT MODES:
-     * `public` (🌐 Main Account): What the character is willing to say in public—dry observations, complaints about work/people, subtle flexes, announcements, or snapshots of their food/desk/scenery.
-     * `burner` (🔒 Locked Alt / Close Friends): What they post at 2 AM on their locked private account—unfiltered venting, obvious subtweets about {user} or another character without naming them directly, petty grievances, or vulnerable admissions they would deny on main.
-     * `aita` (⚖️ AITA / Anonymous Board): An overly specific "AITA for..." post where the character tries to sound anonymous or reasonable while describing a ridiculous or petty situation, and other characters immediately clock who wrote it in the comments and vote `NTA`, `YTA`, or `ESH`.
-2. CROSS-CHARACTER COLLISIONS:
-   - In the `comments` array, have other characters reply in their own distinct voice—roasting, correcting, exposing, agreeing, or starting petty arguments in the replies."""
+# ---------------------------------------------------------------------------------------------------------------
+# Writing posts and replies
+# ---------------------------------------------------------------------------------------------------------------
+
+VOICE_RULES = """HOW SUBTEXT IS WRITTEN:
+- Each person posts the way THEY would: their own pride, humour, habits and what they want people to think of them.
+  Posting is a different voice from texting, but it's still them.
+- No hashtag slop, motivational lines, therapy-speak or influencer voice. No asterisk actions or narration: only
+  what they actually type.
+- main: what they're willing to say in public. burner: what they'd only say to the few who follow it (venting,
+  subtweets without names, things they'd deny). aita: an "AITA for…" written to sound anonymous and reasonable.
+- People only react to and know about what they have seen (marked below). An anonymous AITA author is unknown to
+  everyone who isn't marked as knowing; they may guess, they don't know."""
+
+WAVE_PROMPT = """You write new posts on Subtext, the social app on {user}'s phone, where the people below post.
+Story time: {clock}
+
+{rules}
+
+PEOPLE:
+{roster}
+
+WHAT HAPPENED IN THE PHONE CHATS LATELY (each person knows only the chats they're in):
+{chats}
+
+RECENT POSTS (with who has seen each):
+{recent}
+
+What to write: {mode}
+{topic}
+
+Write 1 or 2 new posts, each with 0 to 3 replies. Replies come only from people who can see the post: for a
+burner post, only its followers ({followers_note}).
+Return ONLY JSON:
+{{"posts": [{{"author": "slug", "account": "main" | "burner" | "aita", "title": "'AITA for …' for aita, else ''",
+             "text": "the post, 1 to 4 sentences", "photo": "if they'd attach a photo they took: what's in it, else ''",
+             "replies": [{{"author": "slug", "verdict": "NTA|YTA|ESH for aita, else ''", "text": "1-2 sentences"}}]}}]}}
+{steer}"""
+
+REPLY_PROMPT = """You write replies on Subtext, the social app on {user}'s phone.
+Story time: {clock}
+
+{rules}
+
+WHO MAY REPLY (they can all see this post):
+{roster}
+
+WHAT HAPPENED IN THE PHONE CHATS LATELY (each person knows only the chats they're in):
+{chats}
+
+THE POST ({kind}) by {author}{anon}:
+{title}{text}
+Replies so far:
+{thread}
+
+Write 1 to 3 new replies{to_user}. For an aita thread each reply has a verdict.
+Return ONLY JSON: {{"replies": [{{"author": "slug", "verdict": "NTA|YTA|ESH or ''", "text": "1-2 sentences"}}],
+                    "reactions": [{{"author": "slug", "emoji": "one of {reactions}"}}]}}
+{steer}"""
 
 
-GENERATE_WAVE_PROMPT = """You are generating a wave of new posts and cross-character reply threads on **Subtext** (the micro-blogging & burner-account app on {user}'s Digital Screen).
-
-Current Real-World Clock: {clock}
-{safeguards}
-
-{model_rules}
-
-USER PROFILE:
-- Name: {user} ({user_handle}) — Bio: {user_bio}
-- Who {user} is: {user_persona}
-
-CHARACTERS AVAILABLE FOR THIS WAVE:
-{char_roster}
-
-RECENT TELECHAT CONVERSATIONS (characters can subtweet or react to what happened here!):
-{telechat_digest}
-
-REQUESTED FEED MODE: {feed_mode}
-USER TOPIC / VIBE HINT: {topic_hint}
-
-Generate 1 to 2 posts (and 1 to 3 cross-character comments on each post).
-Return ONLY a valid JSON object matching this exact structure (no markdown fences):
-{{
-  "posts": [
-    {{
-      "author_slug": "exact slug of the posting character",
-      "visibility": "public" | "burner" | "aita",
-      "title": "Empty string for public/burner, OR 'AITA for ...' title when visibility is 'aita'",
-      "text": "The post body (1 to 4 sentences, pure in-character social post, no *asterisks*)",
-      "subtweet_note": "Short 3-6 word badge explaining the vibe, e.g. 'Subtweeting last night\\'s chat', 'Locked 2 AM rant', 'Public announcement', 'Anonymous AITA thread'",
-      "photo_prompt": "Optional: if this post naturally includes a photo they snapped (food, coffee, messy desk, scenery, or candid selfie), describe the concrete visual scene in 1 sentence; otherwise empty string",
-      "comments": [
-        {{
-          "author_slug": "exact slug of a character replying",
-          "is_burner": false,
-          "verdict": "NTA" | "YTA" | "ESH" | "",
-          "text": "Their reply in the comments (1-2 sharp sentences, no *asterisks*)"
-        }}
-      ]
-    }}
-  ]
-}}"""
+def _steer(user):
+    from mainapp.bulba import polish
+    try:
+        return polish.avoid_line(user)
+    except Exception:
+        return ""
 
 
-GENERATE_REPLIES_PROMPT = """You are generating in-character comment replies on **Subtext** (the social & burner-account feed on {user}'s Digital Screen).
-
-Current Real-World Clock: {clock}
-{safeguards}
-
-{model_rules}
-
-CHARACTERS AVAILABLE TO REPLY:
-{char_roster}
-
-RECENT TELECHAT CONTEXT:
-{telechat_digest}
-
-TARGET POST BEING REPLIED TO:
-- Author: {post_author} ({post_handle}) [{post_visibility}]
-- Title: {post_title}
-- Text: "{post_text}"
-- Existing comments so far:
-{existing_comments}
-
-Generate 1 to 3 new comment replies from the available characters reacting to the post (and/or replying to the latest comment from {user}).
-If the post visibility is `aita`, each commenter should include a `"verdict"` (`"NTA"`, `"YTA"`, or `"ESH"`).
-Return ONLY a valid JSON object (no markdown fences):
-{{
-  "comments": [
-    {{
-      "author_slug": "exact character slug",
-      "is_burner": false,
-      "verdict": "NTA" | "YTA" | "ESH" | "",
-      "text": "1-2 sentences of in-character comment reply, no *asterisks*"
-    }}
-  ],
-  "reactions": ["🔥", "💀"]
-}}"""
+def _clock():
+    return timezone.localtime(timezone.now()).strftime("%A %H:%M")
 
 
-def _build_roster_block(chars, user):
+def _roster(user, chars, state):
     lines = []
     for c in chars:
         p = messenger.char_profile(c)
-        b_handle = burner_handle_for(c)
-        persona = p.get("modern_persona") or c.personality or (c.description or "")[:350]
-        style = p.get("texting_style") or "Distinct in-character voice."
-        lines.append(
-            f"- {p['display_name']} (slug: `{c.slug}`, main handle: `{p['handle']}`, burner handle: `{b_handle}`)\n"
-            f"  Bio: {p.get('bio') or 'No bio'}\n"
-            f"  Persona: {persona[:400]}\n"
-            f"  Texting/posting fingerprint: {style[:250]}"
-        )
+        who = p.get("modern_persona") or c.personality or (c.description or "")[:400]
+        fol = followers(state, c.slug)
+        lines.append(f"- {p['display_name']} (slug `{c.slug}`; main {p.get('handle')}; burner {burner_handle_for(c)}, "
+                     f"followed by: {', '.join(fol) or 'nobody yet'})\n  Who they are: {str(who)[:400]}\n"
+                     f"  How they write: {str(p.get('texting_style') or 'their own voice')[:250]}")
     return "\n".join(lines)
 
 
-def _match_char_by_slug_or_name(chars, key):
-    if not key:
-        return chars[0]
-    k = str(key).strip().lower().lstrip("@")
-    for c in chars:
-        p = messenger.char_profile(c)
-        if (
-            c.slug.lower() == k
-            or c.name.lower() == k
-            or p["display_name"].lower() == k
-            or p["handle"].lower().lstrip("@") == k
-            or burner_handle_for(c).lower().lstrip("@") == k
-        ):
-            return c
-    return chars[0]
+def chats_digest(user, chars):
+    """The last messages of the phone chats these characters are in, each chat with who's in it."""
+    slugs = {c.slug for c in chars}
+    parts = []
+    for t in MessengerThread.objects.filter(user=user).prefetch_related("characters")[:10]:
+        members = list(t.characters.all())
+        if not slugs & {c.slug for c in members}:
+            continue
+        data = messenger.thread_data(t)
+        lines = []
+        for m in messenger.delivered(data.get("messages") or [])[-6:]:
+            if m.get("role") == "system":
+                continue
+            text = (m.get("text") or "").strip()
+            if m.get("photo"):
+                text += f" [photo: {m['photo'].get('caption') or m['photo'].get('prompt') or 'a photo'}]"
+            if text:
+                lines.append(f"  {m.get('sender_name') or ('the user' if m.get('role') == 'user' else '?')}: {text[:160]}")
+        if lines:
+            parts.append(f"Chat \"{t.title}\" (in it: {', '.join(c.name for c in members)}):\n" + "\n".join(lines))
+        if len(parts) == 4:
+            break
+    return "\n\n".join(parts) or "(no recent chats)"
 
 
-def generate_wave(user, chars, mode="mix", topic_hint=""):
-    """
-    Call the user's active chat model to generate 1–2 new Subtext posts (public, locked burner, or AITA)
-    with cross-character comment threads, save them to the top of the user's feed, and return the new posts.
-    """
+def _recent(user, state, chars):
+    ppl = people(user, chars)
+    keys = [c.slug for c in chars]
+    lines = []
+    for p in state["posts"][:10]:
+        a = ppl.get(p.get("author"), {"name": "someone"})
+        lines.append(f"- [{p.get('account')}] {a['name']}: {(p.get('title') or '')} {str(p.get('text'))[:200]} "
+                     f"(seen by: {', '.join(ppl[k]['name'] for k in seen_by(state, p, keys) if k in ppl) or 'nobody'})")
+    return "\n".join(lines) or "(none yet)"
+
+
+def _clean_text(v, n):
+    return messenger.strip_stage_directions(" ".join(str(v or "").split()))[:n]
+
+
+def _strip_name(text, names):
+    """'Mira: so anyway' -> 'so anyway' (models like to label their lines)."""
+    for name in names:
+        for prefix in (f"{name}:", f"**{name}:**", f"{name} :"):
+            if text.lower().startswith(prefix.lower()):
+                return text[len(prefix):].strip()
+    return text
+
+
+def _reply(state, post, raw, by_slug, ppl):
+    """A reply from the model, or None when its author couldn't have seen the post."""
+    if not isinstance(raw, dict):
+        return None
+    c = by_slug.get(str(raw.get("author") or "").strip())
+    if c is None or not can_see(state, post, c.slug):
+        return None
+    text = _strip_name(_clean_text(raw.get("text"), 600), [ppl[c.slug]["name"], c.name])
+    if not text:
+        return None
+    verdict = str(raw.get("verdict") or "").strip().upper()
+    verdict = verdict if post.get("account") == "aita" and verdict in VERDICTS else ""
+    if verdict:
+        post.setdefault("votes", {"nta": 0, "yta": 0, "esh": 0})[verdict.lower()] = int(post["votes"].get(verdict.lower()) or 0) + 1
+    return {"id": "stc_" + uuid.uuid4().hex[:8], "author": c.slug,
+            "account": "burner" if post.get("account") == "burner" else "main", "verdict": verdict, "text": text,
+            "ts": time.time()}
+
+
+def _new_post(author, account, title, text, photo=None):
+    return {"id": "st_" + uuid.uuid4().hex[:8], "author": author, "account": account,
+            "title": title if account == "aita" else "", "text": text, "photo": photo,
+            "votes": {"nta": 0, "yta": 0, "esh": 0}, "user_vote": "", "reactions": {}, "comments": [], "knows": {},
+            "ts": time.time()}
+
+
+MODES = {"any": "whatever these people would post right now: mostly main posts, a burner post if someone has "
+                "something they'd only tell their followers",
+         "main": "main (public) posts only", "burner": "burner (locked) posts only",
+         "aita": "one anonymous aita thread"}
+
+
+def generate_wave(user, chars, mode="any", topic=""):
+    """1-2 new posts from these characters, with replies from people who can see them. Returns the new posts."""
     if not chars:
-        raise ai_client.AIError("Add or select at least one character first.")
+        raise ai_client.AIError("Pick at least one character first.")
     from mainapp.cards import user_name
-    u_name = user_name(user)
-    u_prof = messenger.user_profile(user)
-    now_local = timezone.localtime(timezone.now())
-    clock_str = now_local.strftime("%A %H:%M")
-    now_hm = now_local.strftime("%H:%M")
-
-    model_info = messenger.active_model_texting_rules(user)
-    model_rules = f"ACTIVE MODEL CALIBRATION ({model_info['label']}):\n{model_info['rules']}" if model_info.get("rules") else ""
-
-    mode_desc = {
-        "mix": "Mix of 🌐 Public Main posts and 🔒 Locked Burner subtweets.",
-        "burner": "ONLY 🔒 Locked Burner (`burner`) posts — unfiltered 2 AM thoughts, subtweeting recent TeleChat messages or other characters.",
-        "aita": "An `aita` ('AITA for...') thread where a character describes a petty or dramatic situation and other characters roast/judge them with NTA/YTA/ESH verdicts.",
-        "subtweet": "Directly subtweet or react to the recent TeleChat conversation digest without naming the user outright.",
-    }.get(mode, "Mix of public and burner posts.")
-
-    prompt = GENERATE_WAVE_PROMPT.format(
-        user=u_name,
-        clock=clock_str,
-        safeguards=SUBTEXT_SAFEGUARDS.format(user=u_name),
-        model_rules=model_rules,
-        user_handle=u_prof.get("handle", "@you"),
-        user_bio=u_prof.get("bio", ""),
-        user_persona=(getattr(user, "persona_description", "") or "")[:400],
-        char_roster=_build_roster_block(chars, user),
-        telechat_digest=recent_telechat_digest(user, chars),
-        feed_mode=mode_desc,
-        topic_hint=(topic_hint or "Follow current time of day, character rivalries, and recent TeleChat activity.")[:500],
-    )
-
-    raw_reply = ai_client.complete(user, "chat", [{"role": "user", "content": prompt}], max_tokens=1500, temperature=0.85)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        raise ai_client.AIError("Could not parse Subtext feed response. Try again.")
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        raise ai_client.AIError("Model returned malformed JSON for Subtext feed. Try again.")
-
-    raw_posts = parsed.get("posts")
-    if not isinstance(raw_posts, list) or not raw_posts:
-        raise ai_client.AIError("No posts were generated. Try again.")
-
-    created_posts = []
-    for rp in raw_posts[:3]:
+    state = load(user)
+    ppl = people(user, chars)
+    raw = messenger.ask_json(user, WAVE_PROMPT.format(
+        user=user_name(user), clock=_clock(), rules=VOICE_RULES, roster=_roster(user, chars, state),
+        chats=chats_digest(user, chars), recent=_recent(user, state, chars), mode=MODES.get(mode, MODES["any"]),
+        topic=f"The user would like: {str(topic)[:400]}" if str(topic or "").strip() else "",
+        followers_note="listed after each person's burner", steer=_steer(user)),
+        need=("posts",), max_tokens=1800, task="chat", temperature=0.85)
+    by_slug = {c.slug: c for c in chars}
+    made = []
+    for rp in (raw.get("posts") if isinstance(raw.get("posts"), list) else [])[:3]:
         if not isinstance(rp, dict):
             continue
-        c_obj = _match_char_by_slug_or_name(chars, rp.get("author_slug"))
-        c_prof = messenger.char_profile(c_obj)
-        vis = rp.get("visibility") if rp.get("visibility") in ("public", "burner", "aita") else ("burner" if mode == "burner" else "public")
-        if mode == "aita":
-            vis = "aita"
-        elif mode == "burner":
-            vis = "burner"
-
-        if vis == "burner":
-            handle = burner_handle_for(c_obj)
-        elif vis == "aita":
-            handle = f"u/Throwaway_{c_obj.slug.split('-')[-1][:6]}"
-        else:
-            handle = c_prof["handle"]
-
-        text = messenger.strip_stage_directions(str(rp.get("text") or "").strip())
+        author = by_slug.get(str(rp.get("author") or "").strip())
+        if author is None:
+            continue
+        account = rp.get("account") if rp.get("account") in ACCOUNTS else "main"
+        if mode in ("main", "burner", "aita"):
+            account = mode
+        text = _strip_name(_clean_text(rp.get("text"), 1200), [ppl[author.slug]["name"], author.name])
         if not text:
             continue
-
-        title = messenger.strip_stage_directions(str(rp.get("title") or "").strip()) if vis == "aita" else ""
-        if vis == "aita" and not title:
-            title = f"AITA for how I handled things today?"
-
-        photo_prompt = str(rp.get("photo_prompt") or "").strip()
-        photo_obj = None
-        if photo_prompt:
-            photo_obj = {
-                "prompt": photo_prompt[:400],
-                "url": "",
-                "kind": "casual",
-            }
-            if u_prof.get("auto_photos"):
-                try:
-                    p_url, _ = messenger.generate_messenger_photo(user, c_obj, description=photo_prompt, kind="casual")
-                    photo_obj["url"] = p_url
-                except Exception as e:
-                    log.info("Auto Subtext photo generation skipped: %s", e)
-
-        votes = {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""}
-        comments_list = []
-        for rc in (rp.get("comments") or [])[:5]:
-            if not isinstance(rc, dict):
-                continue
-            rc_char = _match_char_by_slug_or_name(chars, rc.get("author_slug"))
-            rc_prof = messenger.char_profile(rc_char)
-            rc_text = messenger.strip_stage_directions(str(rc.get("text") or "").strip())
-            if not rc_text:
-                continue
-            verdict = str(rc.get("verdict") or "").strip().upper()
-            if verdict not in ("NTA", "YTA", "ESH"):
-                verdict = ""
-            if vis == "aita" and verdict:
-                v_key = verdict.lower()
-                votes[v_key] = votes.get(v_key, 0) + 1
-            is_b = bool(rc.get("is_burner"))
-            comments_list.append({
-                "id": "stc_" + uuid.uuid4().hex[:8],
-                "author_slug": rc_char.slug,
-                "author_name": rc_prof["display_name"],
-                "author_avatar": rc_prof["avatar_url"],
-                "handle": burner_handle_for(rc_char) if is_b else rc_prof["handle"],
-                "is_burner": is_b,
-                "verdict": verdict,
-                "text": rc_text[:600],
-                "time": now_hm,
-                "ts": time.time(),
-            })
-
-        post_item = {
-            "id": "st_" + uuid.uuid4().hex[:8],
-            "author_slug": c_obj.slug,
-            "author_name": c_prof["display_name"],
-            "author_avatar": c_prof["avatar_url"],
-            "status_emoji": c_prof["status_emoji"],
-            "handle": handle,
-            "visibility": vis,
-            "title": title[:220],
-            "text": text[:1200],
-            "subtweet_note": str(rp.get("subtweet_note") or ("Locked Burner" if vis == "burner" else "Subtext")).strip()[:70],
-            "photo": photo_obj,
-            "aita_votes": votes,
-            "reactions": {},
-            "comments": comments_list,
-            "time": now_hm,
-            "ts": time.time(),
-        }
-        created_posts.append(post_item)
-
-    state = get_subtext_state(user, chars)
-    all_posts = created_posts + state["posts"]
-    save_subtext_state(user, {"posts": all_posts})
-    return created_posts
+        title = _clean_text(rp.get("title"), 220) or ("AITA for how I handled today?" if account == "aita" else "")
+        photo = {"prompt": _clean_text(rp.get("photo"), 400), "url": ""} if _clean_text(rp.get("photo"), 10) else None
+        post = _new_post(author.slug, account, title, text, photo)
+        state["posts"].insert(0, post)  # replies are checked against the state that has it
+        for r in (rp.get("replies") or [])[:4] if isinstance(rp.get("replies"), list) else []:
+            reply = _reply(state, post, r, by_slug, ppl)
+            if reply:
+                post["comments"].append(reply)
+        made.append(post)
+    if not made:
+        raise ai_client.AIError("The model wrote no usable posts. Try again.")
+    save(user, state)
+    return made
 
 
-def generate_replies_for_post(user, post, chars):
-    """Have 1–3 characters jump into the comments of `post`."""
-    if not chars:
-        return []
+def generate_replies(user, post, chars, state):
+    """1-3 replies on `post` from those of `chars` who can see it. Mutates post; returns the new replies."""
+    eligible = [c for c in chars if can_see(state, post, c.slug)]
+    if not eligible:
+        raise ai_client.AIError("None of them can see this post: a locked post needs followers, or someone who knows.")
     from mainapp.cards import user_name
-    u_name = user_name(user)
-    now_local = timezone.localtime(timezone.now())
-    clock_str = now_local.strftime("%A %H:%M")
-    now_hm = now_local.strftime("%H:%M")
-
-    model_info = messenger.active_model_texting_rules(user)
-    model_rules = f"ACTIVE MODEL CALIBRATION ({model_info['label']}):\n{model_info['rules']}" if model_info.get("rules") else ""
-
-    existing_lines = []
-    for c in (post.get("comments") or [])[-8:]:
-        v_tag = f"[{c['verdict']}] " if c.get("verdict") else ""
-        existing_lines.append(f"  - {c.get('author_name')} ({c.get('handle')}): {v_tag}{c.get('text')}")
-
-    prompt = GENERATE_REPLIES_PROMPT.format(
-        user=u_name,
-        clock=clock_str,
-        safeguards=SUBTEXT_SAFEGUARDS.format(user=u_name),
-        model_rules=model_rules,
-        char_roster=_build_roster_block(chars, user),
-        telechat_digest=recent_telechat_digest(user, chars),
-        post_author=post.get("author_name"),
-        post_handle=post.get("handle"),
-        post_visibility=post.get("visibility"),
-        post_title=post.get("title") or "(no title)",
-        post_text=post.get("text"),
-        existing_comments="\n".join(existing_lines) if existing_lines else "  (No comments yet)",
-    )
-
-    raw_reply = ai_client.complete(user, "chat", [{"role": "user", "content": prompt}], max_tokens=900, temperature=0.85)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        return []
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        return []
-
+    ppl = people(user, chars)
+    author = ppl.get(post.get("author"), {"name": "someone"})
+    thread = "\n".join(f"  {ppl.get(c.get('author'), {}).get('name', 'someone')}"
+                       + (f" [{c['verdict']}]" if c.get("verdict") else "") + f": {c.get('text')}"
+                       for c in (post.get("comments") or [])[-10:]) or "  (none)"
+    last = (post.get("comments") or [{}])[-1]
+    raw = messenger.ask_json(user, REPLY_PROMPT.format(
+        user=user_name(user), clock=_clock(), rules=VOICE_RULES, roster=_roster(user, eligible, state),
+        chats=chats_digest(user, eligible), kind=post.get("account"), author=author["name"],
+        anon=" (anonymous: only the author and those marked as knowing know who wrote it)" if post.get("account") == "aita" else "",
+        title=(post.get("title") + "\n") if post.get("title") else "", text=post.get("text"), thread=thread,
+        to_user=f", answering {ppl['user']['name']}'s latest reply first" if last.get("author") == "user" else "",
+        reactions=" ".join(REACTIONS), steer=_steer(user)),
+        need=("replies",), max_tokens=1000, task="chat", temperature=0.85)
+    by_slug = {c.slug: c for c in eligible}
     added = []
-    votes = post.setdefault("aita_votes", {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""})
-    for rc in (parsed.get("comments") or [])[:3]:
-        if not isinstance(rc, dict):
-            continue
-        rc_char = _match_char_by_slug_or_name(chars, rc.get("author_slug"))
-        rc_prof = messenger.char_profile(rc_char)
-        rc_text = messenger.strip_stage_directions(str(rc.get("text") or "").strip())
-        if not rc_text:
-            continue
-        verdict = str(rc.get("verdict") or "").strip().upper()
-        if verdict not in ("NTA", "YTA", "ESH"):
-            verdict = ""
-        if post.get("visibility") == "aita" and verdict:
-            v_key = verdict.lower()
-            votes[v_key] = votes.get(v_key, 0) + 1
-        is_b = bool(rc.get("is_burner"))
-        c_item = {
-            "id": "stc_" + uuid.uuid4().hex[:8],
-            "author_slug": rc_char.slug,
-            "author_name": rc_prof["display_name"],
-            "author_avatar": rc_prof["avatar_url"],
-            "handle": burner_handle_for(rc_char) if is_b else rc_prof["handle"],
-            "is_burner": is_b,
-            "verdict": verdict,
-            "text": rc_text[:600],
-            "time": now_hm,
-            "ts": time.time(),
-        }
-        post.setdefault("comments", []).append(c_item)
-        added.append(c_item)
-
-    reacts = post.setdefault("reactions", {})
-    for emo in (parsed.get("reactions") or [])[:2]:
-        if emo in SUBTEXT_REACTIONS and chars:
-            who = messenger.char_profile(chars[0])["display_name"]
-            lst = list(reacts.get(emo) or [])
-            if who not in lst:
-                lst.append(who)
-            reacts[emo] = lst
-
+    for r in (raw.get("replies") if isinstance(raw.get("replies"), list) else [])[:3]:
+        reply = _reply(state, post, r, by_slug, ppl)
+        if reply:
+            post.setdefault("comments", []).append(reply)
+            added.append(reply)
+    for r in (raw.get("reactions") if isinstance(raw.get("reactions"), list) else [])[:3]:
+        if isinstance(r, dict) and r.get("emoji") in REACTIONS and r.get("author") in by_slug:
+            who = post.setdefault("reactions", {}).setdefault(r["emoji"], [])
+            if r["author"] not in who:
+                who.append(r["author"])
     return added
 
 
-def create_user_post(user, text, visibility="public", title="", chars_for_replies=None):
-    """Create a Subtext post authored by the user (Main, Locked Burner, or AITA) and optionally trigger character replies."""
-    u_prof = messenger.user_profile(user)
-    now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
-    vis = visibility if visibility in ("public", "burner", "aita") else "public"
-    base_h = u_prof.get("handle", "@you").lstrip("@")
-    if vis == "burner":
-        handle = f"@{base_h}_priv"
-    elif vis == "aita":
-        handle = f"u/Throwaway_{base_h[:8]}"
+# ---------------------------------------------------------------------------------------------------------------
+# What the user does
+# ---------------------------------------------------------------------------------------------------------------
+
+def post_as_user(user, text, account="main", title=""):
+    state = load(user)
+    account = account if account in ACCOUNTS else "main"
+    text = str(text or "").strip()[:1200]
+    if not text:
+        raise ValueError("Write something to post first.")
+    post = _new_post("user", account, str(title or "").strip()[:220] or ("AITA?" if account == "aita" else ""), text)
+    state["posts"].insert(0, post)
+    save(user, state)
+    return post, state
+
+
+def comment_as_user(user, state, post, text, verdict=""):
+    if not can_see(state, post, "user"):
+        raise ValueError("You don't follow this locked account, so your character can't see it to reply.")
+    text = str(text or "").strip()[:600]
+    if not text:
+        raise ValueError("The reply is empty.")
+    verdict = str(verdict or "").upper()
+    verdict = verdict if post.get("account") == "aita" and verdict in VERDICTS else ""
+    if verdict:
+        vote(post, verdict)
+    reply = {"id": "stc_" + uuid.uuid4().hex[:8], "author": "user",
+             "account": "burner" if post.get("account") == "burner" and post.get("author") == "user" else "main",
+             "verdict": verdict, "text": text, "ts": time.time()}
+    post.setdefault("comments", []).append(reply)
+    return reply
+
+
+def react(post, emoji, key="user"):
+    if emoji not in REACTIONS:
+        raise ValueError("Pick one of the reactions.")
+    who = post.setdefault("reactions", {}).setdefault(emoji, [])
+    if key in who:
+        who.remove(key)
     else:
-        handle = u_prof.get("handle", "@you")
-
-    post_item = {
-        "id": "st_" + uuid.uuid4().hex[:8],
-        "author_slug": "user",
-        "author_name": u_prof.get("display_name") or user.username,
-        "author_avatar": u_prof.get("avatar_url") or "",
-        "status_emoji": u_prof.get("status_emoji") or "✨",
-        "handle": handle,
-        "visibility": vis,
-        "title": str(title or "").strip()[:220] if vis == "aita" else "",
-        "text": str(text or "").strip()[:1200],
-        "subtweet_note": "My Locked Burner" if vis == "burner" else ("AITA Thread" if vis == "aita" else "Posted by you"),
-        "photo": None,
-        "aita_votes": {"nta": 0, "yta": 0, "esh": 0, "user_vote": ""},
-        "reactions": {},
-        "comments": [],
-        "time": now_hm,
-        "ts": time.time(),
-    }
-
-    if chars_for_replies:
-        try:
-            generate_replies_for_post(user, post_item, chars_for_replies)
-        except Exception as e:
-            log.info("Auto replies on user Subtext post skipped: %s", e)
-
-    state = get_subtext_state(user)
-    all_posts = [post_item] + state["posts"]
-    save_subtext_state(user, {"posts": all_posts})
-    return post_item
+        who.append(key)
+    if not who:
+        post["reactions"].pop(emoji, None)
 
 
-def forward_post_to_telechat(user, post, char_obj, user_comment=""):
-    """
-    Forward a Subtext post (public, locked burner, or AITA thread) straight into the user's TeleChat DM
-    with `char_obj`, and generate the character's immediate TeleChat reaction!
-    """
+def vote(post, verdict):
+    votes = post.setdefault("votes", {"nta": 0, "yta": 0, "esh": 0})
+    before = post.get("user_vote") or ""
+    if before.lower() in votes:
+        votes[before.lower()] = max(0, int(votes[before.lower()]) - 1)
+    votes[verdict.lower()] = int(votes.get(verdict.lower()) or 0) + 1
+    post["user_vote"] = verdict
+
+
+def set_followers(state, owner, keys, valid):
+    """Who follows `owner`'s burner (characters and/or "user")."""
+    state.setdefault("burners", {})[owner] = {"followers": [k for k in dict.fromkeys(keys or []) if k in valid and k != owner]}
+
+
+def set_knows(state, post, key, knows=True, how=""):
+    """✓ knows: this character has seen the post because of the story (or, for aita, knows who wrote it)."""
+    knows_map = dict(post.get("knows") or {})
+    if knows:
+        knows_map[key] = " ".join(str(how or "").split())[:200]
+    else:
+        knows_map.pop(key, None)
+    post["knows"] = knows_map
+
+
+def forward(user, state, post, char_obj, chars, comment=""):
+    """Send a post into the DM with `char_obj` and get their reply. Seeing it there, they now know it."""
+    author_name = people(user, chars).get(post.get("author"), {}).get("name") or "someone"
+    had_seen = can_see(state, post, char_obj.slug)
+    if not had_seen or (post.get("account") == "aita" and not knows_author(state, post, char_obj.slug)):
+        set_knows(state, post, char_obj.slug, True, "The user sent it to them in a DM")
+    save(user, state)
+    label = {"main": "Subtext post", "burner": "post from a locked Subtext account", "aita": "anonymous AITA thread"}[post.get("account", "main")]
+    quoted = (post.get("title") + " — " if post.get("title") else "") + str(post.get("text") or "")
     thread = messenger.ensure_thread_for_character(user, char_obj)
-    u_prof = messenger.user_profile(user)
-    td = messenger.thread_data(thread)
-    now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
-
-    vis_badge = {
-        "burner": "🔒 Locked Burner Post",
-        "aita": "⚖️ AITA Thread",
-        "public": "🌐 Subtext Post",
-    }.get(post.get("visibility"), "🌐 Subtext Post")
-
-    quoted = post.get("text") or ""
-    if post.get("title"):
-        quoted = f"{post['title']} — {quoted}"
-
-    msg_text = f"> **{vis_badge} by {post.get('handle')}**\n> \"{quoted[:300]}\"\n\n"
-    if user_comment and user_comment.strip():
-        msg_text += user_comment.strip()
-    else:
-        msg_text += "Care to explain this post?" if post.get("visibility") != "public" else "Saw your post on Subtext."
-
-    user_msg = {
-        "id": uuid.uuid4().hex[:10],
-        "role": "user",
-        "sender_slug": "user",
-        "sender_name": u_prof.get("display_name") or user.username,
-        "text": msg_text,
-        "time": now_hm,
-        "ts": time.time(),
-        "reactions": {},
-    }
-    td["messages"].append(user_msg)
-    messenger.save_thread_data(thread, td)
-
-    extra_dir = (
-        f"{u_prof.get('display_name') or user.username} just forwarded your {vis_badge} ({post.get('handle')}: \"{quoted[:220]}\") "
-        f"into your private TeleChat DMs and said: \"{user_comment or 'Care to explain this?'}\". "
-        f"React naturally in-character (especially if you got caught subtweeting on your locked burner or posting an 'anonymous' AITA thread!)."
-    )
-    turn = messenger.generate_turn(user, thread, extra_instruction=extra_dir)
-    return thread, user_msg, turn
+    data = messenger.thread_data(thread)
+    me = messenger.user_profile(user)
+    text = f"> {label}" + (f" by {author_name}" if post.get("account") != "aita" else "") + f"\n> \"{quoted[:300]}\"\n\n" \
+        + (comment.strip() or "Saw this.")
+    msg = {"id": uuid.uuid4().hex[:10], "role": "user", "sender_slug": "user",
+           "sender_name": me.get("display_name") or user.username, "text": text,
+           "time": timezone.localtime(timezone.now()).strftime("%H:%M"), "ts": time.time(), "reactions": {}}
+    data["messages"].append(msg)
+    messenger.save_thread_data(thread, data)
+    mine = post.get("author") == char_obj.slug
+    note = (f"The user just sent you a {label}" + (" that YOU wrote" if mine else f" by {author_name}" if post.get("account") != "aita" else "")
+            + f": \"{quoted[:220]}\"." + ("" if had_seen else " You hadn't seen it before.")
+            + (" It was posted on your locked account: they shouldn't have been able to see it, unless they follow it."
+               if mine and post.get("account") == "burner" and not can_see(state, post, "user") else "")
+            + " React as yourself.")
+    turn = messenger.generate_turn(user, thread, extra_instruction=note)
+    return thread, msg, turn

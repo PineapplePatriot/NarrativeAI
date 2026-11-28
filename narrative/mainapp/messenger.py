@@ -1619,6 +1619,13 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     linked = linked_block(user, thread, data)
     if linked:  # 🔗
         sys_content += "\n\n" + linked
+    try:  # 🌐 the Subtext posts these characters have seen
+        from mainapp import subtext
+        seen = subtext.seen_block(user, chars)
+    except Exception:
+        seen = ""
+    if seen:
+        sys_content += "\n\n" + seen
     lore = lore_block(chars, delivered(data["messages"]))
     if lore:  # 📚 this setup's worldbook, the entries that apply now
         sys_content += "\n\n" + lore
