@@ -826,6 +826,7 @@ function handleReply(data) {
                 avatarToUse = data.photo_second;
             }
             placeReply(data, avatarToUse);
+            if (data.cut_by_filter) showChatError(`The model's own safety filter stopped this reply partway (${data.cut_by_filter}), so it ends early. No setting in the app switches that filter off.`, true);
             setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count, data.photo_user);
@@ -1463,7 +1464,7 @@ function continueGeneration(direction) {
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'continue', direction: typeof direction === 'string' ? direction : '' })
+        body: JSON.stringify({ action: 'continue', direction: typeof direction === 'string' ? direction : '', stream: !!window.STREAM_REPLIES })
     })
         .then(res => res.json())
         .then(data => {
@@ -1481,6 +1482,7 @@ function continueGeneration(direction) {
                 messageTextDiv.setAttribute('data-raw', encodeURIComponent(data.reply));
                 hiddenTextarea.value = data.reply;
                 setPolish(lastMsgElement, null);
+                if (data.cut_by_filter) showChatError(`The model's own safety filter stopped this continuation partway (${data.cut_by_filter}), so it ends early. No setting in the app switches that filter off.`, true);
                 if (data.translated) setOriginal(lastMsgElement, data.original);  // only the new part was translated
                 else afterReplyText(lastMsgElement, data.polish_due);
 
