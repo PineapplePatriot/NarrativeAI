@@ -997,15 +997,24 @@ def chat(request, slug):
                 fresh = chats.read(chat_obj)
                 chats.write(chat_obj, {**fresh, "translation_cache": {k: v for k, v in cache.items() if k in live}})
             return JsonResponse({"success": True, "pieces": out, "language": translation.LANGUAGES[reading]})
+        elif action == "reload_note":  # ↻ the page is about to reload: why (one log line, no message text)
+            log.warning("Chat page reload (chat %s, %s messages): %s", chat_obj.id, len(messages),
+                        str(data.get("why") or "")[:120])
+            return JsonResponse({"success": True})
         elif action == "translate":  # a reply (English) into the language they read, once it's written and polished
             reading = translation.reading_language(request.user)
             try:
                 index = int(data.get("index"))
             except (TypeError, ValueError):
                 return JsonResponse({"success": False, "error": "Invalid request data"})
+            sent = str(data.get("text") or "")
+            if sent and not (0 <= index < len(messages) and messages[index][2] == sent):
+                # the page's numbering is off (a refused or removed message, notes): find the reply by its text
+                index = next((i for i in range(len(messages) - 1, -1, -1)
+                              if messages[i][0] == "assistant" and messages[i][2] == sent), index)
             if not reading or not 0 <= index < len(messages) or messages[index][0] != "assistant":
-                return JsonResponse({"success": False, "resync": not (0 <= index < len(messages)),
-                                     "error": "Nothing to translate there."})
+                log.warning("Translate: no reply at %s of %s (chat %s)", data.get("index"), len(messages), chat_obj.id)
+                return JsonResponse({"success": False, "error": "That reply isn't in the saved chat."})
             done = translation.translation_of(messages[index])
             if done and done["language"] == reading:
                 return JsonResponse({"success": True, "text": done["text"], "original": messages[index][2]})
