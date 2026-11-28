@@ -8,6 +8,7 @@ Connections page; tasks without their own setting use the main chat connection.
 import json
 import hashlib
 import logging
+import threading
 import os
 import re
 import time
@@ -727,6 +728,7 @@ def stream(user, task, messages, timeout=None, **params):
         if wrote and _blocking_stop(stop):  # cut off partway by the provider's filter: the reply is shorter than written
             _diagnostic(profile, payload, task, operation, "cut_by_filter", resp, {"choices": [{"finish_reason": stop}]})
             logging.getLogger(__name__).warning("%s: %s cut the reply off partway (stop reason %s)", label, model, stop)
+            _cut.reason = stop  # the page says so (take_cut), rather than showing it as a finished short reply
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
             _diagnostic(profile, payload, task, operation, "blocked_stream", resp,
                         {"choices": [{"finish_reason": stop}]})
@@ -762,6 +764,16 @@ def empty_explanation(reason):
 
 def _blocking_stop(stop):
     return str(stop or "").lower() in BLOCK_STOPS
+
+
+_cut = threading.local()  # a stream the provider's filter stopped partway, on this thread (one reply at a time)
+
+
+def take_cut():
+    """The stop reason if the last stream on this thread was cut off partway by a filter (then forgotten), else ""."""
+    reason = getattr(_cut, "reason", "")
+    _cut.reason = ""
+    return reason
 
 
 def block_explanation(reason, model=""):

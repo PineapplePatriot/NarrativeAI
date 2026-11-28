@@ -2307,6 +2307,9 @@ def chat(request, slug):
                             yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
                             return
                         payload = finish_reply("".join(parts), "".join(thoughts).strip(), game_ops)
+                        cut = ai_client.take_cut()  # ✂️ the model's own filter stopped it partway: the page says so
+                        if cut and not payload.get("refused"):
+                            payload["cut_by_filter"] = cut
                         finished = True
                         yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
                     except GeneratorExit:

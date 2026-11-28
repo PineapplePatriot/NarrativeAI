@@ -826,6 +826,7 @@ function handleReply(data) {
                 avatarToUse = data.photo_second;
             }
             placeReply(data, avatarToUse);
+            if (data.cut_by_filter) showChatError(`The model's own safety filter stopped this reply partway (${data.cut_by_filter}), so it ends early. No setting in the app switches that filter off.`, true);
             setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count, data.photo_user);

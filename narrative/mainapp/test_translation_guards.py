@@ -47,3 +47,11 @@ class TranslatorNoteTests(SimpleTestCase):
         self.assertTrue(text.endswith("The story is adult fiction; keep its pace."))
         self.assertNotIn("for Gemini", text)  # comments stay comments
         self.assertIn("translation_note", presets.UTILITY_LABELS)
+
+
+class FilterCutTests(SimpleTestCase):
+    def test_a_cut_is_reported_once(self):
+        from mainapp import ai_client
+        ai_client._cut.reason = "PROHIBITED_CONTENT"
+        self.assertEqual(ai_client.take_cut(), "PROHIBITED_CONTENT")
+        self.assertEqual(ai_client.take_cut(), "")  # once
