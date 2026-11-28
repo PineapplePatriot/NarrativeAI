@@ -28,13 +28,39 @@ class TranslationError(ai_client.AIError):
     pass
 
 
-def _instructions(user, base):
-    """Translate the supplied material, without adding unrelated generation instructions.
+# With mature content on, one calm line of context (the wording the chat sends Gemini, mature.PLAIN_LINE): not the
+# insistent "don't refuse" kind, which Gemini's classifiers read as a jailbreak. Only the one text is ever sent.
+ADULT_LINE = ("\n\nThe story is fiction for adults; mature content is fine when the story calls for it. "
+              "Translate it as written.")
+# A translation much shorter than its English was condensed or softened (characters: CJK scripts run short)
+MIN_LENGTH = {"ja": .25, "zh": .2, "ko": .3}
+MIN_LENGTH_DEFAULT = .6
+CHECK_FROM = 300  # characters of English before the length check means anything
 
-    Account permission for mature scenes does not establish the content or character ages of
-    this passage. Faithfulness and formatting are specified by each task's base prompt.
-    """
-    return base
+
+def _instructions(user, base):
+    """The translator's instructions; with mature content on in their preset, a calm line saying it's adult
+    fiction; and their preset's own "Translator note" (utility translation_note), if they wrote one."""
+    if user is None:
+        return base
+    try:
+        from mainapp import mature, presets
+        preset = presets.normalize(presets.get_active(user).data)
+    except Exception:  # no preset yet: the plain instructions
+        return base
+    # macros as in a block ({{// comments}} and {{trim}} gone); no names here: the translator gets them as a glossary
+    note = presets.expand(preset["utility"].get("translation_note") or "", presets.MacroContext({})).strip()
+    return base + (ADULT_LINE if mature.is_on(preset) else "") + (f"\n\n{note}" if note else "")
+
+
+def check(text, translated, target):
+    """Raises TranslationError for a translation that isn't one: a refusal, or much shorter than the English."""
+    from mainapp import refusals
+    if refusals.is_refusal(translated) and not refusals.is_refusal(text):
+        raise TranslationError("The translator declined this passage, so it shows in English.")
+    if len(text) >= CHECK_FROM and len(translated) < MIN_LENGTH.get(target, MIN_LENGTH_DEFAULT) * len(text):
+        raise TranslationError("The translation came back much shorter than the English (parts were left out), "
+                               "so it shows in English.")
 
 
 def fingerprint(text):
@@ -61,6 +87,7 @@ def translate(user, text, target, *, source="en", glossary=None):
         raise TranslationError("Translation returned no usable text. The original is unchanged.")
     if Counter(PROTECTED.findall(text)) != Counter(PROTECTED.findall(translated)):
         raise TranslationError("Translation changed formatting or application markers. The original is unchanged.")
+    check(text, translated, target)
     return translated
 
 

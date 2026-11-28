@@ -3890,11 +3890,19 @@ class TranslationWorkflowTests(ChatPromptTests):
             with self.assertRaises(translation.TranslationError):
                 translation.translate_extras(None, [note, phone], "uk")  # incomplete: they stay English
 
-    def test_translation_does_not_add_mature_scene_instructions_to_benign_text(self):
+    def test_translation_gets_one_calm_line_of_adult_context_when_mature_is_on(self):
         from unittest import mock
         from mainapp import mature, presets, translation
         obj = presets.get_active(self.user)
         obj.data = mature.set_on(presets.normalize(obj.data), True)
+        obj.save()
+        with mock.patch.object(translation.ai_client, "complete", return_value='{"text": "Привіт"}') as call:
+            translation.translate(self.user, "Hello", "uk")
+        sent = call.call_args[0][2]
+        self.assertEqual(sent[0]["content"], translation.INSTRUCTIONS + translation.ADULT_LINE)
+        self.assertNotIn("refuse", translation.ADULT_LINE)  # calm, not the insistent kind Gemini reads as a jailbreak
+        self.assertEqual(len(sent), 2)  # the instructions and the one text: never the chat history
+        obj.data = mature.set_on(presets.normalize(obj.data), False)
         obj.save()
         with mock.patch.object(translation.ai_client, "complete", return_value='{"text": "Привіт"}') as call:
             translation.translate(self.user, "Hello", "uk")

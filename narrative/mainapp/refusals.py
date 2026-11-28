@@ -17,8 +17,12 @@ MIMO = ("xiaomi/mimo-v2.6-pro", "MiMo v2.6 Pro", "cheap, routed to providers tha
 DECLINE = re.compile(
     r"^\W*(?:I(?:'m| am) (?:sorry|unable|not able|not comfortable)|I can(?:'|no)t (?:help|continue|assist|write|create|"
     r"provide|engage|produce|do)|I won'?t (?:write|continue|create|produce)|Sorry, (?:but )?I can|As an AI|"
-    r"I (?:must|have to) (?:decline|refuse)|This (?:request|content) (?:violates|goes against))", re.I)
-TOPIC = re.compile(r"content|request|roleplay|role-play|guideline|polic|story|scenario|explicit|appropriate|write", re.I)
+    r"I (?:must|have to) (?:decline|refuse)|This (?:request|content) (?:violates|goes against)|"
+    # Ukrainian (a story written in it directly): "Я не можу продовжити цю сцену…", "Вибачте, але я не можу…"
+    r"(?:Вибачте|Перепрошую|На жаль)[,.!]?\s*(?:але\s+)?я не можу|Я не можу (?:продовжити|допомогти|написати|"
+    r"створити|створювати|описати|писати|виконати|взяти участь)|Я не створюю|Як (?:ШІ|модель))", re.I)
+TOPIC = re.compile(r"content|request|roleplay|role-play|guideline|polic|story|scenario|scene|explicit|appropriate|write|"
+                   r"сцен|контент|матеріал|запит|сексуальн|еротич|відверт|історі|сюжет|правил", re.I)
 
 
 def is_refusal(text):

@@ -69,6 +69,7 @@ UTILITY_DEFAULTS = {
     "new_chat": "[Start a new chat]",
     "assistant_prefill": "",
     "assistant_impersonation": "",
+    "translation_note": "",
 }
 
 # The app's own jobs: only their instructions are here (what to keep, how to write); the format each job must
@@ -124,6 +125,9 @@ UTILITY_LABELS = {
     "new_chat": ("New chat", "Placed before the chat in strict mode, when the chat would otherwise start with the character."),
     "assistant_prefill": ("Assistant prefill", "Starts the AI's reply for it. Skipped on models that reject prefill (newest Claude)."),
     "assistant_impersonation": ("Impersonation prefill", "Starts the impersonated message."),
+    "translation_note": ("Translator note", "Added to the translator's instructions when you read the story in "
+                                           "another language (Profile → Story language): context the translation "
+                                           "model should have, which your story blocks don't reach."),
     "summary_new": ("Story summary", "How the summary model writes a summary from scratch."),
     "summary_continue": ("Summary, continued", "How it adds the newest events to an existing summary."),
     "tracker_rules": ("Tracker rules", "How the trackers are kept up to date (answering in JSON, the tracker list and "
