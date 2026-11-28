@@ -111,8 +111,14 @@ function groupOf(headerId) {
 const ROLE_ICON = { system: '⚙', user: '🙂', assistant: '🤖' };
 const PALETTE = ['#a78bfa', '#67e8f9', '#f9a8d4', '#fcd34d', '#86efac', '#fda4af', '#93c5fd', '#fdba74'];
 
+// When a block is sent: every kind of reply (no limit), or only some (SillyTavern's injection_trigger)
+const FIRES = [['normal', 'New reply'], ['swipe', 'Swipe / regenerate'], ['continue', 'Continue'],
+    ['impersonate', 'Write for me'], ['quiet', 'Background jobs']];
+const firesLabel = (t) => t.map(k => (FIRES.find(f => f[0] === k) || [k, k])[1].toLowerCase()).join(', ');
+
 function badges(b) {
     const out = [];
+    if ((b.triggers || []).length && b.kind !== 'header') out.push(`<span class="chip fires-on" title="Sent only on: ${esc(firesLabel(b.triggers))}. Change it under Fires on.">⚡ only ${esc(firesLabel(b.triggers))}</span>`);
     if (b.role !== 'system') out.push(`<span class="chip role-${b.role}" title="Sent as a ${b.role} message">${ROLE_ICON[b.role]} ${b.role}</span>`);
     if (b.position === 'in_chat') out.push(`<span class="chip in-chat" data-depth-chip title="Inside the chat, ${b.depth} message(s) from the end">⤵ in chat @${b.depth}</span>`);
     return out.join('');
@@ -139,6 +145,9 @@ function editor(b) {
         <label ${b.position === 'in_chat' ? '' : 'hidden'}>Order<input data-f="order" type="number" value="${b.order}">
           <span class="hint">Lower goes first among blocks at the same depth.</span></label>
       </div>
+      <fieldset class="fires-on-set"><legend>Fires on <span class="hint">${(b.triggers || []).length ? 'only the ticked kinds' : 'every kind of reply'}</span></legend>
+        ${FIRES.map(([k, label]) => `<label class="inline"><input type="checkbox" data-trig="${k}" ${!(b.triggers || []).length || b.triggers.includes(k) ? 'checked' : ''}> ${label}</label>`).join('')}
+      </fieldset>
       ${isMarker
         ? `<p class="help">This is a slot: the app fills it with <b>${esc(DATA.markers[b.marker] || b.marker)}</b>. You can move it, switch it off or change its role.</p>`
         : `<label>Text <span class="hint" data-tokens>~${approxTokens(b.content)} tokens</span>
@@ -352,6 +361,14 @@ $('blocks').addEventListener('change', e => {
     const id = e.target.dataset.toggle;
     if (id) {
         blockById(id).enabled = e.target.checked;
+        renderBlocks(); scheduleSave();
+        return;
+    }
+    if (e.target.dataset.trig) {  // ⚡ Fires on: all ticked = no limit (stored as none)
+        const ed = e.target.closest('[data-editor]'), b = blockById(ed.dataset.editor);
+        const on = [...ed.querySelectorAll('[data-trig]')].filter(x => x.checked).map(x => x.dataset.trig);
+        if (!on.length) { e.target.checked = true; return; }  // it has to fire on something: switch it off instead
+        b.triggers = on.length === FIRES.length ? [] : on;
         renderBlocks(); scheduleSave();
         return;
     }

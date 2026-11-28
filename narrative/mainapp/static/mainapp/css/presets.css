@@ -339,3 +339,9 @@ button.legend:hover { color: var(--text-primary) }
 /* Utility prompts: the app's jobs */
 .utility-group { margin: 20px 0 6px; font-size: 1rem; }
 .reset-utility { float: right; font-size: .8rem; padding: 3px 10px; cursor: pointer; }
+/* ⚡ Fires on: when a block is sent */
+.chip.fires-on { color: #fcd34d; border-color: rgba(252, 211, 77, .45) }
+.fires-on-set { border: 1px solid rgba(127,127,127,.3); border-radius: 8px; padding: 6px 10px 8px; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.fires-on-set legend { font-size: .9em; padding: 0 4px; }
+.fires-on-set label.inline { display: inline-flex; align-items: center; gap: 5px; font-size: .9em; }
+.fires-on-set input[type=checkbox] { width: auto; margin: 0; }

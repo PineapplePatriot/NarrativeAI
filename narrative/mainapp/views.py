@@ -1792,6 +1792,8 @@ def chat(request, slug):
                 names = prompt_names(request.user, character, chat_state["persona"])
                 history = _history(messages)
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
+                if control.mode_of(preset) == "director":  # each direction says what it means, as for a new reply
+                    history = control.frame_directions(history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 direction = str(data.get("direction") or "").strip()[:600]  # ✂️ Cut & continue's note, if they wrote one
@@ -1804,9 +1806,31 @@ def chat(request, slug):
                 built, _ = recall.assemble_with_recall(
                     presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                     history, names, chat_model, generation="continue")
-                english = translation.english_note(request.user)
-                new_chunk = ai_client.complete(request.user, "chat", built["messages"] + ([english] if english else []),
-                                               **built["params"])
+                # the same notes a new reply gets (habits, colours, voice examples, texture, English, MiMo's leash)
+                built = reply_notes(request.user, chat_obj, character, messages, built, chat_model, names)
+                # the continue nudge stays the very last words the model reads (the notes go before it)
+                moved = []
+                for m in built["messages"]:
+                    if isinstance(m.get("content"), str) and nudge in m["content"]:
+                        m = {**m, "content": m["content"].replace(nudge, "").strip()}
+                    if not isinstance(m.get("content"), str) or m["content"].strip():
+                        moved.append(m)
+                last = moved[-1] if moved else None
+                if last and last.get("role") == nudge_role and isinstance(last.get("content"), str):
+                    moved[-1] = {**last, "content": last["content"].rstrip() + "\n\n" + nudge}
+                else:
+                    moved.append({"role": nudge_role, "content": nudge})
+                built = {**built, "messages": moved}
+                # streamed when replies are (the page asks, the preset allows), collected here: a filter that stops it
+                # partway keeps what came before, and says so
+                ai_client.take_cut()
+                if bool(data.get("stream")) and preset["options"].get("streaming", True):
+                    new_chunk = "".join(p for p in ai_client.stream(request.user, "chat", built["messages"], **built["params"])
+                                        if isinstance(p, str) and not isinstance(p, ai_client.Reasoning))
+                else:
+                    new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+                cut = ai_client.take_cut()
+                new_chunk = thinking.split(new_chunk)[1] if "<think" in new_chunk else new_chunk
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
 
@@ -1845,6 +1869,7 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "reply": shown, "translated": shown != full_text,
                                  "original": full_text if shown != full_text else "",
+                                 "cut_by_filter": cut,
                                  "polish_due": False})  # the new part is cleaned already; the rest stays
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
@@ -2047,27 +2072,7 @@ def chat(request, slug):
                                                 tables=story.of_type(systems, "table"))
                     if stand_in:
                         built = {**built, "params": {**built["params"], "model": stand_in}}
-                    # 🔁 a detail the last replies keep coming back to (a street lamp, the rain): leave it out this time
-                    plain = [m for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and not chats.is_note(m)]
-                    stale = fresh_details.repeated(
-                        [m[2] for m in plain if m[0] == "assistant"],
-                        theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
-                        names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
-                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
-                    built = {**built, "messages": favourites.insert_before_chat(built["messages"], favourites.note(character))}
-                    texture_note = texture.for_reply(request.user, [m[2] for m in plain[-4:]])  # 🧵 real specifics
-                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], texture_note)}
-                    from mainapp.bulba import polish as polish_mod  # 🛡 the habits to keep out, before it writes
-                    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(
-                        request.user, chat_obj, [m[2] for m in plain if m[0] == "assistant"], len(messages)))}
-                    english = translation.english_note(request.user)  # read in another language: written in English
-                    if english:
-                        built = {**built, "messages": built["messages"] + [english]}
-                    if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
-                        built = {**built, "messages": speaker_colors.remind(built["messages"])}
-                    if thinking.needs_leash(chat_model, samplers.thinking_now(request.user)):  # MiMo: think briefly, then write
-                        leashed, leash_params = thinking.leash(built["messages"], built["params"])
-                        built = {**built, "messages": leashed, "params": leash_params}
+                    built = reply_notes(request.user, chat_obj, character, messages, built, chat_model, names)
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -2868,6 +2873,36 @@ def prompt_slots(user, character, prompt, chat_persona=None):
         "director_note": extra.get("DirectorNote", ""),
         "char_depth_prompt": cards.depth_prompt(character),
     }
+
+
+def reply_notes(user, chat_obj, character, messages, built, chat_model, names):
+    """What every story reply request gets on top of the preset, for a new reply and for Continue alike: the detail the
+    last replies keep returning to, voice examples from starred replies, real specifics (texture), the habits to keep
+    out (and what to do instead), the English note for a reader in another language, the story colours reminder, and
+    MiMo's "think briefly" leash. `messages`: the chat as saved (the reply being continued included)."""
+    from mainapp.bulba import polish as polish_mod
+    # 🔁 a detail the last replies keep coming back to (a street lamp, the rain): leave it out this time
+    plain = [m for m in messages if isinstance(m, (list, tuple)) and len(m) > 2 and not chats.is_note(m)]
+    stale = fresh_details.repeated(
+        [m[2] for m in plain if m[0] == "assistant"],
+        theirs=[m[2] for m in plain if m[0] == "user"][-fresh_details.WINDOW:],
+        names=[character.name, character.second_name or "", names.get("user", ""), names.get("char", "")])
+    built = {**built, "messages": fresh_details.add_before_note(built["messages"], fresh_details.note(stale))}
+    built = {**built, "messages": favourites.insert_before_chat(built["messages"], favourites.note(character))}
+    texture_note = texture.for_reply(user, [m[2] for m in plain[-4:]])  # 🧵 real specifics
+    built = {**built, "messages": fresh_details.add_before_note(built["messages"], texture_note)}
+    # 🛡 the habits to keep out, before it writes
+    built = {**built, "messages": fresh_details.add_before_note(built["messages"], polish_mod.avoid_line(
+        user, chat_obj, [m[2] for m in plain if m[0] == "assistant"], len(messages)))}
+    english = translation.english_note(user)  # read in another language: written in English
+    if english:
+        built = {**built, "messages": built["messages"] + [english]}
+    if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
+        built = {**built, "messages": speaker_colors.remind(built["messages"])}
+    if thinking.needs_leash(chat_model, samplers.thinking_now(user)):  # MiMo: think briefly, then write
+        leashed, leash_params = thinking.leash(built["messages"], built["params"])
+        built = {**built, "messages": leashed, "params": leash_params}
+    return built
 
 
 def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True, generation="normal",
