@@ -598,7 +598,7 @@ async function requestReply(body) {
     const lost = () => {
         if (bubble) bubble.closest('.message').classList.remove('streaming');
         showChatNotice('📶 The connection dropped mid-reply. Showing what was saved…');
-        setTimeout(() => window.location.reload(), 1200);
+        reloadFor('the connection dropped mid-reply (nothing arrived for a while)', 1200);
         return { stopped: true, bubble };
     };
     try {
@@ -858,7 +858,7 @@ function followLiveReply() {
     scrollToBottom();
     requestReply({ action: 'follow' })
         .then(data => {
-            if (data.none) { if (data.done) window.location.reload(); return; }  // it finished meanwhile: it's saved
+            if (data.none) { if (data.done) reloadFor('the reply finished while you were away', 0); return; }  // it's saved
             handleReply(data);
         })
         .catch(() => {})
@@ -979,7 +979,7 @@ function saveMessage(index) {
                 cancelEdit(index);
                 if (data.watch && window.Watch) Watch.refresh(data.watch);  // edited a polished reply: Bulba asks why
             } else {
-                if (data.resync) { showChatNotice(data.error); setTimeout(() => window.location.reload(), 900); }
+                if (data.resync) { showChatNotice(data.error); reloadFor('an edit found the chat changed since the page loaded', 900); }
                 else showChatError(data.keep_draft ? data.error + ' Your edit is still here: press Save to try again.'
                                                    : 'Could not save it: ' + (data.error || 'unknown error'));
             }
@@ -1056,7 +1056,7 @@ function confirmDelete() {
                 if (window.Trackers && Trackers.setStory) Trackers.setStory(data.story);
             } else if (data.resync) {
                 showChatNotice(data.error);  // the page was out of step with the saved chat
-                setTimeout(() => window.location.reload(), 900);
+                reloadFor('a delete found the chat changed since the page loaded', 900);
             } else {
                 showChatError('Could not delete it: ' + (data.error || 'unknown error'));
             }
@@ -1430,7 +1430,7 @@ function startCut(messageEl) {
             const d = await resp.json();
             if (!d.success) {
                 showChatNotice(d.error || 'Could not cut it.');
-                if (d.resync) setTimeout(() => window.location.reload(), 900);
+                if (d.resync) reloadFor('a cut found the reply changed since the page loaded', 900);
                 bar.querySelectorAll('button').forEach(x => { x.disabled = false; });
                 return;
             }
@@ -2062,6 +2062,23 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         }
         showChatNotice(e.data.bulba === 'undo' ? 'Bulba undid its change.' : 'Bulba changed your setup: the next reply uses it.');
     });
+})();
+
+// ↻ Every reload says why: the reason waits in this tab and shows after the reload (long enough to read), and the
+// server logs it in one line (no message text), so a page that keeps reloading can be traced
+function reloadFor(why, delay = 900) {
+    try { sessionStorage.setItem('chat-reload-why', why); } catch (e) { /* this tab only */ }
+    try {
+        fetch(window.location.href, { method: 'POST', keepalive: true,
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'reload_note', why }) }).catch(() => {});
+    } catch (e) { /* the reload matters more */ }
+    setTimeout(() => window.location.reload(), delay);
+}
+(function () {
+    let why = null;
+    try { why = sessionStorage.getItem('chat-reload-why'); sessionStorage.removeItem('chat-reload-why'); } catch (e) { /* none */ }
+    if (why) setTimeout(() => { showChatNotice(`↻ The page reloaded: ${why}.`); }, 1200);
 })();
 
 function showChatNotice(text) {
@@ -2741,13 +2758,14 @@ async function translateMessage(messageEl) {
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-            body: JSON.stringify({ action: 'translate', index: Number(messageEl.dataset.index) }),
+            // the reply's own text too: the server finds it by that if the page's numbering is off (no reload)
+            body: JSON.stringify({ action: 'translate', index: Number(messageEl.dataset.index),
+                                   text: decodeURIComponent(messageEl.querySelector('.message-text').getAttribute('data-raw') || '') }),
         });
         const d = await resp.json().catch(() => ({}));
         if (!d.success) {
             setOriginal(messageEl, '');
-            if (d.resync) { showChatNotice('This chat changed since the page loaded. Reloading it.'); setTimeout(() => window.location.reload(), 900); }
-            else showChatError(`${d.error || "Couldn't translate it."} The English is shown; press 🌐 on the reply to try again.`);
+            showChatError(`${d.error || "Couldn't translate it."} The English is shown; press 🌐 on the reply to try again.`);
             return;
         }
         showText(messageEl, d.text);
@@ -2812,7 +2830,7 @@ document.getElementById('presetHint')?.addEventListener('click', async (e) => {
     if (d.text) showChatNotice(d.text);
     if (['switch', 'undo', 'rebuild'].includes(action) && d.ok) {
         if (action === 'rebuild') showChatNotice(d.text + ' Changed your mind? Ask Bulba, or pick the previous one on the Presets page.');
-        setTimeout(() => window.location.reload(), 1600);
+        reloadFor('the preset changed', 1600);
     }
 });
 
